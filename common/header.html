@@ -5,7 +5,9 @@
   <div class="ddi-command-ribbon">
     <div class="ddi-ribbon-left"></div>
     <div class="ddi-ribbon-center">
-      <span class="ddi-ribbon-tab">DDI COMMAND NETWORK</span>
+      <div class="ddi-ribbon-tab">
+        <span>DDI COMMAND NETWORK</span>
+      </div>
     </div>
     <div class="ddi-ribbon-right">
       <span class="ddi-secure-link">SECURE CONNECTION</span>
@@ -13,23 +15,45 @@
   </div>
 
   <div class="ddi-command-main">
-    <aside class="ddi-brand-panel" aria-label="Branding panel">
-      <div class="ddi-brand-frame">
-        <p class="ddi-brand-label">Dagger Defense Corporation</p>
-        <p class="ddi-brand-system">Command Network</p>
+    <aside
+      class="ddi-command-side-panel ddi-command-side-panel--left"
+      aria-label="Organization status"
+    >
+      <div class="ddi-command-side-panel__frame">
+        <p class="ddi-command-side-panel__eyebrow">DDI Command Network</p>
+        <p class="ddi-command-side-panel__label">Organization Status</p>
+        <p class="ddi-command-side-panel__meta">Authorized Personnel Access</p>
+        <p class="ddi-command-side-panel__state">
+          <span></span>Condition Green
+        </p>
       </div>
     </aside>
 
-    <div class="ddi-command-title-panel" aria-label="Command identity">
-      <h1>DAGGER DEFENSE CORPORATION</h1>
-      <div class="ddi-title-divider"></div>
-      <p>INTERNAL COMMAND NETWORK</p>
-    </div>
+    <section class="ddi-command-hero" aria-label="Command identity">
+      <div class="ddi-command-hero__background">
+        <div class="ddi-command-hero__overlay"></div>
+        <div class="ddi-command-hero__content">
+          <p class="ddi-command-hero__kicker">Internal Organization System</p>
+          <h1>DAGGER DEFENSE CORPORATION</h1>
+          <div class="ddi-command-hero__divider">
+            <span></span>
+            <p>Command Network</p>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <aside class="ddi-status-panel" aria-label="System status">
-      <p class="ddi-status-label">System Status</p>
-      <p class="ddi-status-value">Condition Green</p>
-      <p class="ddi-status-meta">Member Systems Operational</p>
+    <aside
+      class="ddi-command-side-panel ddi-command-side-panel--right"
+      aria-label="System status"
+    >
+      <div class="ddi-status-card">
+        <p class="ddi-status-chip">Secure Connection</p>
+        <p class="ddi-status-label">System Status</p>
+        <p class="ddi-status-value">Condition Green</p>
+        <p class="ddi-status-meta">All Systems Nominal</p>
+      </div>
     </aside>
   </div>
 
