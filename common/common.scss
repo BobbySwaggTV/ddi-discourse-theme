@@ -12,6 +12,11 @@ body {
 	font-family: var(--ddi-font-body);
 	background:
 		radial-gradient(
+			1400px 760px at 50% -12%,
+			rgba(195, 28, 38, 0.12),
+			transparent 68%
+		),
+		radial-gradient(
 			1200px 540px at 50% -10%,
 			rgba(195, 28, 38, 0.1),
 			transparent 65%
@@ -22,6 +27,7 @@ body {
 			transparent 58%
 		),
 		linear-gradient(180deg, #0b0c0e 0%, #08090b 42%, #050607 100%);
+	background-attachment: fixed;
 }
 
 body::before,
@@ -685,40 +691,33 @@ a,
 	position: relative;
 	display: grid;
 	gap: 0.9rem;
-	padding: 0.95rem 1rem 1rem;
-	border: 1px solid var(--ddi-border-color);
-	clip-path: polygon(
-		var(--ddi-chamfer-sm) 0,
-		calc(100% - var(--ddi-chamfer-sm)) 0,
-		100% var(--ddi-chamfer-sm),
-		100% calc(100% - var(--ddi-chamfer-sm)),
-		calc(100% - var(--ddi-chamfer-sm)) 100%,
-		var(--ddi-chamfer-sm) 100%,
-		0 calc(100% - var(--ddi-chamfer-sm)),
-		0 var(--ddi-chamfer-sm)
-	);
+	padding: 0.95rem 0 1.2rem;
+	border-bottom: 1px solid rgba(69, 75, 82, 0.52);
 	background:
-		linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0%, transparent 34%),
-		linear-gradient(
-			165deg,
-			var(--ddi-color-steel-700) 0%,
-			var(--ddi-color-bg-panel) 36%,
-			var(--ddi-color-void) 100%
-		);
-	box-shadow:
-		inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-		inset 0 1px 0 rgba(255, 255, 255, 0.06),
-		inset 0 -1px 0 rgba(0, 0, 0, 0.56),
-		0 16px 32px rgba(0, 0, 0, 0.42);
+		linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0%, transparent 74%);
+	box-shadow: none;
 }
 
 .ddi-dashboard-section::after {
 	content: "";
 	position: absolute;
-	inset-block: 10% 62%;
-	inset-inline-end: 0;
-	inline-size: 2px;
-	background: linear-gradient(180deg, var(--ddi-accent-color), transparent);
+	inset-inline: 0;
+	bottom: -1px;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(195, 28, 38, 0.44), transparent);
+}
+
+.ddi-dashboard-section:first-child {
+	padding-top: 0.1rem;
+}
+
+.ddi-dashboard-section:last-child {
+	padding-bottom: 0.2rem;
+	border-bottom: 0;
+}
+
+.ddi-dashboard-section:last-child::after {
+	display: none;
 }
 
 .ddi-dashboard-section__header {
@@ -762,8 +761,8 @@ a,
 
 .ddi-dashboard-section__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	gap: 0.72rem;
+	grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+	gap: 0.78rem;
 }
 
 .ddi-dashboard-card {
@@ -786,11 +785,11 @@ a,
 	);
 	background:
 		linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 36%),
-		rgba(8, 10, 13, 0.78);
+		rgba(8, 10, 13, 0.66);
 	box-shadow:
 		inset 0 1px 0 rgba(255, 255, 255, 0.04),
 		inset 0 -1px 0 rgba(0, 0, 0, 0.58),
-		0 10px 22px rgba(0, 0, 0, 0.36);
+		0 8px 18px rgba(0, 0, 0, 0.28);
 	transition: border-color var(--ddi-transition), box-shadow var(--ddi-transition);
 }
 
@@ -990,8 +989,8 @@ a,
 .ddi-command-footer {
 	position: relative;
 	z-index: 2;
-	margin: 1.1rem auto 0;
-	max-width: 1700px;
+	margin: 0;
+	max-width: none;
 	padding: 0.8rem 1rem;
 	display: flex;
 	flex-wrap: wrap;
@@ -1003,7 +1002,7 @@ a,
 		var(--ddi-color-bg-panel-alt);
 	box-shadow:
 		inset 0 1px 0 rgba(255, 255, 255, 0.04),
-		0 16px 34px rgba(0, 0, 0, 0.42);
+		0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 .ddi-command-footer p {
@@ -1024,6 +1023,7 @@ a,
 
 .ddi-homepage-dashboard {
 	display: none;
+	position: relative;
 }
 
 body.navigation-topics:not(.category):not(.topic):not(.tags-page)
@@ -1031,10 +1031,74 @@ body.navigation-topics:not(.category):not(.topic):not(.tags-page)
 body.categories-list .ddi-homepage-dashboard,
 body.navigation-categories .ddi-homepage-dashboard {
 	display: grid;
-	gap: 1.1rem;
-	max-width: 1460px;
+	grid-column: 2;
+	grid-row: 1;
+	gap: 0;
+	margin: 0;
+	padding: 1rem 1.1rem 1.15rem;
+	border: 1px solid rgba(69, 75, 82, 0.82);
+	clip-path: polygon(
+		var(--ddi-chamfer-md) 0,
+		calc(100% - var(--ddi-chamfer-md)) 0,
+		100% var(--ddi-chamfer-md),
+		100% calc(100% - var(--ddi-chamfer-md)),
+		calc(100% - var(--ddi-chamfer-md)) 100%,
+		var(--ddi-chamfer-md) 100%,
+		0 calc(100% - var(--ddi-chamfer-md)),
+		0 var(--ddi-chamfer-md)
+	);
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0%, transparent 18%),
+		radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.03), transparent 52%),
+		rgba(7, 9, 11, 0.82);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+		inset 0 1px 0 rgba(255, 255, 255, 0.05),
+		inset 0 -1px 0 rgba(0, 0, 0, 0.56),
+		0 20px 44px rgba(0, 0, 0, 0.38);
+}
+
+body.navigation-topics:not(.category):not(.topic):not(.tags-page) #main-outlet,
+body.categories-list #main-outlet,
+body.navigation-categories #main-outlet {
+	position: relative;
+	display: grid;
+	grid-template-columns: minmax(252px, 288px) minmax(0, 1fr);
+	align-items: start;
+	gap: 1rem;
+	width: min(100%, 1700px);
 	margin: 0 auto;
-	padding: 0.4rem 0.35rem 0.7rem;
+	padding: 0.75rem 1rem 1.15rem;
+}
+
+body.navigation-topics:not(.category):not(.topic):not(.tags-page) #main-outlet::before,
+body.categories-list #main-outlet::before,
+body.navigation-categories #main-outlet::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	border: 1px solid rgba(69, 75, 82, 0.55);
+	clip-path: polygon(
+		var(--ddi-chamfer-lg) 0,
+		calc(100% - var(--ddi-chamfer-lg)) 0,
+		100% var(--ddi-chamfer-lg),
+		100% calc(100% - var(--ddi-chamfer-lg)),
+		calc(100% - var(--ddi-chamfer-lg)) 100%,
+		var(--ddi-chamfer-lg) 100%,
+		0 calc(100% - var(--ddi-chamfer-lg)),
+		0 var(--ddi-chamfer-lg)
+	);
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 26%),
+		radial-gradient(circle at 50% 0%, rgba(195, 28, 38, 0.06), transparent 42%),
+		repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 64px),
+		repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.01) 0 1px, transparent 1px 64px),
+		linear-gradient(180deg, rgba(12, 14, 17, 0.84) 0%, rgba(6, 7, 9, 0.94) 100%);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.024),
+		inset 0 1px 0 rgba(255, 255, 255, 0.04),
+		0 28px 60px rgba(0, 0, 0, 0.34);
 }
 
 body.navigation-topics:not(.category):not(.topic):not(.tags-page)
@@ -1074,11 +1138,13 @@ body.navigation-categories .categories-list {
 }
 
 .ddi-sidebar-panel {
+	grid-column: 1;
+	grid-row: 1;
 	position: sticky;
 	z-index: 3;
 	top: 0.75rem;
 	left: 0;
-	width: 275px;
+	width: 100%;
 	max-height: calc(100vh - 1rem);
 	overflow: auto;
 	border: 1px solid var(--ddi-border-color);
@@ -1204,45 +1270,68 @@ body.navigation-new .ddi-sidebar-link[href="/new"]::before {
 }
 
 @media (min-width: 1200px) {
-	.d-header-wrap,
-	#main-outlet,
-	.wrap,
-	.ddi-command-footer {
-		margin-left: 304px;
-		max-width: calc(100% - 318px);
+	body.navigation-topics:not(.category):not(.topic):not(.tags-page) .d-header-wrap,
+	body.categories-list .d-header-wrap,
+	body.navigation-categories .d-header-wrap,
+	body.navigation-topics:not(.category):not(.topic):not(.tags-page) .wrap,
+	body.categories-list .wrap,
+	body.navigation-categories .wrap {
+		width: min(100%, 1700px);
+		margin-left: auto;
+		margin-right: auto;
+		padding-left: 1rem;
+		padding-right: 1rem;
 	}
 
 	body.navigation-topics:not(.category):not(.topic):not(.tags-page) #main-outlet,
 	body.categories-list #main-outlet,
 	body.navigation-categories #main-outlet {
-		padding-top: 0.6rem;
+		padding-top: 0.7rem;
 	}
 }
 
 @media (max-width: 1199px) {
+	body.navigation-topics:not(.category):not(.topic):not(.tags-page) #main-outlet,
+	body.categories-list #main-outlet,
+	body.navigation-categories #main-outlet {
+		display: block;
+		width: auto;
+		padding: 0.5rem 0 0.95rem;
+	}
+
+	body.navigation-topics:not(.category):not(.topic):not(.tags-page) #main-outlet::before,
+	body.categories-list #main-outlet::before,
+	body.navigation-categories #main-outlet::before {
+		left: -0.2rem;
+		right: -0.2rem;
+	}
+
 	.ddi-sidebar-panel {
 		position: relative;
 		top: auto;
 		left: auto;
 		width: auto;
 		max-height: none;
-		margin: 0 auto 0.84rem;
+		margin: 0 0 0.84rem;
 	}
 
-	.d-header-wrap,
-	#main-outlet,
-	.wrap,
-	.ddi-command-footer {
-		margin-left: 0;
-		max-width: 100%;
+	body.navigation-topics:not(.category):not(.topic):not(.tags-page) .d-header-wrap,
+	body.categories-list .d-header-wrap,
+	body.navigation-categories .d-header-wrap,
+	body.navigation-topics:not(.category):not(.topic):not(.tags-page) .wrap,
+	body.categories-list .wrap,
+	body.navigation-categories .wrap {
+		padding-left: 0;
+		padding-right: 0;
+		width: auto;
 	}
 
 	.ddi-homepage-dashboard {
-		padding: 0.1rem 0 0.55rem;
+		padding: 0.85rem 0.8rem 0.9rem;
 	}
 
 	.ddi-dashboard-section {
-		padding: 0.85rem 0.8rem 0.9rem;
+		padding: 0.78rem 0 1rem;
 	}
 
 	.ddi-dashboard-section__grid {
