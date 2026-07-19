@@ -122,8 +122,9 @@ body::after {
 
 .ddi-command-header {
 	position: relative;
-	margin: 0 auto var(--ddi-space-lg);
-	max-width: 1880px;
+	width: 100%;
+	margin: 0 0 var(--ddi-space-lg);
+	max-width: none;
 	border: 1px solid var(--ddi-color-steel-700);
 	clip-path: polygon(
 		var(--ddi-chamfer-lg) 0,
@@ -344,6 +345,18 @@ body::after {
 		inset -1px 0 0 rgba(0, 0, 0, 0.45);
 }
 
+.ddi-command-side-panel__frame {
+	align-items: flex-start;
+}
+
+.ddi-command-logo {
+	display: block;
+	inline-size: min(100%, 132px);
+	height: auto;
+	margin-block-end: 0.25rem;
+	filter: contrast(1.08) saturate(0.95);
+}
+
 .ddi-command-side-panel__eyebrow,
 .ddi-command-side-panel__label,
 .ddi-command-side-panel__meta,
@@ -484,6 +497,15 @@ body::after {
 	transform: none;
 	text-align: center;
 	align-items: center;
+}
+
+.ddi-command-hero__subtitle {
+	margin: 0;
+	color: var(--ddi-text-secondary);
+	font-size: 0.76rem;
+	font-weight: 700;
+	letter-spacing: var(--ddi-tracking-wide);
+	text-transform: uppercase;
 }
 
 .ddi-command-hero h1 {
@@ -647,26 +669,66 @@ body::after {
 .ddi-command-nav {
 	display: flex;
 	align-items: center;
-	gap: 1.2rem;
+	justify-content: center;
+	gap: 1.1rem;
 	min-height: 62px;
 	padding: 0 1.25rem;
 	background: var(--ddi-color-bg-panel-alt);
 	box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.03);
 }
 
-.ddi-nav-link {
+.ddi-command-nav-list {
+	display: flex;
+	align-items: stretch;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 1.75rem;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.ddi-command-nav-item {
+	position: relative;
+	display: flex;
+}
+
+.ddi-command-nav-item::after {
+	content: "";
+	position: absolute;
+	inset-inline: 0;
+	inset-block-end: -1px;
+	height: 2px;
+	background: var(--ddi-color-red);
+	transform: scaleX(0);
+	transform-origin: center;
+	transition: transform var(--ddi-transition);
+}
+
+.ddi-command-nav-item--active::after,
+.ddi-command-nav-item:hover::after {
+	transform: scaleX(1);
+}
+
+.ddi-command-nav-link {
 	position: relative;
 	color: var(--ddi-text-secondary);
 	text-decoration: none;
 	font-family: var(--ddi-font-display);
-	font-size: 0.78rem;
+	font-size: 0.8rem;
 	font-weight: 700;
-	letter-spacing: var(--ddi-tracking-normal);
+	letter-spacing: var(--ddi-tracking-wide);
 	text-transform: uppercase;
 	transition: color var(--ddi-transition);
 }
 
-.ddi-nav-link::after {
+.ddi-command-nav-link:hover,
+.ddi-command-nav-link:focus,
+.ddi-command-nav-item--active .ddi-command-nav-link {
+	color: var(--ddi-accent-color-bright);
+}
+
+.ddi-command-nav-link::after {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -679,13 +741,10 @@ body::after {
 	transition: transform var(--ddi-transition);
 }
 
-.ddi-nav-link:hover,
-.ddi-nav-link:focus {
-	color: var(--ddi-accent-color-bright);
-}
 
-.ddi-nav-link:hover::after,
-.ddi-nav-link:focus::after {
+.ddi-command-nav-link:hover::after,
+.ddi-command-nav-link:focus::after,
+.ddi-command-nav-item--active .ddi-command-nav-link::after {
 	transform: scaleX(1);
 }
 
@@ -898,64 +957,6 @@ a,
 .latest-topic-list-item .main-link a.title:hover,
 .category-title-link:hover {
 	color: var(--ddi-accent-color-bright);
-}
-
-/* v0.2.0 - Command Network Interface */
-
-.ddi-command-nav {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 0.85rem;
-	align-items: stretch;
-	padding: 0.8rem 1.25rem;
-}
-
-.ddi-nav-group {
-	position: relative;
-	display: grid;
-	gap: 0.22rem;
-	padding: 0.55rem 0.72rem;
-	border: 1px solid var(--ddi-border-color);
-	clip-path: polygon(
-		var(--ddi-chamfer-sm) 0,
-		calc(100% - var(--ddi-chamfer-sm)) 0,
-		100% var(--ddi-chamfer-sm),
-		100% calc(100% - var(--ddi-chamfer-sm)),
-		calc(100% - var(--ddi-chamfer-sm)) 100%,
-		var(--ddi-chamfer-sm) 100%,
-		0 calc(100% - var(--ddi-chamfer-sm)),
-		0 var(--ddi-chamfer-sm)
-	);
-	background:
-		linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%),
-		var(--ddi-color-bg-panel-alt);
-}
-
-.ddi-nav-group::after {
-	content: "";
-	position: absolute;
-	inset-block: 18% 40%;
-	inset-inline-end: 0;
-	inline-size: 2px;
-	background: linear-gradient(180deg, var(--ddi-accent-color), transparent);
-}
-
-.ddi-nav-group-label {
-	margin: 0;
-	color: var(--ddi-text-secondary);
-	font-family: var(--ddi-font-display);
-	font-size: 0.62rem;
-	font-weight: 700;
-	letter-spacing: var(--ddi-tracking-wide);
-	text-transform: uppercase;
-	padding-bottom: 0.24rem;
-	border-bottom: 1px solid rgba(69, 75, 82, 0.55);
-}
-
-.ddi-nav-group .ddi-nav-link {
-	font-size: 0.66rem;
-	line-height: 1.2;
-	width: fit-content;
 }
 
 .ddi-default-homepage-hidden {

@@ -20,8 +20,13 @@
       aria-label="Organization status"
     >
       <div class="ddi-command-side-panel__frame">
+        <img
+          src="/assets/ddi-logo.png"
+          alt="Dagger Defense Industries"
+          class="ddi-command-logo"
+        />
         <p class="ddi-command-side-panel__eyebrow">DDI Command Network</p>
-        <p class="ddi-command-side-panel__label">Organization Status</p>
+        <p class="ddi-command-side-panel__label">Dagger Defense Industries</p>
         <p class="ddi-command-side-panel__meta">Authorized Personnel Access</p>
         <p class="ddi-command-side-panel__state">
           <span></span>Condition Green
@@ -34,7 +39,7 @@
         <div class="ddi-command-hero__overlay"></div>
         <div class="ddi-command-hero__content">
           <p class="ddi-command-hero__kicker">Internal Organization System</p>
-          <h1>DAGGER DEFENSE CORPORATION</h1>
+          <h1>DAGGER DEFENSE INDUSTRIES</h1>
           <div class="ddi-command-hero__divider">
             <span></span>
             <p>Command Network</p>
@@ -50,33 +55,43 @@
     >
       <div class="ddi-status-card">
         <p class="ddi-status-chip">Secure Connection</p>
-        <p class="ddi-status-label">System Status</p>
-        <p class="ddi-status-value">Condition Green</p>
-        <p class="ddi-status-meta">All Systems Nominal</p>
+        <div class="status-header">SYSTEM STATUS</div>
+        <div class="status-state">CONDITION GREEN</div>
+        <div class="status-footer">ALL SYSTEMS NOMINAL</div>
+        <div class="status-clock">
+          <div class="status-clock-block">
+            <span class="status-clock-label">LOCAL TIME</span>
+            <span class="status-time">--:--:--</span>
+          </div>
+          <div class="status-clock-block">
+            <span class="status-clock-label">DATE</span>
+            <span class="status-date">-- --- ----</span>
+          </div>
+        </div>
       </div>
     </aside>
   </div>
 
   <nav class="ddi-command-nav" aria-label="DDI command navigation">
-    <div class="ddi-nav-group" aria-label="Command links">
-      <span class="ddi-nav-group-label">Command</span>
-      <a href="/categories" class="ddi-nav-link">Corporate Command</a>
-      <a href="/latest" class="ddi-nav-link">Operations Center</a>
-    </div>
-
-    <div class="ddi-nav-group" aria-label="Division links">
-      <span class="ddi-nav-group-label">Divisions</span>
-      <a href="/categories" class="ddi-nav-link">CIM</a>
-      <a href="/categories" class="ddi-nav-link">FS</a>
-      <a href="/categories" class="ddi-nav-link">E&amp;S</a>
-      <a href="/categories" class="ddi-nav-link">CSS</a>
-    </div>
-
-    <div class="ddi-nav-group" aria-label="Personnel links">
-      <span class="ddi-nav-group-label">Personnel</span>
-      <a href="/categories" class="ddi-nav-link">Training</a>
-      <a href="/top" class="ddi-nav-link">Resources</a>
-      <a href="/new" class="ddi-nav-link">Leadership</a>
-    </div>
+    <ul class="ddi-command-nav-list">
+      <li class="ddi-command-nav-item ddi-command-nav-item--active">
+        <a href="/" class="ddi-command-nav-link" aria-current="page">HOME</a>
+      </li>
+      <li class="ddi-command-nav-item">
+        <a href="/categories" class="ddi-command-nav-link">COMMAND</a>
+      </li>
+      <li class="ddi-command-nav-item">
+        <a href="/latest" class="ddi-command-nav-link">OPERATIONS</a>
+      </li>
+      <li class="ddi-command-nav-item">
+        <a href="/categories" class="ddi-command-nav-link">DIVISIONS</a>
+      </li>
+      <li class="ddi-command-nav-item">
+        <a href="/categories" class="ddi-command-nav-link">TRAINING</a>
+      </li>
+      <li class="ddi-command-nav-item">
+        <a href="/new" class="ddi-command-nav-link">PERSONNEL</a>
+      </li>
+    </ul>
   </nav>
 </section>
