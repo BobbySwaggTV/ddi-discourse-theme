@@ -3,10 +3,6 @@
 		max-width: 1700px;
 	}
 
-	.ddi-command-header {
-		margin-top: 0.75rem;
-	}
-
 	.category-list,
 	.categories-and-latest {
 		gap: 1rem;
@@ -33,17 +29,5 @@
 	.list-controls .combo-box .combo-box-header,
 	.list-controls .select-kit-header {
 		min-height: 42px;
-	}
-
-	.ddi-dashboard-homepage {
-		gap: 1.55rem;
-	}
-
-	.ddi-dashboard-section--division-headquarters .ddi-dashboard-section__grid {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-	}
-
-	.ddi-command-nav {
-		grid-template-columns: 1.1fr 1.4fr 1fr;
 	}
 }
