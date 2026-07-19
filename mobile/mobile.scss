@@ -1,0 +1,58 @@
+@media (max-width: 1023px) {
+	.ddi-command-header {
+		margin-bottom: 0.85rem;
+		clip-path: none;
+		border-left: 0;
+		border-right: 0;
+	}
+
+	.ddi-command-ribbon {
+		grid-template-columns: 1fr;
+		gap: 0.35rem;
+		justify-items: center;
+		padding: 0.45rem 0.75rem;
+	}
+
+	.ddi-ribbon-right {
+		justify-content: center;
+	}
+
+	.ddi-command-main {
+		grid-template-columns: 1fr;
+		min-height: auto;
+	}
+
+	.ddi-brand-panel,
+	.ddi-command-title-panel,
+	.ddi-status-panel {
+		padding: 0.85rem;
+	}
+
+	.ddi-command-title-panel h1 {
+		font-size: clamp(1.15rem, 0.95rem + 1.4vw, 1.45rem);
+	}
+
+	.ddi-command-nav {
+		flex-wrap: wrap;
+		gap: 0.7rem 0.95rem;
+		min-height: auto;
+		padding: 0.85rem;
+		justify-content: center;
+	}
+
+	.ddi-nav-link {
+		font-size: 0.68rem;
+	}
+
+	.topic-list-item,
+	.latest-topic-list-item,
+	.category-box,
+	.category-list .category,
+	.categories-and-latest .category-list .category {
+		clip-path: none;
+	}
+
+	.list-controls {
+		gap: 0.55rem;
+	}
+}

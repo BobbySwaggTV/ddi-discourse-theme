@@ -1,0 +1,18 @@
+ddi_header_enabled:
+	type: bool
+	default: true
+	description: "Enable DDI command network header shell"
+
+ddi_compact_density:
+	type: bool
+	default: true
+	description: "Use compact dashboard spacing density"
+
+ddi_red_glow_strength:
+	type: enum
+	default: medium
+	choices:
+		- low
+		- medium
+		- high
+	description: "Controls ambient red glow intensity"

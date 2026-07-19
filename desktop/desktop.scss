@@ -1,0 +1,37 @@
+@media (min-width: 1024px) {
+	.wrap {
+		max-width: 1700px;
+	}
+
+	.ddi-command-header {
+		margin-top: 0.75rem;
+	}
+
+	.category-list,
+	.categories-and-latest {
+		gap: 1rem;
+	}
+
+	.categories-and-latest .categories-list,
+	.category-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 1rem;
+	}
+
+	.category-box {
+		min-height: 180px;
+		padding: 1rem 1.1rem;
+	}
+
+	.topic-list-item,
+	.latest-topic-list-item {
+		min-height: 74px;
+		padding-inline: 0.45rem;
+	}
+
+	.list-controls .combo-box .combo-box-header,
+	.list-controls .select-kit-header {
+		min-height: 42px;
+	}
+}

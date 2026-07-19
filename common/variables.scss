@@ -1,0 +1,46 @@
+:root {
+	/* Prototype tokens: canonical source = ddi-command-network */
+	--ddi-color-void: #050607;
+	--ddi-color-bg-panel: #0b0d10;
+	--ddi-color-bg-panel-alt: #0e1114;
+	--ddi-color-steel-700: #2a2f34;
+	--ddi-color-steel-500: #454b52;
+	--ddi-color-text-primary: #eef1f3;
+	--ddi-color-text-muted: #8a9099;
+	--ddi-color-red-700: #7a1017;
+	--ddi-color-red: #c31c26;
+	--ddi-color-red-bright: #ff3b3f;
+	--ddi-color-green: #35d488;
+
+	--ddi-font-display: "Bahnschrift", "Arial Narrow", Oswald, sans-serif;
+	--ddi-font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+		sans-serif;
+
+	--ddi-tracking-normal: 0.08em;
+	--ddi-tracking-wide: 0.18em;
+	--ddi-tracking-wider: 0.28em;
+
+	--ddi-chamfer-lg: 26px;
+	--ddi-chamfer-md: 16px;
+	--ddi-chamfer-sm: 10px;
+
+	--ddi-transition: 160ms ease;
+	--ddi-shadow-panel: 0 30px 60px rgba(0, 0, 0, 0.55);
+
+	--ddi-space-xs: 0.45rem;
+	--ddi-space-sm: 0.75rem;
+	--ddi-space-md: 1rem;
+	--ddi-space-lg: 1.25rem;
+	--ddi-space-xl: 1.75rem;
+
+	/* Semantic aliases for theme implementation */
+	--ddi-background-primary: var(--ddi-color-void);
+	--ddi-background-secondary: var(--ddi-color-bg-panel);
+	--ddi-panel-background: var(--ddi-color-bg-panel-alt);
+	--ddi-border-color: var(--ddi-color-steel-700);
+	--ddi-border-color-strong: var(--ddi-color-steel-500);
+	--ddi-accent-color: var(--ddi-color-red);
+	--ddi-accent-color-bright: var(--ddi-color-red-bright);
+	--ddi-text-primary: var(--ddi-color-text-primary);
+	--ddi-text-secondary: var(--ddi-color-text-muted);
+}
