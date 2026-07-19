@@ -207,6 +207,42 @@ body::after {
 	text-transform: uppercase;
 }
 
+/* Restrict category metadata styling to explicit stat containers. */
+.category-box [class*="topic"],
+.category-box [class*="count"],
+.category-box [class*="activity"],
+.category-list .category [class*="topic"],
+.category-list .category [class*="count"],
+.category-list .category [class*="activity"],
+.categories-and-latest .category-list .category [class*="topic"],
+.categories-and-latest .category-list .category [class*="count"],
+.categories-and-latest .category-list .category [class*="activity"] {
+	margin-top: 0;
+	padding-top: 0;
+	border-top: 0;
+	font-family: inherit;
+	font-size: inherit;
+	letter-spacing: inherit;
+	text-transform: none;
+}
+
+.category-box .category-stats,
+.category-box .stats,
+.category-list .category .category-stats,
+.category-list .category .stats,
+.categories-and-latest .category-list .category .category-stats,
+.categories-and-latest .category-list .category .stats {
+	margin-top: auto;
+	padding-top: 0.55rem;
+	border-top: 1px solid rgba(69, 75, 82, 0.56);
+	color: var(--ddi-text-secondary) !important;
+	font-family: var(--ddi-font-display);
+	font-size: 0.58rem;
+	font-weight: 700;
+	letter-spacing: var(--ddi-tracking-wide);
+	text-transform: uppercase;
+}
+
 /* Topic mission brief cards */
 
 .topic-list .topic-list-item,
@@ -300,14 +336,9 @@ body::after {
 .topic-list .views,
 .latest-topic-list-item .num,
 .latest-topic-list-item .topic-stats {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.28rem;
-	padding: 0.2rem 0.44rem;
-	border: 1px solid rgba(69, 75, 82, 0.56);
-	background:
-		linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%),
-		rgba(8, 10, 13, 0.72);
+	padding: 0;
+	border: 0;
+	background: transparent;
 }
 
 .topic-list .topic-list-item:hover .num,
