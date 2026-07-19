@@ -16,3 +16,23 @@ ddi_red_glow_strength:
     - medium
     - high
   description: "Controls ambient red glow intensity"
+
+ddi_interface_mode_enabled:
+  type: bool
+  default: true
+  description: "Enable v0.2.0 DDI command network interface overrides"
+
+ddi_homepage_dashboard_enabled:
+  type: bool
+  default: true
+  description: "Render command dashboard homepage sections from categories"
+
+ddi_sidebar_command_panel_enabled:
+  type: bool
+  default: true
+  description: "Enable command-panel sidebar presentation"
+
+ddi_footer_enabled:
+  type: bool
+  default: true
+  description: "Enable DDI corporate command footer"

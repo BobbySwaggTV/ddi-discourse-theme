@@ -33,15 +33,32 @@
 	}
 
 	.ddi-command-nav {
-		flex-wrap: wrap;
-		gap: 0.7rem 0.95rem;
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 0.55rem;
 		min-height: auto;
 		padding: 0.85rem;
-		justify-content: center;
 	}
 
 	.ddi-nav-link {
 		font-size: 0.68rem;
+	}
+
+	.ddi-nav-group {
+		padding: 0.5rem 0.6rem;
+	}
+
+	.ddi-dashboard-section__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.ddi-dashboard-card {
+		min-height: 154px;
+	}
+
+	.ddi-command-footer {
+		padding: 0.65rem 0.8rem;
+		margin-top: 0.8rem;
 	}
 
 	.topic-list-item,
