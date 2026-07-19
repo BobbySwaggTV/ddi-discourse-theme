@@ -1,6 +1,6 @@
 # DDI Command Network Interface
 
-Version: v0.2.0
+Version: v0.2.1
 Repository: ddi-discourse-theme
 Reference: ../ddi-command-network
 
@@ -77,7 +77,21 @@ Authorized Personnel Access
 
 ### Theme Behavior
 
-- javascripts/discourse.js for homepage dashboard composition, category-to-section mapping, sidebar command enhancements, and footer injection.
+- javascripts/discourse.js retained as a no-op initializer.
+- Interface layout construction is performed through theme templates and plugin outlet connectors, not runtime DOM injection.
+
+### Theme Template Layout Foundation (v0.2.1)
+
+- common/header.html
+- common/sidebar.html
+- common/homepage.html
+- common/footer.html
+
+### Plugin Outlet Connectors (v0.2.1)
+
+- javascripts/discourse/connectors/above-main-container/ddi-sidebar-panel.hbs
+- javascripts/discourse/connectors/above-main-container/ddi-homepage-dashboard.hbs
+- javascripts/discourse/connectors/below-main-container/ddi-command-footer.hbs
 
 ## Planned Interface Structure
 
