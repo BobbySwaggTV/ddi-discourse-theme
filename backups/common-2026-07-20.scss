@@ -161,6 +161,32 @@ a:hover {
     #7cc7ff;
 }
 
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn-primary {
+  background:
+    var(--ddi-red);
+
+  border-color:
+    var(--ddi-red);
+
+  text-transform:
+    uppercase;
+
+  letter-spacing:
+    .12em;
+}
+
+
+.btn-primary:hover {
+  background:
+    #e02633;
+}
+
+
 /* ============================================================
    SCROLLBAR
    ============================================================ */
@@ -353,6 +379,11 @@ a:hover {
 /* ============================================================
    DDI TOPIC LIST SURFACE
    ============================================================ */
+
+.topic-list {
+  background: transparent;
+}
+
 
 .topic-list thead {
   background:
@@ -665,26 +696,30 @@ a:hover {
 }
 
 /* =========================================
-   DDI Main Content Surface
+   DDI Command Network Main Surface
    ========================================= */
 
 #main-outlet {
-  max-width: 1700px;
-  width: calc(100% - 40px);
+  max-width: 1500px;
+  width: calc(100% - 80px);
   margin: 0 auto;
-  padding: 20px;
+  padding-top: 30px;
+}
 
-  background: linear-gradient(
-    180deg,
-    rgba(8,11,16,.65),
-    rgba(5,7,11,.85)
-  );
+/* Expand topic terminal */
 
-  border: 1px solid rgba(140,150,170,.12);
-  border-top: 1px solid rgba(195,28,38,.35);
+.topic-list {
+  width: 100%;
+}
 
-  box-shadow:
-    0 25px 80px rgba(0,0,0,.55);
+.topic-list {
+  width: 100%;
+  background: rgba(5, 7, 11, 0.9);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.topic-list-header {
+  border-bottom: 1px solid rgba(255,255,255,0.12);
 }
 
 /* =========================================
@@ -838,28 +873,75 @@ a:hover {
 }
 
 /* =========================================
-   DDI Topic List
+   DDI Homepage Spacing
+   ========================================= */
+
+.welcome-banner__wrap {
+  margin-bottom: 20px;
+}
+
+#main-outlet {
+  padding-top: 10px;
+}
+
+/* =========================================
+   DDI Forum Terminal Container
    ========================================= */
 
 .topic-list {
+  background: rgba(5, 8, 14, 0.85);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 30px rgba(0,0,0,0.45),
+    inset 0 0 40px rgba(255,0,40,0.03);
+}
 
-  width:
-    100%;
+/* =========================================
+   DDI Terminal Frame
+   ========================================= */
 
-  padding:
-    12px;
-
-  background:
-    rgba(5, 8, 14, 0.85);
-
-  border:
-    1px solid rgba(255,255,255,.08);
-
+.topic-list {
+  padding: 12px;
   box-shadow:
     0 0 35px rgba(0,0,0,.55),
     inset 0 0 25px rgba(255,0,40,.04);
+}
+
+/* =========================================
+   DDI Forum Operations Surface
+   ========================================= */
+
+#main-outlet {
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8,11,16,.65),
+      rgba(5,7,11,.85)
+    );
+
+  border:
+    1px solid rgba(140,150,170,.12);
+
+  box-shadow:
+    0 25px 80px rgba(0,0,0,.55);
+
+  padding:
+    20px;
 
 }
+
+/* =========================================
+   DDI Forum Terminal Frame
+   ========================================= */
+
+#main-outlet {
+
+  border-top:
+    1px solid rgba(195,28,38,.35);
+
+}
+
 
 .navigation-container,
 .list-controls {
@@ -1414,448 +1496,30 @@ a:hover {
 }
 
 /* ============================================================
-   DDI Intelligence Post Header
+   DDI Intelligence Post Panel
    ============================================================ */
 
-.topic-meta-data {
-
-  display:
-    flex;
-
-  justify-content:
-    space-between;
-
-  align-items:
-    center;
-
-  margin-bottom:
-    20px;
-
-  padding:
-    0 0 14px;
-
-  border-bottom:
-    1px solid rgba(140,150,170,.18);
-
-}
-
-
-.topic-meta-data .names a {
-
-  color:
-    #f1f5f9 !important;
-
-  font-size:
-    14px;
-
-  font-weight:
-    700;
-
-  letter-spacing:
-    .12em;
-
-  text-transform:
-    uppercase;
-
-}
-
-
-.topic-meta-data .post-infos {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    12px;
-
-}
-
-
-.topic-meta-data .post-date {
-
-  color:
-    #94a3b8 !important;
-
-  font-size:
-    11px;
-
-  letter-spacing:
-    .18em;
-
-  text-transform:
-    uppercase;
-
-}
-
-
-.topic-meta-data .read-state {
-
-  opacity:
-    .35;
-
-}
-
-/* ============================================================
-   DDI Intelligence Dossier
-   ============================================================ */
-
-.topic-post {
+.topic-post article.boxed {
 
   background:
     linear-gradient(
       180deg,
-      rgba(8,11,16,.96),
-      rgba(5,7,11,.98)
+      rgba(10,14,22,.98),
+      rgba(6,9,15,.98)
     );
-
-  border:
-    1px solid rgba(140,150,170,.18);
-
-  border-left:
-    3px solid rgba(195,28,38,.75);
-
-  border-radius:
-    4px;
-
-  box-shadow:
-    0 20px 60px rgba(0,0,0,.45);
-
-  padding:
-    0;
-
-  overflow:
-    hidden;
-
-}
-
-.topic-post .topic-body {
-
-  padding:
-    28px;
-
-}
-
-.topic-post .cooked {
-
-  color:
-    #d5dde8;
-
-  font-size:
-    15px;
-
-  line-height:
-    1.8;
-
-}
-
-.topic-post .cooked h1,
-.topic-post .cooked h2,
-.topic-post .cooked h3 {
-
-  color:
-    #ffffff;
-
-  letter-spacing:
-    .08em;
-
-  text-transform:
-    uppercase;
-
-}
-
-/* ============================================================
-   DDI COMMAND ACTION BAR
-   ============================================================ */
-
-.post-controls {
-
-  margin-top: 28px;
-
-  padding-top: 18px;
-
-  border-top:
-    1px solid rgba(140,150,170,.18);
-
-}
-
-
-.post-controls .actions {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-}
-
-
-.post-controls button {
-
-  background:
-    rgba(8,11,16,.85) !important;
-
-  border:
-    1px solid rgba(140,150,170,.18) !important;
-
-  color:
-    #aab7c7 !important;
-
-  border-radius:
-    3px;
-
-  transition:
-    .2s ease;
-
-}
-
-
-.post-controls button:hover {
-
-  background:
-    rgba(195,28,38,.18) !important;
-
-  border-color:
-    rgba(195,28,38,.65) !important;
-
-  color:
-    #ffffff !important;
-
-  transform:
-    translateY(-1px);
-
-}
-
-
-.post-controls .reply {
-
-  background:
-    rgba(195,28,38,.18) !important;
-
-  border:
-    1px solid rgba(195,28,38,.65) !important;
-
-  color:
-    #ffffff !important;
-
-  font-weight:
-    700;
-
-  letter-spacing:
-    .10em;
-
-  text-transform:
-    uppercase;
-
-}
-
-.post-controls .reply .d-button-label {
-
-  font-size: 0;
-
-}
-
-.post-controls .reply .d-button-label::after {
-
-  content: "RESPOND";
-
-  font-size: 12px;
-
-  font-weight: 700;
-
-  letter-spacing: .12em;
-
-}
-
-/* ============================================================
-   DDI Operations Timeline
-   ============================================================ */
-
-.topic-navigation {
-
-  width: 110px;
-
-}
-
-.timeline-container {
-
-  background:
-    rgba(8,11,16,.92);
-
-  border:
-    1px solid rgba(140,150,170,.18);
-
-  border-radius:
-    4px;
-
-  padding:
-    12px 0;
-
-  box-shadow:
-    0 10px 30px rgba(0,0,0,.35);
-
-}
-
-.timeline-controls,
-.timeline-footer-controls {
-
-  background: rgba(10,14,22,.95);
-
-  display: flex;
-
-  justify-content: center;
-
-  padding: 10px 0;
-
-  border-bottom:
-    1px solid rgba(140,150,170,.12);
-
-}
-
-.timeline-footer-controls {
-
-  border-top:
-    1px solid rgba(140,150,170,.12);
-
-  border-bottom: none;
-
-}
-
-.timeline-scrollarea {
-
-  margin: 12px 0;
-
-  border-left: 1px solid rgba(140,150,170,.18);
-
-}
-
-.timeline-scroller {
-
-  background:
-    rgba(195,28,38,.18);
 
   border:
     1px solid rgba(195,28,38,.45);
 
+  border-left:
+    3px solid var(--ddi-red);
+
   border-radius:
-    3px;
-
-}
-
-.timeline-handle {
-
-  background:
-    linear-gradient(
-      180deg,
-      #c31c26,
-      #8d1017
-    );
-
-}
-
-.timeline-replies {
-
-  color:
-    #ffffff;
-
-  font-weight:
-    700;
-
-  letter-spacing:
-    .10em;
-
-}
-
-.timeline-ago,
-.timeline-date-wrapper {
-
-  color:
-    #94a3b8;
-
-  font-size:
-    11px;
-
-  letter-spacing:
-    .12em;
-
-  text-transform:
-    uppercase;
-
-}
-
-/* ============================================================
-   DDI DOSSIER HEADER
-   ============================================================ */
-
-.ddi-dossier-header {
-  max-width: 760px;
-  margin: 0 0 20px;
-  padding: 22px 28px;
-  max-width: 100%;
-
-  background: linear-gradient(
-    180deg,
-    rgba(8, 11, 16, .96),
-    rgba(5, 7, 11, .98)
-  );
-
-  border: 1px solid rgba(140,150,170,.18);
-  border-left: 4px solid var(--ddi-red);
+    6px;
 
   box-shadow:
-    inset 0 0 40px rgba(195,28,38,.05),
-    0 15px 40px rgba(0,0,0,.35);
-}
+    0 18px 45px rgba(0,0,0,.45);
 
-.ddi-dossier-classification {
-  color: var(--ddi-red);
-
-  font-size: 12px;
-
-  font-weight: 700;
-
-  letter-spacing: .35em;
-
-  text-transform: uppercase;
-
-  margin-bottom: 18px;
-
-  border-bottom: 1px solid rgba(195,28,38,.25);
-
-  padding-bottom: 12px;
-}
-
-.ddi-dossier-grid {
-  display: grid;
-
-  grid-template-columns: repeat(4, 1fr);
-
-  gap: 24px;
-}
-
-.ddi-dossier-grid span {
-  display: block;
-
-  color: #7b8798;
-
-  font-size: 10px;
-
-  letter-spacing: .22em;
-
-  text-transform: uppercase;
-
-  margin-bottom: 6px;
-}
-
-.ddi-dossier-grid strong {
-  display: block;
-
-  color: #e7edf6;
-
-  font-size: 15px;
-
-  font-weight: 700;
+  overflow:
+    hidden;
 }
