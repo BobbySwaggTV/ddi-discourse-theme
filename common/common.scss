@@ -696,30 +696,42 @@ a:hover {
 }
 
 /* =========================================
-   DDI Command Network Main Surface
+   DDI Forum Main Surface
    ========================================= */
 
 #main-outlet {
-  max-width: 1500px;
-  width: calc(100% - 80px);
-  margin: 0 auto;
-  padding-top: 30px;
-}
 
-/* Expand topic terminal */
+  max-width:
+    1500px;
 
-.topic-list {
-  width: 100%;
-}
+  width:
+    calc(100% - 80px);
 
-.topic-list {
-  width: 100%;
-  background: rgba(5, 7, 11, 0.9);
-  border: 1px solid rgba(255,255,255,0.08);
-}
+  margin:
+    0 auto;
 
-.topic-list-header {
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding:
+    20px;
+
+  padding-top:
+    10px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8,11,16,.65),
+      rgba(5,7,11,.85)
+    );
+
+  border:
+    1px solid rgba(140,150,170,.12);
+
+  border-top:
+    1px solid rgba(195,28,38,.35);
+
+  box-shadow:
+    0 25px 80px rgba(0,0,0,.55);
+
 }
 
 /* =========================================
@@ -873,18 +885,6 @@ a:hover {
 }
 
 /* =========================================
-   DDI Homepage Spacing
-   ========================================= */
-
-.welcome-banner__wrap {
-  margin-bottom: 20px;
-}
-
-#main-outlet {
-  padding-top: 10px;
-}
-
-/* =========================================
    DDI Forum Terminal Container
    ========================================= */
 
@@ -906,42 +906,6 @@ a:hover {
     0 0 35px rgba(0,0,0,.55),
     inset 0 0 25px rgba(255,0,40,.04);
 }
-
-/* =========================================
-   DDI Forum Operations Surface
-   ========================================= */
-
-#main-outlet {
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(8,11,16,.65),
-      rgba(5,7,11,.85)
-    );
-
-  border:
-    1px solid rgba(140,150,170,.12);
-
-  box-shadow:
-    0 25px 80px rgba(0,0,0,.55);
-
-  padding:
-    20px;
-
-}
-
-/* =========================================
-   DDI Forum Terminal Frame
-   ========================================= */
-
-#main-outlet {
-
-  border-top:
-    1px solid rgba(195,28,38,.35);
-
-}
-
 
 .navigation-container,
 .list-controls {
@@ -1415,4 +1379,111 @@ a:hover {
   text-transform:
     uppercase;
 
+}
+
+/* ============================================================
+   DDI Topic Title
+   ============================================================ */
+
+.fancy-title {
+  display: inline-block;
+
+  color: #f8fafc !important;
+
+  font-size: 34px;
+
+  font-weight: 800;
+
+  text-transform: uppercase;
+
+  letter-spacing: .08em;
+
+  line-height: 1.2;
+
+  text-decoration: none !important;
+
+  margin-bottom: 8px;
+}
+
+.fancy-title:hover {
+  color: #ffffff !important;
+}
+
+.fancy-title .edit-topic__wrapper {
+  margin-left: 10px;
+
+  opacity: .45;
+
+  transition: opacity .2s ease;
+}
+
+.fancy-title:hover .edit-topic__wrapper {
+  opacity: 1;
+}
+
+/* ============================================================
+   DDI TOPIC HEADER
+   ============================================================ */
+
+.topic-title h1 {
+  margin: 0 0 18px;
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+.topic-title .fancy-title {
+
+  display: block;
+
+  color: #f8fafc !important;
+
+  font-size: 40px;
+
+  font-weight: 800;
+
+  letter-spacing: .08em;
+
+  text-transform: uppercase;
+
+  line-height: 1.1;
+
+  text-decoration: none;
+}
+
+.topic-title .fancy-title:hover {
+  color: white !important;
+}
+
+.topic-title .topic-statuses {
+  margin-right: 12px;
+}
+
+/* ============================================================
+   DDI Intelligence Post Panel
+   ============================================================ */
+
+.topic-post article.boxed {
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10,14,22,.98),
+      rgba(6,9,15,.98)
+    );
+
+  border:
+    1px solid rgba(195,28,38,.45);
+
+  border-left:
+    3px solid var(--ddi-red);
+
+  border-radius:
+    6px;
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.45);
+
+  overflow:
+    hidden;
 }
