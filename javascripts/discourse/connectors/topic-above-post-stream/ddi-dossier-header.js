@@ -10,12 +10,12 @@ export default {
       const documentId = String(topic.id).padStart(6, "0");
 
       const issuedDate = new Date(topic.created_at)
-        .toLocaleDateString("en-US", {
+        .toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
           year: "numeric",
-        })
-        .toUpperCase();
+  })
+  .toUpperCase();
 
       component.setProperties({
         documentId,
