@@ -1,22 +1,29 @@
 export default {
   setupComponent(args, component) {
 
-    const topic = args.model;
+    function updateDocument(topic) {
 
-    const documentId = String(topic.id).padStart(6, "0");
+      if (!topic) {
+        return;
+      }
 
-    const issuedDate = new Date(topic.created_at)
-      .toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-      .toUpperCase();
+      const documentId = String(topic.id).padStart(6, "0");
 
-    component.setProperties({
-      documentId,
-      issuedDate,
-    });
+      const issuedDate = new Date(topic.created_at)
+        .toLocaleDateString("en-US", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+        .toUpperCase();
+
+      component.setProperties({
+        documentId,
+        issuedDate,
+      });
+    }
+
+    updateDocument(args.model);
 
   },
 };
