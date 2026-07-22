@@ -14,12 +14,16 @@ export default {
           day: "2-digit",
           month: "short",
           year: "numeric",
-  })
-  .toUpperCase();
+        })
+        .toUpperCase();
+
+      const author =
+        (args.model.postStream?.posts?.[0]?.username || "SYSTEM").toUpperCase();
 
       component.setProperties({
         documentId,
         issuedDate,
+        author,
       });
     }
 
