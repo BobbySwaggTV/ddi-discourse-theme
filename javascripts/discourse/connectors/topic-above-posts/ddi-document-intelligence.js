@@ -38,8 +38,10 @@ export default {
         Math.ceil(wordCount / 200), // assuming an average reading speed of 200 words per minute
       );
 
-      const lastUpdated = new Date(
-        topic.last_posted_at || topic.created_at,
+      const post = args.model.postStream.posts[0];
+
+      const lastRevision = new Date(
+        topic.last_posted_at || post.created_at,
       )
         .toLocaleDateString("en-GB", {
           day: "2-digit",
@@ -47,6 +49,9 @@ export default {
           year: "numeric",
         })
         .toUpperCase();
+      
+      const revision = 
+        "R" + String(post.version || 1).padStart(2, "0");  
 
     component.setProperties({
       replies: topic.reply_count ?? 0,
@@ -55,7 +60,8 @@ export default {
       wordCount,
       readingTime,
       classification,
-      lastUpdated,
+      lastRevision,
+      revision,
     });
   },
 };

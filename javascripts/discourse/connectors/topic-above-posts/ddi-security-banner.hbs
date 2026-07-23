@@ -1,0 +1,33 @@
+<div class="ddi-security-banner {{this.classificationClass}}">
+
+  <div class="ddi-security-title">
+
+    {{#if (eq this.classification "PUBLIC RELEASE")}}
+      🟢
+    {{/if}}
+
+    {{#if (eq this.classification "INTERNAL")}}
+      🔵
+    {{/if}}
+
+    {{#if (eq this.classification "CONFIDENTIAL")}}
+      🟡
+    {{/if}}
+
+    {{#if (eq this.classification "RESTRICTED")}}
+      🔴
+    {{/if}}
+
+    {{#if (eq this.classification "TOP SECRET")}}
+      ⚫
+    {{/if}}
+
+    {{this.classification}}
+
+  </div>
+
+  <div class="ddi-security-message">
+    {{this.message}}
+  </div>
+
+</div>

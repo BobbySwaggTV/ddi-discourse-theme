@@ -1986,3 +1986,41 @@ a:hover {
 .ddi-top-secret {
   --ddi-accent: #8b0000;
 }
+
+/* ==========================================
+   DDI SECURITY BANNER
+========================================== */
+
+.ddi-security-banner {
+
+  margin: 0 0 2rem;
+
+  padding: 1.25rem;
+
+  border-left: 4px solid var(--ddi-accent);
+
+  background: rgba(255,255,255,.02);
+
+}
+
+.ddi-security-title{
+
+  font-size:.9rem;
+
+  letter-spacing:.25em;
+
+  font-weight:700;
+
+  margin-bottom:.5rem;
+
+  color:var(--ddi-accent);
+
+}
+
+.ddi-security-message{
+
+  color:#d9d9d9;
+
+  font-size:.95rem;
+
+}
