@@ -1884,3 +1884,81 @@ a:hover {
     uppercase;
 
 }
+
+/* ==========================================
+   DDI DOSSIER CARD
+========================================== */
+
+.ddi-card {
+  margin: 24px 0;
+  padding: 24px 28px;
+
+  background: rgba(8, 10, 15, 0.96);
+
+  border: 1px solid rgba(180, 30, 30, 0.18);
+  border-left: 4px solid #b51d1d;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.02),
+    0 10px 30px rgba(0,0,0,.35);
+}
+
+.ddi-card-title {
+  margin-bottom: 18px;
+
+  color: #e43b3b;
+
+  font-size: 0.82rem;
+  font-weight: 700;
+
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+.ddi-card-body {
+  color: #d8dce2;
+
+  font-size: 0.98rem;
+  line-height: 1.8;
+}
+
+/* ==========================================
+   DDI DOCUMENT INTELLIGENCE
+========================================== */
+
+.ddi-intel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px 30px;
+}
+
+.ddi-intel-grid div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ddi-intel-grid span {
+  color: #7d8ea6;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  margin-bottom: 6px;
+}
+
+.ddi-intel-grid strong {
+  color: #f2f4f7;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .ddi-intel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .ddi-intel-grid {
+    grid-template-columns: 1fr;
+  }
+}
