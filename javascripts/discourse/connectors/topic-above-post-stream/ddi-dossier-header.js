@@ -20,10 +20,13 @@ export default {
       const author =
         (args.model.postStream?.posts?.[0]?.username || "SYSTEM").toUpperCase();
 
+        const status = topic.closed ? "LOCKED" : "ACTIVE";
+
       component.setProperties({
         documentId,
         issuedDate,
         author,
+        status,
       });
     }
 
