@@ -1811,7 +1811,7 @@ a:hover {
 }
 
 .ddi-dossier-classification {
-  color: var(--ddi-red);
+  color: var(--ddi-accent, #b51d1d);
 
   font-size: 12px;
 
@@ -1896,7 +1896,7 @@ a:hover {
   background: rgba(8, 10, 15, 0.96);
 
   border: 1px solid rgba(180, 30, 30, 0.18);
-  border-left: 4px solid #b51d1d;
+  border-left: 4px solid var(--ddi-accent, #b51d1d);
 
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.02),
@@ -1961,4 +1961,28 @@ a:hover {
   .ddi-intel-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================
+   DDI CLASSIFICATION LEVELS
+========================================== */
+
+.ddi-public {
+  --ddi-accent: #7b8794;
+}
+
+.ddi-internal {
+  --ddi-accent: #2d74da;
+}
+
+.ddi-confidential {
+  --ddi-accent: #c78b1e;
+}
+
+.ddi-restricted {
+  --ddi-accent: #c0392b;
+}
+
+.ddi-top-secret {
+  --ddi-accent: #8b0000;
 }
