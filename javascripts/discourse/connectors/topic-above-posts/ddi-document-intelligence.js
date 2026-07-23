@@ -38,6 +38,16 @@ export default {
         Math.ceil(wordCount / 200), // assuming an average reading speed of 200 words per minute
       );
 
+      const lastUpdated = new Date(
+        topic.last_posted_at || topic.created_at,
+      )
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+        .toUpperCase();
+
     component.setProperties({
       replies: topic.reply_count ?? 0,
       views: topic.views ?? 0,
@@ -45,6 +55,7 @@ export default {
       wordCount,
       readingTime,
       classification,
+      lastUpdated,
     });
   },
 };
