@@ -1,23 +1,16 @@
 import { getClassification } from "../../lib/ddi-classification";
+import { formatDocumentDate } from "../../lib/ddi-format-date";
 
 export default {
   setupComponent(args, component) {
-
     function updateDocument(topic) {
-
       if (!topic) {
         return;
       }
 
       const documentId = String(topic.id).padStart(6, "0");
 
-      const issuedDate = new Date(topic.created_at)
-        .toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
-        .toUpperCase();
+      const issuedDate = formatDocumentDate(topic.created_at);
 
       const author =
         (args.model.postStream?.posts?.[0]?.username || "SYSTEM").toUpperCase();
@@ -40,6 +33,5 @@ export default {
     }
 
     updateDocument(args.model);
-
   },
 };
