@@ -2082,72 +2082,67 @@ a:hover {
 
 }
 
-/* ==========================================
-   DDI DOCUMENT OVERVIEW
-========================================== */
-
-.ddi-document-overview {
-
-  margin: 2rem 0;
-
-  padding: 1.75rem;
-
-  border: 1px solid rgba(255,255,255,.08);
-
-  background: rgba(255,255,255,.015);
-
-}
-
-.ddi-overview-title {
-
-  color: var(--ddi-accent);
-
-  font-size: .85rem;
-
-  letter-spacing: .25em;
-
-  text-transform: uppercase;
-
-  font-weight: 700;
-
-  margin-bottom: 1.5rem;
-
-}
-
-.ddi-overview-body {
-
-  display: grid;
-
-  gap: 1.5rem;
-
-}
-
-/* ==========================================
-   DDI TOC
-========================================== */
+/* ============================================================
+   DDI DOCUMENT CONTENTS
+   ============================================================ */
 
 .ddi-toc-item {
   display: flex;
   align-items: center;
   gap: 1rem;
 
-  padding: 0.45rem 0;
+  padding: 0.65rem 0;
 
-  color: #d7dbe4;
+  color: var(--ddi-text-primary);
   text-decoration: none;
+
+  border-bottom: 1px solid rgba(255,255,255,.05);
+
+  transition: all .18s ease;
+}
+
+.ddi-toc-item:last-child {
+  border-bottom: none;
 }
 
 .ddi-toc-item:hover {
-  color: var(--ddi-accent);
+  color: var(--ddi-red);
+
+  transform: translateX(6px);
 }
 
-.ddi-toc-number {
-  min-width: 2rem;
+.ddi-toc-item-number {
+
+  width: 42px;
+
+  color: var(--ddi-red);
+
   font-weight: 700;
+
+  font-size: .78rem;
+
+  letter-spacing: .15em;
+
+  flex-shrink: 0;
 }
 
 .ddi-toc-title {
+
   flex: 1;
+
+  color: inherit;
+
+  font-size: .92rem;
+
+  letter-spacing: .04em;
+
+  text-transform: uppercase;
+}
+
+/* Offset scrolling for DDI headings */
+
+.topic-post:first-child .cooked h2 {
+  scroll-margin-top: 110px;
 }
 
 /* ==========================================

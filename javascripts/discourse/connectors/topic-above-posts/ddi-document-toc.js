@@ -1,20 +1,30 @@
 export default {
   setupComponent(args, component) {
-    const cooked = args.model.postStream.posts[0].cooked;
+    // Wait until Discourse has rendered the cooked post
+    requestAnimationFrame(() => {
+      const headings = [];
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(cooked, "text/html");
+      document
+        .querySelectorAll(".topic-post:first-child .cooked h2")
+        .forEach((heading, index) => {
+          const id = heading.textContent
+            .trim()
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, "-");
 
-    const headings = [];
+          heading.id = id;
 
-    doc.querySelectorAll("h2").forEach((heading, index) => {
-      headings.push({
-        number: String(index + 1).padStart(2, "0"),
-        title: heading.textContent.trim(),
-        id: heading.id,
+          headings.push({
+            number: String(index + 1).padStart(2, "0"),
+            title: heading.textContent.trim(),
+            id,
+          });
+        });
+
+      component.setProperties({
+        headings,
       });
     });
-
-    component.set("headings", headings);
   },
 };
