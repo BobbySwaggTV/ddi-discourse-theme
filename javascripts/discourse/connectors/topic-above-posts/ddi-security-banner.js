@@ -2,12 +2,16 @@ import { getClassification } from "../../lib/ddi-classification";
 
 export default {
   setupComponent(args, component) {
-const classification = getClassification(args.model);
+    const {
+      classification,
+      className: classificationClass,
+      message,
+    } = getClassification(args.model);
 
-component.setProperties({
-      classification: classification.classification,
-      classificationClass: classification.className,
-      message: classification.message,
+    component.setProperties({
+      classification,
+      classificationClass,
+      message,
     });
   },
 };

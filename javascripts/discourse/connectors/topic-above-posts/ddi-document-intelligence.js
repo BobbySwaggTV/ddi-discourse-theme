@@ -1,26 +1,8 @@
+import { getClassification } from "../../lib/ddi-classification";
+
 export default {
   setupComponent(args, component) {
     const topic = args.model;
-
-    const tags = topic.tags || [];
-
-    let classification = "PUBLIC RELEASE";
-
-    if (tags.includes("internal")) {
-    classification = "INTERNAL";
-  }
-
-    if (tags.includes("confidential")) {
-    classification = "CONFIDENTIAL";
-  }
-
-    if (tags.includes("restricted")) {
-    classification = "RESTRICTED";
-  }
-
-    if (tags.includes("top-secret")) {
-    classification = "TOP SECRET";
-  }
 
     const cooked = topic.postStream?.posts?.[0]?.cooked || "";
 
@@ -33,25 +15,27 @@ export default {
       ? text.split(/\s+/).length
       : 0;
 
-      const readingTime = Math.max(
-        1,
-        Math.ceil(wordCount / 200), // assuming an average reading speed of 200 words per minute
-      );
+    const readingTime = Math.max(
+      1,
+      Math.ceil(wordCount / 200)
+    );
 
-      const post = args.model.postStream.posts[0];
+    const post = topic.postStream?.posts?.[0];
 
-      const lastRevision = new Date(
-        topic.last_posted_at || post.created_at,
-      )
-        .toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
-        .toUpperCase();
-      
-      const revision = 
-        "R" + String(post.version || 1).padStart(2, "0");  
+    const lastRevision = new Date(
+      post?.updated_at || post?.created_at
+    )
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .toUpperCase();
+
+    const revision =
+      "R" + String(post?.version || 1).padStart(2, "0");
+
+    const { classification } = getClassification(topic);
 
     component.setProperties({
       replies: topic.reply_count ?? 0,
