@@ -1,0 +1,26 @@
+{{#if this.headings.length}}
+<div class="ddi-card">
+
+  <div class="ddi-card-title">
+    DOCUMENT CONTENTS
+  </div>
+
+  <div class="ddi-card-body">
+
+    {{#each this.headings as |heading|}}
+      <a
+       class="ddi-toc-item"
+       href="#{{heading.id}}"
+      >
+      <span class="ddi-toc-item-number">{{heading.number}}</span>
+
+      <span class="ddi-toc-title">
+          {{heading.title}}
+      </span>
+      </a>
+    {{/each}}
+
+  </div>
+
+</div>
+{{/if}}

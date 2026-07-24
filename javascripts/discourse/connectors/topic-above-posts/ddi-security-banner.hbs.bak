@@ -1,9 +1,0 @@
-<div class="ddi-security-banner {{this.classificationClass}}">
-  <div class="ddi-security-title">
-    {{this.classification}}
-  </div>
-
-  <div class="ddi-security-message">
-    {{this.message}}
-  </div>
-</div>
