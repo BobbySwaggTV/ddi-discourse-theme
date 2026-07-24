@@ -1,3 +1,5 @@
+import { getClassification } from "../../lib/ddi-classification";
+
 export default {
   setupComponent(args, component) {
 
@@ -22,33 +24,10 @@ export default {
 
       const status = topic.closed ? "LOCKED" : "ACTIVE";
 
-      // DDI Classification Engine
-      const tags = topic.tags || [];
-
-      let classification = "PUBLIC RELEASE";
-      let classificationClass = "ddi-public";
-
-      const hasTag = (slug) => tags.some(tag => tag.slug === slug);
-
-      if (hasTag("internal")) {
-      classification = "INTERNAL";
-      classificationClass = "ddi-internal";
-    }
-
-      if (hasTag("confidential")) {
-      classification = "CONFIDENTIAL";
-      classificationClass = "ddi-confidential";
-    }
-
-      if (hasTag("restricted")) {
-      classification = "RESTRICTED";
-      classificationClass = "ddi-restricted";
-    }
-
-      if (hasTag("top-secret")) {
-      classification = "TOP SECRET";
-      classificationClass = "ddi-top-secret";
-    }
+      const {
+        classification,
+        className: classificationClass,
+      } = getClassification(topic);
 
       component.setProperties({
         documentId,
