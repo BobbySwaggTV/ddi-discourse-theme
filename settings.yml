@@ -31,3 +31,8 @@ ddi_debug_mode_enabled:
   type: bool
   default: false
   description: "Show a diagnostic metadata panel on topic pages (document ID, classification, tags, word count, etc.) — off by default, admin/staging use only"
+
+ddi_intelligence_index_enabled:
+  type: bool
+  default: true
+  description: "Show the alphabetical Intelligence Index of every archived document above the page content (hidden on document and admin pages) — disable if it doesn't suit a given route configuration"

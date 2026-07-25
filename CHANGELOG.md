@@ -8,8 +8,17 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
-## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation
+## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation, intelligence index
 
+- Added the Intelligence Index: an alphabetical, archive-wide list of every document (Document
+  Number, Title, Department, Classification, Revision), rendered above the page content on browsing
+  routes only (hidden on document and admin pages). The theme's first `above-main-container`
+  connector — new opt-out setting `ddi_intelligence_index_enabled` (default `true`).
+  `services/ddi-intelligence-index.js` fetches `/latest.json` and shapes every result through the
+  existing `ddi-citation-preview.js` (zero new "topic to display fields" logic); sorting and
+  filtering are new pure functions in `lib/ddi-document-index.js`, with filtering fully wired
+  end-to-end (`getIndex(filters)`) even though no filter UI is built yet. Implemented as
+  `connectors/above-main-container/ddi-intelligence-index.*`.
 - Added Archive Navigation: Previous Document, Next Document, Department Home, and Recent Documents
   in Department on every document page. `services/ddi-archive-navigation.js` reuses
   `ddi-document-metadata.js` for department identity, the existing `/c/{slug}/{id}.json` category-

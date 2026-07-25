@@ -1,0 +1,60 @@
+{{#if this.isVisible}}
+  <div class="ddi-card ddi-intelligence-index">
+
+    <div class="ddi-card-title">
+      INTELLIGENCE INDEX
+    </div>
+
+    {{#if this.isLoading}}
+      <div class="ddi-card-body">
+        LOADING INTELLIGENCE INDEX…
+      </div>
+    {{else if this.documents.length}}
+      <div class="ddi-card-body">
+
+        {{#each this.documents as |doc|}}
+          <a
+           class="ddi-toc-item {{doc.classificationClass}}"
+           href="{{doc.url}}"
+          >
+          <div>
+            <span class="ddi-toc-title">
+                {{doc.title}}
+            </span>
+
+            <div class="ddi-dossier-grid">
+
+              <div>
+                <span>Document Number</span>
+                <strong>{{doc.documentId}}</strong>
+              </div>
+
+              <div>
+                <span>Department</span>
+                <strong>{{doc.department}}</strong>
+              </div>
+
+              <div>
+                <span>Classification</span>
+                <strong>{{doc.classification}}</strong>
+              </div>
+
+              <div>
+                <span>Revision</span>
+                <strong>{{doc.revision}}</strong>
+              </div>
+
+            </div>
+          </div>
+          </a>
+        {{/each}}
+
+      </div>
+    {{else}}
+      <div class="ddi-card-body">
+        NO DOCUMENTS FOUND
+      </div>
+    {{/if}}
+
+  </div>
+{{/if}}

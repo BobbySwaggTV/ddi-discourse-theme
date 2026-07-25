@@ -123,6 +123,18 @@ All topic-page components follow the pattern above. In render order:
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
 
+## Archive-Wide Components
+
+Everything above is scoped to a single topic page (`args.model` is that topic). This is the first
+component that isn't: it renders on every *non-document* route instead of one document, off a
+different Discourse outlet family.
+
+1. **Intelligence Index** (`connectors/above-main-container/ddi-intelligence-index.*` +
+   `services/ddi-intelligence-index.js`) — an alphabetical, archive-wide list of every document
+   (Document Number, Title, Department, Classification, Revision). Gated by the new
+   `ddi_intelligence_index_enabled` setting (default `true`) and, at render time, by a route check
+   that hides it on document (`topic.*`) and `admin` routes. See **Intelligence Index** below.
+
 ## Classification System
 
 `lib/ddi-classification.js` maps a topic's tags to a classification tier (`TOP SECRET`,
@@ -383,6 +395,71 @@ Network already does. Only the Previous/Next two-up row (`.ddi-nav-links`/`.ddi-
 markup, since no existing component in this theme is a two-column button pair — everything else
 (color tokens, hover treatment, uppercase label convention) is drawn from the existing `:root` token
 set, not new literals.
+
+## Intelligence Index
+
+An alphabetical (by title) list of every document in the archive — Document Number, Title,
+Department, Classification, Revision — rendered above the page content on browsing routes
+(homepage, categories, tags), so the archive has one place to scan its full contents rather than
+only per-category listings.
+
+**Reuses Citation Preview end to end — no new "topic to display fields" mapping.**
+`services/ddi-intelligence-index.js` maps every fetched topic through
+`ddi-citation-preview.js`'s existing `getCitation()`, the same call Intelligence Network and Archive
+Navigation already make. Its output — `{ documentId, title, classification, classificationClass,
+department, revision, url }` — already covers all 5 required columns exactly; this feature adds zero
+new fields to that shape.
+
+**One new endpoint, and why it's different from the others already in this codebase.**
+`_fetchArchiveTopics()` calls Discourse's `/latest.json` — the standard "every topic, newest first"
+listing endpoint, distinct from `ddi-related-intelligence.js`'s and `ddi-archive-navigation.js`'s
+`/c/{slug}/{id}.json` (both category-scoped) because this feature is explicitly archive-wide, not
+scoped to one document's category. Same single-page-is-enough limitation as Archive Navigation's
+department fetch, and the same reason: fetched newest-first order is not used for anything — the
+result is always re-sorted by title, so the endpoint's own ordering is irrelevant either way.
+
+**Sorting and filtering are pure `lib/` functions, not service-embedded logic.**
+`lib/ddi-document-index.js` exports `sortDocumentsAlphabetically()` (title, locale-aware) and
+`filterDocuments(documents, { department, classification })`. The service always sorts; filtering is
+wired all the way through — `getIndex(filters)` — and is real, tested logic today, not a stub. What
+doesn't exist yet is filter *controls* in the template (not part of this task's required Display
+list) — a future connector-side filter UI only needs to call `getIndex({ department, classification })`
+or filter the already-loaded array with `filterDocuments()` directly; no service or data-shape change
+is needed to add it.
+
+**A new outlet family for this theme, guarded conservatively.** Every previous DDI component is
+scoped to a topic page via `topic-*` outlets. `above-main-container` is different — Discourse renders
+it on every route, a fact `docs/ddi-intelligence-archive-dashboard.md` already flagged as needing a
+route guard when it designed (but never built) a *different*, much larger homepage-replacement
+feature. This component's guard is deliberately simpler and safer than guessing that plan's specific
+homepage route name: `setupComponent` looks up `service:router` (Ember's own router service, not a
+Discourse-specific API) and hides the panel via a template-level `{{#if this.isVisible}}` whenever
+`currentRouteName` starts with `topic.` or `admin` — both stable, well-known Discourse route-name
+prefixes — rather than trying to allow-list one exact homepage route that could differ by site
+configuration. Net effect: shows on discovery/category/tag listing pages, never on a document (where
+it would be redundant with the topic page's own components) or in admin. The `shouldRender(args,
+context)`-with-route-argument approach that dashboard doc describes was deliberately avoided here —
+its exact argument shape is unconfirmed against a live instance, whereas `setupComponent` +
+`getOwner(component).lookup(...)` is the one connector mechanism already proven throughout this
+codebase.
+
+**New opt-out setting, unlike this session's other three features.** Those are per-document and
+already scoped to a single outlet with clear precedent; this is the theme's first component on a
+"renders on every route" outlet, genuinely new territory here. `ddi_intelligence_index_enabled`
+(`settings.yml`, default `true`) lets an admin disable it if the route guard above doesn't suit a
+given site's configuration, without needing a code change — read via `shouldRender()`, the same
+zero-argument, already-proven pattern `ddi-debug-panel.js` established for setting-gated connectors.
+
+**No new CSS.** The card shell, row markup, and 4-field grid reuse `.ddi-card` / `.ddi-toc-item` /
+`.ddi-toc-title` / `.ddi-dossier-grid` verbatim — the same reuse `docs/ddi-intelligence-archive-
+dashboard.md` already called for ("No new component vocabulary is needed"). `#main-outlet`'s
+existing width/padding/background styling applies to this connector's content the same as it does to
+routed page content, so no wrapper styling was needed either.
+
+**Does not touch the Homepage Dashboard's territory.** `ddi_homepage_dashboard_enabled` and the
+default-furniture-suppression technique `docs/ddi-intelligence-archive-dashboard.md` describes are
+untouched — this feature doesn't hide or replace any existing homepage/category-page content, only
+adds a card above it, so it doesn't preempt or conflict with that larger, still-unbuilt feature.
 
 ## CSS Architecture
 
