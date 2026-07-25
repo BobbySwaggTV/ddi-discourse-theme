@@ -41,3 +41,7 @@ export function getClassification(topic) {
 
   return match || DEFAULT_CLASSIFICATION;
 }
+
+export function isValidClassification(slug) {
+  return CLASSIFICATIONS.some((classification) => classification.slug === slug);
+}

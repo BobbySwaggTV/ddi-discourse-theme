@@ -36,6 +36,9 @@ for any new work:
 - **`lib/`** — pure functions with no side effects and no Discourse/Ember dependencies beyond their
   input. Example: `formatDocumentId(id)`, `formatDocumentDate(date)`. If two pieces of code need the
   same computation, it belongs here, imported by both — not reimplemented in each place.
+  `ddi-classification.js`, `ddi-document-type.js`, `ddi-lifecycle.js`, and `ddi-department.js` each
+  export their field's canonical vocabulary plus an `isValid*(slug)` check against it — see
+  **Metadata Validation** below.
 - **`services/`** — Ember `Service` classes, used when logic needs to do async work (network
   requests) or would benefit from being injectable/reusable across multiple connectors.
   `ddi-related-intelligence.js` injects `ddi-citation-preview.js` rather than shaping its own result
@@ -153,6 +156,34 @@ one place, not duplicated between the two features that both need it.
 in this document: `decorateCookedElement`'s `{ onlyStream: true }` option and `helper.getModel()`
 are standard, well-established patterns, but haven't been confirmed against this project's actual
 target Discourse core version.
+
+## Metadata Validation
+
+`isValidClassification(slug)` (`lib/ddi-classification.js`), `isValidDocumentType(slug)`
+(`lib/ddi-document-type.js`), `isValidLifecycle(slug)` (`lib/ddi-lifecycle.js`), and
+`isValidDepartment(slug)` (`lib/ddi-department.js`) each check a single value against their field's
+canonical vocabulary (defined in `docs/ddi-archive-information-architecture.md`), returning a plain
+boolean. `isValidClassification` reuses the existing `CLASSIFICATIONS` array rather than a second
+copy of the same 4 slugs — it's deliberately consistent with what `getClassification()` actually
+recognizes today, not the archive doc's proposed 5th (`public-release`) tag, which isn't wired into
+that function yet (see **Classification System** above). `isValidDepartment` checks a Discourse
+category **slug** (`topic.category?.slug`), not the display name shown elsewhere (`topic.category?.name`,
+used by Document Footer and Document Intelligence) — the two are different properties of the same
+category object, and it's worth not confusing them.
+
+**Scope, stated plainly:** these are pure validity checks, not enforcement. A Discourse theme has no
+mechanism to block a topic from being saved with an unrecognized tag or category — that would
+require a Discourse plugin (server-side) or a composer-level hook, both a materially different and
+larger architecture than anything else in this repo, and neither is built here. "Prevent invalid
+values" is satisfied in the sense that any future code needing this check — a composer hook, an
+admin QA tool, or a display component wanting a safe fallback — now has one correct, reusable place
+to get the answer, rather than reimplementing the check (and the vocabulary list) itself. None of
+the four are currently wired into an existing component: Classification's *display* was already
+safe by construction before this change (`getClassification()` can only ever return one of its own
+known values or the default); Document Type and Lifecycle aren't read by any component yet; and
+Department is a Discourse category, which Discourse itself already guarantees exists — this adds
+the narrower check of whether it's one of *this archive's* six divisions specifically, not just any
+valid Discourse category.
 
 ## CSS Architecture
 
