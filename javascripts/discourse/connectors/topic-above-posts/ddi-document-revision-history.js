@@ -1,5 +1,6 @@
 import { formatDocumentDate } from "../../lib/ddi-format-date";
 import { formatRevision } from "../../lib/ddi-revision";
+import { formatDocumentAuthor } from "../../lib/ddi-author";
 
 export default {
   setupComponent(args, component) {
@@ -12,7 +13,7 @@ export default {
       post?.updated_at || post?.created_at
     );
 
-    const author = (post?.username || "SYSTEM").toUpperCase();
+    const author = formatDocumentAuthor(post?.username);
 
     const revisionStatus = topic.closed ? "LOCKED" : "ACTIVE";
 

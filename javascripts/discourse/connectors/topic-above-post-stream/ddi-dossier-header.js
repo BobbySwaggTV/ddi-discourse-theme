@@ -1,5 +1,6 @@
 import { getClassification } from "../../lib/ddi-classification";
 import { formatDocumentDate } from "../../lib/ddi-format-date";
+import { formatDocumentAuthor } from "../../lib/ddi-author";
 
 export default {
   setupComponent(args, component) {
@@ -12,8 +13,9 @@ export default {
 
       const issuedDate = formatDocumentDate(topic.created_at);
 
-      const author =
-        (args.model.postStream?.posts?.[0]?.username || "SYSTEM").toUpperCase();
+      const author = formatDocumentAuthor(
+        args.model.postStream?.posts?.[0]?.username
+      );
 
       const status = topic.closed ? "LOCKED" : "ACTIVE";
 

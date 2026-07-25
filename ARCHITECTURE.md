@@ -73,11 +73,16 @@ All topic-page components follow the pattern above. In render order:
    cross-component reuse. Positioned directly below Document Intelligence via filename-based outlet
    ordering (see `docs/ddi-intelligence-network.md` for the same technique applied elsewhere, and its
    caveat that this ordering isn't independently verified against the live Discourse core version).
-7. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+7. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
+   Number, Classification, Revision, Department, Last Updated, Author, and a static "End of
+   Document" marker. Synchronous, same reasoning as Revision History (no service needed). Ordered
+   before Intelligence Network within the same outlet (filename-based, same caveat as above) so the
+   document's own closing metadata appears before the secondary "related documents" panel.
+8. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
    `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
    (+100), same classification (+50, see caveat below), and +25 per shared tag. See
    `docs/ddi-intelligence-network.md` for the full design rationale.
-8. **Cross References** (`api-initializers/ddi-cross-references.js` +
+9. **Cross References** (`api-initializers/ddi-cross-references.js` +
    `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
    and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
    everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
