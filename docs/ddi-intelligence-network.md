@@ -83,6 +83,44 @@ Reuses existing, already-styled classes rather than introducing new CSS, so `com
 
 Three states are handled: loading, populated (up to 5 rows), and empty (no related documents found).
 
+### Proposed Row Enrichment (not implemented)
+
+A later requirement asked each row to display 5 fields instead of the current 2: Document Number,
+Title, Classification, Department, Revision. Document Number/Title/Classification are already in
+`_present()`'s output. Department and Revision are not, and have different costs:
+
+- **Department** needs `candidate.category_id` resolved to a division name via Discourse's already-
+  loaded site categories — a small addition to `_present()`.
+- **Revision** needs each candidate's first-post `version`, which isn't in the topic-list JSON the
+  service already fetches for scoring — it requires an additional per-topic detail fetch. Doing this
+  for every candidate before ranking would be wasteful (most candidates are discarded); doing it only
+  for the final top 5 after ranking is bounded but still adds up to 5 more concurrent requests to a
+  service that already has an unresolved N+1 fetch pattern and no per-fetch error handling (see
+  `docs/ddi-document-metadata-standard.md` §4.6 for the Revision field's format). This should be a
+  deliberate decision, not something bundled silently into a template change.
+
+## Future Extensibility
+
+None of the following are implemented — they're documented here so a future change can extend the
+service without altering its existing `findRelated(topic)` contract or breaking current callers:
+
+- **New ranking signals** (e.g. Document Type or Lifecycle matching, once those fields from
+  `docs/ddi-document-metadata-standard.md` are implemented) can be added inside `_score()` as
+  additional point rules.
+- **Configurable result count** — `MAX_RESULTS` could become an optional second argument
+  (`findRelated(topic, { limit })`) with the current value kept as the default.
+- **Fetch performance** — the one-`ajax()`-call-per-tag pattern in `_fetchCandidates` could be
+  replaced with a single `/search.json` call, or supplemented with a cache, entirely inside that
+  method, invisible to callers.
+- **Resilience** — per-fetch `.catch()` handling (missing today — one failed tag request currently
+  rejects the whole `Promise.all`) is an additive fix, not a structural change.
+- **Additional consumers** — any future component can inject `service:ddi-related-intelligence` and
+  call `findRelated(topic)` as-is. This service answers "what's related to *this* topic" — it is not
+  a fit for the separately-planned homepage Recent Documents / Recently Updated sections
+  (`docs/ddi-intelligence-archive-dashboard.md`), which ask a different question ("what's recently
+  active archive-wide") and should get their own service rather than stretching this one to serve
+  both.
+
 ## Implementation Plan
 
 1. Confirm the `topic-below-post-stream` outlet (or `topic-above-suggested`, if that placement is preferred) is valid for the target Discourse core version.

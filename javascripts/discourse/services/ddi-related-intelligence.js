@@ -23,8 +23,8 @@ export default class DdiRelatedIntelligenceService extends Service {
 
   async _fetchCandidates(topic) {
     const pools = await Promise.all([
-      this._fetchCategoryTopics(topic),
-      ...this._fetchTagTopics(topic),
+      this._fetchCategoryTopics(topic).catch(() => []),
+      ...this._fetchTagTopics(topic).map((promise) => promise.catch(() => [])),
     ]);
 
     const byId = new Map();

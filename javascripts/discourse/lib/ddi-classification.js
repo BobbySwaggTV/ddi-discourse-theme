@@ -36,7 +36,7 @@ export function getClassification(topic) {
   const tags = topic?.tags || [];
 
   const match = CLASSIFICATIONS.find((classification) =>
-    tags.some((tag) => tag.slug === classification.slug)
+    tags.some((tag) => tag === classification.slug)
   );
 
   return match || DEFAULT_CLASSIFICATION;
