@@ -64,10 +64,23 @@ All topic-page components follow the pattern above. In render order:
 5. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
    post's rendered `<h2>` elements after render (`requestAnimationFrame`), assigns each an `id`, and
    lists them as anchor links.
-6. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+6. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
+   Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
+   synchronously from the first post — no service, since nothing here needs async I/O or
+   cross-component reuse. Positioned directly below Document Intelligence via filename-based outlet
+   ordering (see `docs/ddi-intelligence-network.md` for the same technique applied elsewhere, and its
+   caveat that this ordering isn't independently verified against the live Discourse core version).
+7. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
    `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
    (+100), same classification (+50, see caveat below), and +25 per shared tag. See
    `docs/ddi-intelligence-network.md` for the full design rationale.
+8. **Cross References** (`api-initializers/ddi-cross-references.js` +
+   `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
+   and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
+   everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
+   already-rendered post HTML, and this project already has one precedent for that class of work
+   (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
+   between the pure detection/parsing library and this DOM-mutation layer.
 
 ## Classification System
 
@@ -77,14 +90,55 @@ name, a CSS class, and a message. It's imported and reused correctly everywhere 
 needed (Security Banner, Dossier Header, Intelligence Network) — there's no duplicated
 classification logic elsewhere in the codebase.
 
-**Known bug:** the lookup does `tags.some((tag) => tag.slug === classification.slug)`, which
-assumes `topic.tags` is an array of tag objects with a `.slug` property. In Discourse, a topic's
-`tags` are plain strings (tag names), not objects — so this comparison likely never matches, and
-every topic silently falls back to the default `PUBLIC RELEASE` classification regardless of its
-actual tags. This affects the Security Banner, Dossier Header's classification color, and the
-Intelligence Network's classification-match scoring. Fixing it is a single-line change (compare
-against the tag string directly) but is not done in this codebase yet — verify current behavior in
-a live instance before depending on classification-driven behavior.
+**Formerly a known bug, now fixed:** the lookup used to do
+`tags.some((tag) => tag.slug === classification.slug)`, which assumed `topic.tags` was an array of
+tag objects with a `.slug` property. Discourse's `topic.tags` is actually an array of plain strings,
+so the comparison never matched, and every topic silently fell back to `PUBLIC RELEASE` regardless
+of its actual tags. Fixed by comparing the tag string directly
+(`tags.some((tag) => tag === classification.slug)`) — Security Banner, Dossier Header's
+classification color, and Intelligence Network's classification-match scoring all inherit the fix
+automatically, since all of them call this one shared function rather than resolving classification
+themselves.
+
+## Cross References
+
+`lib/ddi-cross-reference.js` + `api-initializers/ddi-cross-references.js` detect `DDI-NNNNNN`
+patterns (the exact format `formatDocumentId()` produces) inside a document's rendered text and
+convert them into links to the referenced topic, so an author can write `DDI-000245` in a document
+body and have it become clickable without any manual linking.
+
+**Split, and why:**
+
+- `lib/ddi-cross-reference.js` is pure — no DOM, no Discourse API, matching the `lib/` rule. It
+  exports `findDocumentReferences(text)` (the detection primitive: regex-matches
+  `DDI-NNNNNN` and extracts the numeric ID via `parseDocumentId()`, added to
+  `lib/ddi-document-id.js` as the inverse of the existing `formatDocumentId()`) and
+  `linkifyDocumentReferences(text)` (the reusable parser: splits a string into an ordered sequence
+  of plain-text and reference segments). Because it operates on plain strings, not raw HTML, it has
+  no way to accidentally match text inside an HTML attribute — the only content it's ever given is
+  a single text node's `textContent`, which can't contain markup.
+- `api-initializers/ddi-cross-references.js` is the DOM-mutation layer, using Discourse's
+  `decorateCookedElement` API — the correct mechanism for altering already-rendered post HTML,
+  and not a plugin-outlet connector, because outlet connectors render fixed UI at a fixed position;
+  they have no way to reach into and rewrite arbitrary rendered content. This project already has
+  one precedent for `decorateCookedElement`-style DOM mutation
+  (`api-initializers/ddi-dossier-refresh.js`), so this follows an existing pattern rather than
+  introducing a new one. It walks the first post's text nodes (skipping any already inside an `<a>`,
+  `<code>`, or `<pre>` element, to avoid nested links or mangling code samples), and for any node
+  containing a reference, replaces it with a mix of text nodes and real `<a>` elements built from
+  the parser's segments.
+
+**Scoped to the first post only** (`post.post_number !== 1` skips everything else), consistent with
+every other component in this list treating the first post as "the document."
+
+**Future hover preview:** each generated link carries a `ddi-cross-reference` class and a
+`data-ddi-document-id` attribute — the hook a future preview feature needs — but no hover behavior
+is implemented. Building that now wasn't necessary to satisfy the current requirement.
+
+**Unverified against a live instance**, consistent with other Discourse API usage flagged elsewhere
+in this document: `decorateCookedElement`'s `{ onlyStream: true }` option and `helper.getModel()`
+are standard, well-established patterns, but haven't been confirmed against this project's actual
+target Discourse core version.
 
 ## CSS Architecture
 
