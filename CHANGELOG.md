@@ -8,6 +8,27 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Document Breadcrumb component
+
+- Added a Document Breadcrumb — `DDC Intelligence Archive → Department → Document Type → (current
+  title)` — as a new connector,
+  `connectors/topic-above-post-stream/ddi-document-breadcrumb.*`, placed in the same outlet as
+  Dossier Header (`topic-above-post-stream`) to render directly beneath it. Department and Document
+  Type both come from `ddi-document-metadata.js`'s already-resolved fields
+  (`metadata.department`/`metadata.departmentDisplay`) and `lib/ddi-document-type.js`'s
+  `getDocumentTypeLabel()` (added earlier this session for the Dossier Header) — no new metadata
+  resolution, no new validation calls. Falls back to `"Unknown Department"` /
+  `"Unknown Document Type"` when the corresponding metadata field is unrecognized. All segments
+  render uppercase via one new CSS rule (`.ddi-document-breadcrumb`), matching the Dossier Header and
+  Discourse's own themed `.category-breadcrumb`; no existing CSS rule was modified.
+- **Caveat, stated plainly:** intra-outlet render order between Dossier Header and Breadcrumb
+  (both `topic-above-post-stream`) has not been confirmed against a live Discourse instance — none
+  was available this session. If Breadcrumb renders above Dossier Header instead of below, see
+  `ARCHITECTURE.md`'s **Topic Page Components** item 2 for the fix, which is localized to this one
+  connector's outlet placement and doesn't touch any other component.
+- Verified all 6 `DEPARTMENTS` slugs and all 23 `DOCUMENT_TYPES` slugs resolve to their correct
+  breadcrumb label, and that unrecognized/missing input for either correctly falls back.
+
 ## 2026-07-25 — Dynamic Document Lifecycle badge in the Dossier Header
 
 - The Dossier Header now shows a small lifecycle badge beside the document type, reading

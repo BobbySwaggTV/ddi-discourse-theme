@@ -79,23 +79,42 @@ All topic-page components follow the pattern above. In render order:
    `LIFECYCLE_STATES` — by explicit choice (see `CHANGELOG.md`), the vocabulary itself was left
    untouched rather than adding a new tag as part of a display task, so "Approved" cannot currently
    appear; it would require a genuine vocabulary change (new admin tag), out of scope here.
-2. **Classification Watermark** (`connectors/topic-above-post-stream/ddi-classification-watermark.*`)
+2. **Document Breadcrumb** (`connectors/topic-above-post-stream/ddi-document-breadcrumb.*`) — a
+   lightweight trail: `DDC Intelligence Archive → Department → Document Type → (current title)`.
+   Department is `metadata.department`/`metadata.departmentDisplay` (both already resolved by the
+   Metadata Engine from `topic.category`) — falls back to `"Unknown Department"` when
+   `metadata.department` is `null` (category isn't one of the six recognized divisions), reusing that
+   already-computed truthiness rather than re-calling `isValidDepartment()`. Document Type reuses the
+   same `getDocumentTypeLabel()` added for the Dossier Header, falling back to
+   `"Unknown Document Type"`. All segments render uppercase via CSS (`text-transform: uppercase` on
+   `.ddi-document-breadcrumb`) to match the Dossier Header and Discourse's own themed
+   `.category-breadcrumb` — the source strings themselves (`departmentDisplay`, the topic title) are
+   left in their natural case; only presentation is transformed. **Shares the `topic-above-post-stream`
+   outlet with Dossier Header, placed to render directly beneath it** — this is the same outlet
+   relationship Classification Watermark already has with Dossier Header (see next item), except
+   Breadcrumb *does* participate in normal document flow, so unlike the fixed-position Watermark, its
+   position relative to Dossier Header inside that outlet has not been confirmed against a live
+   Discourse instance (none was available for this pass); if it renders above Dossier Header instead
+   of below, the fix is a `topic-above-post-stream`-only concern (e.g. an explicit render priority or
+   moving Breadcrumb to `topic-above-posts` ahead of Security Banner) and does not touch any other
+   component. Flagging this the same way the homepage reorder's manual-testing caveat was flagged.
+3. **Classification Watermark** (`connectors/topic-above-post-stream/ddi-classification-watermark.*`)
    — a fixed, full-viewport, low-opacity classification label rendered behind the document while its
-   topic page is mounted. Shares the `topic-above-post-stream` outlet with Dossier Header; DOM order
-   between the two doesn't matter since the watermark is removed from normal flow (`position: fixed`).
-   See **Classification Watermark** below.
-3. **Security Banner** (`connectors/topic-above-posts/ddi-security-banner.*`) — classification name
+   topic page is mounted. Shares the `topic-above-post-stream` outlet with Dossier Header and
+   Breadcrumb; DOM order among the three doesn't matter for the watermark since it's removed from
+   normal flow (`position: fixed`). See **Classification Watermark** below.
+4. **Security Banner** (`connectors/topic-above-posts/ddi-security-banner.*`) — classification name
    and message, via `lib/ddi-classification.js`.
-4. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
+5. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
    first post's cooked HTML, parses it with `DOMParser`, and shows the text of the first `<p>`
    element. This is a simple extraction, not a generated summary.
-5. **Document Intelligence** (`connectors/topic-above-posts/ddi-document-intelligence.*`) — reading
+6. **Document Intelligence** (`connectors/topic-above-posts/ddi-document-intelligence.*`) — reading
    time (word count ÷ 200, min 1 minute), word count, category name, reply count, view count, and a
    revision label derived from the first post's version.
-6. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
+7. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
    post's rendered `<h2>` elements after render (`requestAnimationFrame`), assigns each an `id`, and
    lists them as anchor links.
-7. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
+8. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
    Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
    synchronously from the first post — no service, since nothing here needs async I/O or
    cross-component reuse. Positioned directly below Document Intelligence via filename-based outlet
@@ -105,7 +124,7 @@ All topic-page components follow the pattern above. In render order:
    listing) — what remains genuinely unverified is the underlying assumption that Discourse renders
    same-outlet connectors in filename order at all, which requires a running instance to confirm and
    wasn't something this cleanup pass had access to.
-8. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
+9. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
    chronologically-ordered list of lifecycle events (Created, Approved, Revised, Reviewed,
    Deprecated, Archived), synchronous, derived entirely from `ddi-document-metadata.js`'s existing
    fields (no new fetch, no new tag, no new topic custom field). Filename sorts directly after
@@ -113,39 +132,39 @@ All topic-page components follow the pattern above. In render order:
    `ddi-document-timeline` < `ddi-document-toc`), same filename-ordering technique and the same
    unverified-against-a-live-instance caveat noted for Revision History above. See **Intelligence
    Timeline** below.
-9. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
+10. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
    Number, Classification, Revision, Department, Last Updated, Author, and a static "End of
    Document" marker. Synchronous, same reasoning as Revision History (no service needed). Ordered
    before Intelligence Network within the same outlet (filename-based, same caveat as above,
    re-verified the same way) so the document's own closing metadata appears before the secondary
    "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
    ordering requirement was ever set for it, so there's nothing to verify there.
-10. **Document Relationships** (`connectors/topic-below-post-stream/ddi-document-relationships.*` +
+11. **Document Relationships** (`connectors/topic-below-post-stream/ddi-document-relationships.*` +
     `services/ddi-relationship.js`) — up to N declared relationships (References, Supersedes,
     Superseded By, Related Intelligence, Required Reading, Supporting Documentation) to other
     documents, parsed from the current document's own body text. Sorts immediately after Document
     Footer in the same outlet. See **Document Relationships** below.
-11. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+12. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
     `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
     (+100), same classification (+50, see caveat below), and +25 per shared tag. See
     `docs/ddi-intelligence-network.md` for the full design rationale.
-12. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-navigation.*` +
+13. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-navigation.*` +
     `services/ddi-archive-navigation.js`) — Previous Document, Next Document, Department Home, and
     up to 5 Recent Documents in Department. Filename (`ddi-navigation`) deliberately sorts after
     `ddi-intelligence-network` so it renders last among this outlet's existing cards without
     disturbing their current order. See **Archive Navigation** below.
-13. **Cross References** (`api-initializers/ddi-cross-references.js` +
+14. **Cross References** (`api-initializers/ddi-cross-references.js` +
     `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
     and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
     everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
     already-rendered post HTML, and this project already has one precedent for that class of work
     (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
     between the pure detection/parsing library and this DOM-mutation layer.
-14. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+15. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
-15. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
+16. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
     + `lib/ddi-integrity.js`) — five PASS/WARN checks (Classification, Department, Document Type,
     Lifecycle, Metadata) against the current document's already-resolved metadata. Gated by the same
     `ddi_debug_mode_enabled` setting as Debug Mode, not a new one. Filename (`ddi-verification-panel`)

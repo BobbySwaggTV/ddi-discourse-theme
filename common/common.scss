@@ -1605,6 +1605,47 @@ a:hover {
 
 }
 
+/* ============================================================
+   DDI DOCUMENT BREADCRUMB
+   ============================================================ */
+
+.ddi-document-breadcrumb {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin: 0 0 20px;
+  padding: 10px 28px;
+
+  border: 1px solid var(--ddi-border);
+
+  background: rgba(8, 11, 16, .6);
+
+  color: var(--ddi-text-muted);
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  letter-spacing: .08em;
+
+  text-transform: uppercase;
+}
+
+.ddi-breadcrumb-separator {
+  color: var(--ddi-text-muted);
+
+  opacity: .6;
+}
+
+.ddi-breadcrumb-current {
+  color: #e7edf6;
+}
+
 /* ==========================================
    DDI DOSSIER CARD
 ========================================== */
