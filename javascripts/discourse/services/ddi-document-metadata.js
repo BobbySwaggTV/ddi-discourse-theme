@@ -9,6 +9,7 @@ import { isValidDocumentType } from "../lib/ddi-document-type";
 import { isValidLifecycle } from "../lib/ddi-lifecycle";
 import { isValidDepartment } from "../lib/ddi-department";
 import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
+import { buildTimeline } from "../lib/ddi-timeline";
 
 export default class DdiDocumentMetadataService extends Service {
   _cache = null;
@@ -46,7 +47,7 @@ export default class DdiDocumentMetadataService extends Service {
 
     const { wordCount, readingTime } = analyzeReadingTime(post?.cooked);
 
-    return {
+    const metadata = {
       documentNumber: formatDocumentId(topic.id),
       title: topic.title,
       classification,
@@ -66,5 +67,9 @@ export default class DdiDocumentMetadataService extends Service {
       tags,
       status: topic.closed ? "LOCKED" : "ACTIVE",
     };
+
+    metadata.timeline = buildTimeline(metadata);
+
+    return metadata;
   }
 }

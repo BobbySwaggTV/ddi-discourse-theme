@@ -1,0 +1,20 @@
+<div class="ddi-card">
+
+  <div class="ddi-card-title">
+    INTELLIGENCE TIMELINE
+  </div>
+
+  <div class="ddi-timeline">
+    {{#each this.timelineEvents as |event|}}
+      <div class="ddi-timeline-item">
+        <div class="ddi-timeline-marker"></div>
+
+        <div class="ddi-timeline-content">
+          <span class="ddi-timeline-label">{{event.label}}</span>
+          <strong class="ddi-timeline-date">{{event.date}}</strong>
+        </div>
+      </div>
+    {{/each}}
+  </div>
+
+</div>

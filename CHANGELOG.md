@@ -8,8 +8,13 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
-## 2026-07-25 — CSS token consolidation, related-documents feature
+## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline
 
+- Added the Intelligence Timeline: a vertical, document-page list of lifecycle events (Created,
+  Approved, Revised, Reviewed, Deprecated, Archived), derived entirely from existing
+  `ddi-document-metadata.js` fields with no new tags or fetches. Implemented as
+  `lib/ddi-timeline.js`'s `buildTimeline()`, composed into the metadata service, and rendered by
+  `connectors/topic-above-posts/ddi-document-timeline.*`.
 - Refactored `common/common.scss`: extended the `:root` custom-property system with a full
   color/border/shadow token scale and replaced repeated raw hex/rgba literals throughout the file
   with references to it.

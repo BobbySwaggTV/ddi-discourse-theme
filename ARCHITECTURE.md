@@ -82,25 +82,33 @@ All topic-page components follow the pattern above. In render order:
    listing) — what remains genuinely unverified is the underlying assumption that Discourse renders
    same-outlet connectors in filename order at all, which requires a running instance to confirm and
    wasn't something this cleanup pass had access to.
-7. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
+7. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
+   chronologically-ordered list of lifecycle events (Created, Approved, Revised, Reviewed,
+   Deprecated, Archived), synchronous, derived entirely from `ddi-document-metadata.js`'s existing
+   fields (no new fetch, no new tag, no new topic custom field). Filename sorts directly after
+   Revision History and before Table of Contents (`ddi-document-revision-history` <
+   `ddi-document-timeline` < `ddi-document-toc`), same filename-ordering technique and the same
+   unverified-against-a-live-instance caveat noted for Revision History above. See **Intelligence
+   Timeline** below.
+8. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
    Number, Classification, Revision, Department, Last Updated, Author, and a static "End of
    Document" marker. Synchronous, same reasoning as Revision History (no service needed). Ordered
    before Intelligence Network within the same outlet (filename-based, same caveat as above,
    re-verified the same way) so the document's own closing metadata appears before the secondary
    "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
    ordering requirement was ever set for it, so there's nothing to verify there.
-8. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+9. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
    `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
    (+100), same classification (+50, see caveat below), and +25 per shared tag. See
    `docs/ddi-intelligence-network.md` for the full design rationale.
-9. **Cross References** (`api-initializers/ddi-cross-references.js` +
-   `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
-   and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
-   everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
-   already-rendered post HTML, and this project already has one precedent for that class of work
-   (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
-   between the pure detection/parsing library and this DOM-mutation layer.
-10. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+10. **Cross References** (`api-initializers/ddi-cross-references.js` +
+    `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
+    and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
+    everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
+    already-rendered post HTML, and this project already has one precedent for that class of work
+    (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
+    between the pure detection/parsing library and this DOM-mutation layer.
+11. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
@@ -230,6 +238,56 @@ crosses the line into "shared business logic" at the second occurrence, not just
 already touching that file, its dead, still-unused inline `Rnn` computation (flagged since the
 Revision History work) was also replaced with the existing `formatRevision()` — a one-line, purely
 adjacent fix, not new work for this task.
+
+## Intelligence Timeline
+
+A vertical list, on every document, of up to 6 lifecycle events in fixed chronological/logical
+order: Created, Approved, Revised, Reviewed, Deprecated, Archived. Only events the theme can
+actually derive today are rendered — there's no fabricated "pending" placeholder for the rest,
+matching the fail-gracefully convention already established elsewhere (Revision History's empty
+state, Intelligence Network's `"NO RELATED DOCUMENTS FOUND"`).
+
+**Pure derivation, zero new data sources.** `lib/ddi-timeline.js`'s `buildTimeline(metadata)` takes
+the already-resolved metadata object `ddi-document-metadata.js` produces for every topic page and
+reads three fields it already exposes — `createdDate`, `updatedDate`, `lifecycle` — computing
+nothing itself. No new tag, topic custom field, or fetch was introduced:
+
+- **Created** — always shown, from `createdDate`.
+- **Revised** — shown only when `updatedDate` differs from `createdDate` (i.e. the document has
+  actually been edited since it was filed), using `updatedDate`.
+- **Approved / Reviewed / Deprecated / Archived** — at most one of these is shown, driven by the
+  document's current Lifecycle tag (`metadata.lifecycle`, already computed by the metadata service
+  but not consumed by any other component yet — see **Metadata Validation** above), mapped
+  `active → Approved`, `under-review → Reviewed`, `superseded → Deprecated`, `archived → Archived`.
+  `draft` has no corresponding event, since it's the pre-approval starting state, not a completed
+  milestone. This mapping deliberately does **not** touch the open Lifecycle-default question
+  flagged in `docs/ddi-document-metadata-standard.md` §4.7 and `docs/ddi-roadmap.md`'s "Excluded /
+  Not Yet Ready" — an untagged document simply shows no lifecycle-derived event, rather than this
+  feature silently picking a default on that question's behalf.
+
+**Known simplification, stated plainly rather than hidden:** the theme has no historical log of
+*when* a document transitioned between lifecycle states — only its current tag. So the lifecycle
+event shown (whichever of the four it is) reuses `updatedDate` as the best available proxy for "as
+of," the same "last edit time" `updatedDate` Revised also uses. If a document was both edited and,
+say, archived, Revised and Archived render with the same date — an honest reflection of the
+granularity of data actually available, not a bug. A real per-transition history would need a new
+storage mechanism (topic custom field or body convention, the same open trade-off already flagged
+for Last Reviewed / Effective Date in the metadata standard's §4.8–4.9), which this feature
+deliberately does not introduce.
+
+**Composed into the metadata service, not the connector.** `ddi-document-metadata.js`'s `_resolve()`
+calls `buildTimeline()` after assembling the rest of the metadata object and attaches the result as
+`metadata.timeline` — the same "service composes `lib/` helpers" shape already used for
+classification, revision, and reading time. This keeps `ddi-document-timeline.js` a plain field-copy
+connector (`timelineEvents: metadata.timeline`), identical in shape to Security Banner and Document
+Footer, with no business logic of its own.
+
+**Designed for expansion, concretely:** `TIMELINE_EVENT_TYPES` is a single ordered array, the same
+pattern as `RELATIONSHIP_TYPES` and `LIFECYCLE_STATES` — adding a 7th event type is a one-line
+addition to that array plus (if it's lifecycle-driven) one entry in the adjacent lookup map, nothing
+else. A future event source that isn't lifecycle-derived (e.g. Last Reviewed, once §4.8 above is
+actually implemented) only needs to add another key to the `eventDates` object `buildTimeline()`
+builds internally — the filtering/ordering/rendering pipeline around it doesn't change.
 
 ## CSS Architecture
 
