@@ -8,8 +8,22 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
-## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation, intelligence index, document integrity verification
+## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation, intelligence index, document integrity verification, document relationships, knowledge graph
 
+- Added the DDI Knowledge Graph: `services/ddi-knowledge-graph.js`'s `getDocumentGraph(topic)`
+  composes four existing services (`ddi-document-metadata`, `ddi-relationship`,
+  `ddi-related-intelligence`, `ddi-citation-preview`) into one typed node/edge graph — Metadata as
+  node fields, declared Relationships and Cross References as distinct edge types, Categories/Tags
+  reused as-is from Intelligence Network's own scoring as `"related"` edges (not re-scored). New
+  pure `lib/ddi-graph.js` (`createNode`/`createEdge`/`mergeNodes`, the latter gap-filling rather than
+  overwriting when the same document is found by more than one signal). Backend-only — no
+  connector, no template, no CSS, no UI; a reusable data model for a future visualization to
+  consume. See `ARCHITECTURE.md`'s **Knowledge Graph** section for the full Architecture Review and
+  Future Roadmap.
+- Committed the pre-existing Document Relationships feature (`services/ddi-relationship.js`,
+  `lib/ddi-relationship.js`, `connectors/topic-below-post-stream/ddi-document-relationships.*`) —
+  written in an earlier session and left uncommitted since, now landed unmodified as groundwork for
+  the Knowledge Graph's Relationships edge source.
 - Added Document Integrity Verification: five PASS/WARN checks (Classification, Department,
   Document Type, Lifecycle, Metadata) against each document, visible only when
   `ddi_debug_mode_enabled` is on (no new setting). `lib/ddi-integrity.js` reads

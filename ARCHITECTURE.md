@@ -151,6 +151,12 @@ different Discourse outlet family.
    `ddi_intelligence_index_enabled` setting (default `true`) and, at render time, by a route check
    that hides it on document (`topic.*`) and `admin` routes. See **Intelligence Index** below.
 
+## Backend-Only Services
+
+`services/ddi-knowledge-graph.js` is a further departure from both lists above: it has no connector
+and no outlet at all. It is data-model infrastructure with no current renderer, by design — see
+**Knowledge Graph** below for what it does and why it's deliberately unconsumed today.
+
 ## Classification System
 
 `lib/ddi-classification.js` maps a topic's tags to a classification tier (`TOP SECRET`,
@@ -561,6 +567,133 @@ grid Debug Mode already uses for its own field list — plus two one-line color-
 (`--ddi-green` was already declared in `:root` but unused anywhere until now). WARN detail text
 renders in a plain `.ddi-card-body` list below the grid, shown only when at least one check warns,
 so a fully clean document's panel is just five short PASS rows.
+
+## Knowledge Graph
+
+**Purpose.** Every prior feature treats "documents related to this one" as its own separate,
+single-purpose fetch: Intelligence Network for taxonomy relevance, Archive Navigation for
+department sequence, Document Relationships for declared references, Cross References for inline
+mentions. `services/ddi-knowledge-graph.js` doesn't replace any of them — it's a fifth service that
+calls the other four and assembles their results into one typed graph (nodes = documents, edges =
+the relationship between two documents), the reusable shape a future visualization would actually
+need instead of four separately-shaped API surfaces. **No visualization is built here** — this is
+the data model and the service that produces it, nothing else. No connector, no template, no CSS,
+no settings.yml entry: nothing renders as a result of this file existing.
+
+### Data Model
+
+```
+Node:  { id, documentId, title, classification, classificationClass, department, revision, url }
+Edge:  { source, target, type, label, rank }
+```
+
+`id`/`source`/`target` are Discourse topic IDs (numbers) — one ID space shared by every node
+regardless of which signal discovered it. `type` is one of three values, `label` is a short
+human-readable string for that edge (a relationship type, or a fixed label for the other two kinds),
+and `rank` is `null` except on `"related"` edges (see below).
+
+### How Each Required Input Maps to the Model
+
+| Requirement | Source | New logic? |
+|---|---|---|
+| Metadata | `ddi-document-metadata.js` | None — only field selection, to build the center node |
+| Relationships | `ddi-relationship.js` (`getRelationships`) | None — declarations become `"relationship"` edges, labeled with their declared type (Supersedes, References, etc.) |
+| Cross References | `lib/ddi-cross-reference.js` (`findDocumentReferences`) + `ddi-citation-preview.js` | None — mentions become `"cross-reference"` edges |
+| Categories + Tags | `ddi-related-intelligence.js` (`findRelated`) | None — see below for why these two are one edge type, not two |
+| — | `lib/ddi-cooked-parser.js` (`parseCookedHtml`) | None — reused to get the first post's plain text for cross-reference scanning, the same function Document Relationships already uses for the same purpose |
+
+**Categories and Tags are deliberately one edge type, `"related"`, not two.** Splitting them would
+mean re-implementing `ddi-related-intelligence.js`'s own category/classification/tag scoring a
+second time in this service — exactly the duplication this task rules out. Instead, `findRelated()`'s
+existing output is reused as-is; the position of each result in that already-sorted array (best
+match first) becomes the edge's `rank` (`1` = strongest), so relative strength survives into the
+graph without this service re-deriving or even seeing the underlying score.
+
+**Every value in the table above was already a public method on an already-injected service or an
+already-exported `lib/` function before this file existed.** `ddi-knowledge-graph.js` imports zero
+new Discourse APIs (`ajax`, `DOMParser`, etc.) directly — every fetch and every parse happens inside
+a service this one composes, not inline here.
+
+### Assembly
+
+`getDocumentGraph(topic)` is the entire public surface. It builds the center node from the Metadata
+Engine, then runs the three edge-building steps — `_buildRelationshipEdges`,
+`_buildCrossReferenceEdges`, `_buildRelatedEdges` — concurrently via `Promise.all`, each wrapped in
+its own `.catch()` so one signal failing (a broken fetch, an unresolvable citation) returns an empty
+`{ nodes: [], edges: [] }` for that signal rather than failing the whole graph — the same
+per-source failure isolation `ddi-related-intelligence.js`'s own `_fetchCandidates` already uses.
+Declared self-references (a document listing itself) and self-matches are filtered out of every
+edge-building step, so the center node never has an edge to itself.
+
+**Node de-duplication fills gaps rather than picking one source and discarding the rest.**
+`lib/ddi-graph.js`'s `mergeNodes()` is new, small, and pure: the same target document can be
+discovered by more than one signal (declared as a Relationship *and* independently surfaced by
+Intelligence Network, say) with slightly different field completeness — Relationship-sourced nodes
+don't carry `department`, since `getRelationships()`'s resolved shape doesn't include it. Rather than
+whichever source ran first silently winning, `mergeNodes()` keeps the first-seen node and backfills
+any `null`/`undefined` field from later occurrences of the same ID — multiple *edges* to that ID
+still exist, one per signal that found it (this is a multigraph, not a simplified one), only the
+*node* is deduplicated.
+
+### Architecture Review
+
+- **Composition over invention, verified.** Every one of the four injected services
+  (`ddiDocumentMetadata`, `ddiRelationship`, `ddiRelatedIntelligence`, `ddiCitationPreview`) is
+  called through its existing public method, unmodified. The only new code is: field-selection into
+  the two canonical shapes above (`lib/ddi-graph.js`), and the `Promise.all` orchestration plus
+  self-reference filtering in the service itself. No scoring, matching, fetching, or parsing logic
+  was reimplemented anywhere in this feature.
+- **Inherited caveats, not new ones.** This service is only as reliable as what it composes:
+  `ddi-related-intelligence.js`'s classification-match scoring still depends on the classification
+  tag-matching fix already in place; `ddi-relationship.js` and the cross-reference scan both depend
+  on `parseCookedHtml`, which — like every other `DOMParser`-based read in this codebase — is
+  unverified against a live Discourse instance. Nothing here makes those caveats worse, and nothing
+  here silently works around them either.
+- **No caching.** Unlike `ddi-document-metadata.js` (`_cache` keyed by topic ID) and
+  `ddi-citation-preview.js` (`_cache` keyed by document ID), `ddi-knowledge-graph.js` recomputes the
+  whole graph on every call, including re-invoking its own dependencies. In practice this cost is
+  bounded by those dependencies' own limits (Intelligence Network's `MAX_RESULTS = 5`, one category
+  page fetch, one cross-reference scan of the first post) — not unbounded — but a future caller
+  invoking `getDocumentGraph()` more than once per page life would redo all of that work. Deliberately
+  not solved here: this service has no consumer yet, so there's no real call pattern to design a
+  cache key or invalidation rule against. Premature caching is exactly the kind of complexity this
+  project's stated defaults argue against (see **CODING_STANDARDS.md**).
+- **Edge weighting is ordinal, not numeric, for `"related"` edges, and absent for the other two.**
+  `rank` preserves *order* from Intelligence Network's already-sorted results, not its underlying
+  score — because that score isn't part of that service's public return value, and adding a second
+  method (or a second return shape) to expose it would be new surface area on a shipped service for
+  a consumer (this one) that has no visualization yet to prove the exact number is needed. Relationship
+  and Cross Reference edges carry no weight at all; every declared relationship and every mention is
+  currently treated as equally significant.
+- **Single-document scope, not archive-wide.** `getDocumentGraph(topic)` returns *one document's*
+  local neighborhood (the center node plus everything one hop away) — it does not, and today
+  cannot, return a graph of the whole archive. See **Future Roadmap** below for why that's a
+  deliberate boundary for this pass rather than a missed requirement.
+
+### Future Roadmap
+
+1. **Archive-wide graph assembly.** The natural next capability: union many `getDocumentGraph()`
+   calls (or a lower-level batch variant) into one archive-spanning graph. Not attempted here because
+   it requires a real traversal/crawl strategy (breadth-first from a seed set? every document via
+   `/latest.json` pagination, extending `ddi-intelligence-index.js`'s existing single-page-fetch
+   pattern to multiple pages?) and a termination bound — exactly the kind of "genuinely new territory"
+   this codebase's own convention is to design deliberately (see the Homepage Dashboard's phased
+   design in `docs/ddi-intelligence-archive-dashboard.md`) rather than build speculatively inside an
+   unrelated task.
+2. **A visualization connector.** Explicitly out of scope for this task. Once built, it should be a
+   plain `connectors/*/ddi-*.js` consumer of `getDocumentGraph()` — no graph-shaping logic belongs in
+   that connector; it should only call this service and render what comes back, the same "connectors
+   are wiring only" rule already governing every other connector in this codebase.
+3. **Expose Intelligence Network's underlying score.** Would let `"related"` edges carry a real
+   weight instead of an ordinal `rank` — a small, additive change to `ddi-related-intelligence.js`
+   (e.g., a second return shape or a `findRelatedWithScores()` sibling method), not a rewrite.
+4. **A cache, once there's a real call pattern to design it against.** Deliberately deferred (see
+   Architecture Review) until a real consumer's call frequency is known.
+5. **Multi-hop traversal.** Today's graph is exactly one hop from the center document. A
+   visualization wanting "documents related to documents related to this one" would need a bounded
+   depth parameter and cycle detection (the underlying data can and will contain cycles — two
+   documents can mutually declare `References` on each other) — worth designing deliberately rather
+   than defaulting to an arbitrary depth.
 
 ## CSS Architecture
 
