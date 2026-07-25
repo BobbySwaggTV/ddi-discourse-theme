@@ -1,26 +1,13 @@
 import { getClassification } from "../../lib/ddi-classification";
+import { analyzeReadingTime } from "../../lib/ddi-reading-time";
+import { formatRevision } from "../../lib/ddi-revision";
 
 export default {
   setupComponent(args, component) {
     const topic = args.model;
-
-    const cooked = topic.postStream?.posts?.[0]?.cooked || "";
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(cooked, "text/html");
-
-    const text = doc.body.textContent.trim();
-
-    const wordCount = text
-      ? text.split(/\s+/).length
-      : 0;
-
-    const readingTime = Math.max(
-      1,
-      Math.ceil(wordCount / 200)
-    );
-
     const post = topic.postStream?.posts?.[0];
+
+    const { wordCount, readingTime } = analyzeReadingTime(post?.cooked);
 
     const lastRevision = new Date(
       post?.updated_at || post?.created_at
@@ -32,8 +19,7 @@ export default {
       })
       .toUpperCase();
 
-    const revision =
-      "R" + String(post?.version || 1).padStart(2, "0");
+    const revision = formatRevision(post?.version);
 
     const { classification } = getClassification(topic);
 

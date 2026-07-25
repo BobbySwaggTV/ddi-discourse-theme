@@ -73,8 +73,10 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml`. **None of these are currently consumed by any JS or SCSS in this repo**
-— they're reserved names for behavior that hasn't been wired up yet.
+Declared in `settings.yml`. **The first 7 are not currently consumed by any JS or SCSS in this
+repo** — they're reserved names for behavior that hasn't been wired up yet. `ddi_debug_mode_enabled`
+is the exception: it's read directly (`settings.ddi_debug_mode_enabled`) by the Debug Mode panel's
+connector.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
@@ -85,6 +87,7 @@ Declared in `settings.yml`. **None of these are currently consumed by any JS or 
 | `ddi_homepage_dashboard_enabled` | bool | `true` | Render command dashboard homepage sections from categories |
 | `ddi_sidebar_command_panel_enabled` | bool | `true` | Enable command-panel sidebar presentation |
 | `ddi_footer_enabled` | bool | `true` | Enable DDI corporate command footer |
+| `ddi_debug_mode_enabled` | bool | `false` | Show a diagnostic metadata panel on topic pages — off by default |
 
 ## Project Structure
 

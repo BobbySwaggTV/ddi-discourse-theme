@@ -92,6 +92,10 @@ All topic-page components follow the pattern above. In render order:
    already-rendered post HTML, and this project already has one precedent for that class of work
    (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
    between the pure detection/parsing library and this DOM-mutation layer.
+10. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+    `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
+    Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
+    default. See **Debug Mode** below.
 
 ## Classification System
 
@@ -185,6 +189,40 @@ Department is a Discourse category, which Discourse itself already guarantees ex
 the narrower check of whether it's one of *this archive's* six divisions specifically, not just any
 valid Discourse category.
 
+## Debug Mode
+
+An opt-in diagnostic panel, gated by `ddi_debug_mode_enabled` (`settings.yml`, default `false`) —
+the first setting in this repo actually read by code, via the global `settings` object every theme
+JS file has access to.
+
+**Feature toggle, not a per-user preference.** Like every other DDI setting, this is a site-wide
+theme setting an admin controls — there's no per-visitor "enable debug mode for just me." That's
+appropriate for a diagnostic tool meant for staging/admin use, and it's what "do not affect
+production users" actually depends on here: the setting defaults to `false`, so on any site that
+hasn't deliberately changed it, the panel never renders for anyone.
+
+**Minimal performance impact, enforced by `shouldRender`.** The connector's `shouldRender()` returns
+`settings.ddi_debug_mode_enabled` directly — when `false`, `setupComponent` never runs at all,
+meaning `buildDebugSnapshot()` (which parses the post's cooked HTML to compute word count) never
+executes for the disabled/default case. This is stronger than rendering the component and hiding it
+with CSS, which would still pay the computation cost.
+
+**Reusable debug utility:** `lib/ddi-debug.js`'s `buildDebugSnapshot(topic)` gathers all 8 fields by
+composing existing helpers — `formatDocumentId`, `getClassification`, `formatRevision`, and the new
+`analyzeReadingTime` (`lib/ddi-reading-time.js`) — rather than recomputing any of them. It returns
+plain data (including the raw `tags` array, not a pre-joined string), so a future consumer other
+than this one connector — a console log, an admin tool — could reuse it without inheriting this
+connector's specific display formatting.
+
+**`analyzeReadingTime` was extracted from `ddi-document-intelligence.js`**, which had this exact
+word-count/reading-time computation inline. Debug Mode needed the identical computation, and unlike
+the smaller one-line formatting patterns elsewhere in this codebase (author display, status text),
+this is genuine multi-step derived logic — parsing HTML, splitting text, computing a ceiling — which
+crosses the line into "shared business logic" at the second occurrence, not just the third. While
+already touching that file, its dead, still-unused inline `Rnn` computation (flagged since the
+Revision History work) was also replaced with the existing `formatRevision()` — a one-line, purely
+adjacent fix, not new work for this task.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
@@ -217,8 +255,9 @@ was verified by grepping for references — not assumed.
   actually implement the homepage dashboard the right way.
 - **`common/footer.html` is empty.** `ddi_footer_enabled` exists as a setting but there's no footer
   content or connector for it to gate.
-- **All 7 settings in `settings.yml` are unread.** No `settings.*` reference exists anywhere in the
-  JS or SCSS. They are reserved names, not live toggles.
+- **6 of the 7 original settings in `settings.yml` are still unread.** They remain reserved names,
+  not live toggles. `ddi_debug_mode_enabled` (added for Debug Mode, see below) is the first setting
+  in this repo actually wired to behavior.
 - **`assets/ddi-logo.png` is never referenced** by any template, stylesheet, or `about.json` asset
   entry.
 - **`javascripts/discourse.js`'s comment is stale.** It states "No runtime DOM injection is used for

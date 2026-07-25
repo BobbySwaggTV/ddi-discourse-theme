@@ -36,3 +36,8 @@ ddi_footer_enabled:
   type: bool
   default: true
   description: "Enable DDI corporate command footer"
+
+ddi_debug_mode_enabled:
+  type: bool
+  default: false
+  description: "Show a diagnostic metadata panel on topic pages (document ID, classification, tags, word count, etc.) — off by default, admin/staging use only"
