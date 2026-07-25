@@ -8,8 +8,17 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
-## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation, intelligence index
+## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation, intelligence index, document integrity verification
 
+- Added Document Integrity Verification: five PASS/WARN checks (Classification, Department,
+  Document Type, Lifecycle, Metadata) against each document, visible only when
+  `ddi_debug_mode_enabled` is on (no new setting). `lib/ddi-integrity.js` reads
+  `ddi-document-metadata.js`'s already-resolved fields directly rather than re-running
+  `isValidDepartment`/`isValidDocumentType`/`isValidLifecycle` a second time — this is their first
+  real consumer, closing the gap `ARCHITECTURE.md`'s Metadata Validation section had flagged since
+  those functions were added. Implemented as
+  `connectors/topic-below-post-stream/ddi-verification-panel.*`, reusing
+  `.ddi-card.ddi-restricted`/`.ddi-intel-grid` from Debug Mode's own panel verbatim.
 - Added the Intelligence Index: an alphabetical, archive-wide list of every document (Document
   Number, Title, Department, Classification, Revision), rendered above the page content on browsing
   routes only (hidden on document and admin pages). The theme's first `above-main-container`

@@ -1,0 +1,24 @@
+<div class="ddi-card ddi-restricted">
+
+  <div class="ddi-card-title">
+    DOCUMENT INTEGRITY VERIFICATION
+  </div>
+
+  <div class="ddi-intel-grid">
+    {{#each this.checks as |check|}}
+      <div>
+        <span>{{check.field}}</span>
+        <strong class="ddi-integrity-{{check.statusClass}}">{{check.status}}</strong>
+      </div>
+    {{/each}}
+  </div>
+
+  {{#if this.warnings.length}}
+    <div class="ddi-card-body">
+      {{#each this.warnings as |warning|}}
+        <div>{{warning.field}}: {{warning.detail}}</div>
+      {{/each}}
+    </div>
+  {{/if}}
+
+</div>

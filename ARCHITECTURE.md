@@ -122,6 +122,12 @@ All topic-page components follow the pattern above. In render order:
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
+14. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
+    + `lib/ddi-integrity.js`) — five PASS/WARN checks (Classification, Department, Document Type,
+    Lifecycle, Metadata) against the current document's already-resolved metadata. Gated by the same
+    `ddi_debug_mode_enabled` setting as Debug Mode, not a new one. Filename (`ddi-verification-panel`)
+    deliberately sorts after `ddi-navigation`, the same "append without reordering" technique Archive
+    Navigation established. See **Document Integrity Verification** below.
 
 ## Archive-Wide Components
 
@@ -219,13 +225,17 @@ require a Discourse plugin (server-side) or a composer-level hook, both a materi
 larger architecture than anything else in this repo, and neither is built here. "Prevent invalid
 values" is satisfied in the sense that any future code needing this check — a composer hook, an
 admin QA tool, or a display component wanting a safe fallback — now has one correct, reusable place
-to get the answer, rather than reimplementing the check (and the vocabulary list) itself. None of
-the four are currently wired into an existing component: Classification's *display* was already
-safe by construction before this change (`getClassification()` can only ever return one of its own
-known values or the default); Document Type and Lifecycle aren't read by any component yet; and
-Department is a Discourse category, which Discourse itself already guarantees exists — this adds
-the narrower check of whether it's one of *this archive's* six divisions specifically, not just any
-valid Discourse category.
+to get the answer, rather than reimplementing the check (and the vocabulary list) itself.
+
+**The first real consumer: Document Integrity Verification** (below) is the "admin QA tool" /
+"display component wanting a safe fallback" this section already anticipated. It reads
+`isValidClassification` directly (the one field whose display value can never itself be invalid —
+`getClassification()` always returns one of its own known values or the default — so checking the
+*raw tags* is what surfaces whether that default was silently used). Document Type, Lifecycle, and
+Department are not re-checked a second time there: `ddi-document-metadata.js`'s `_resolve()` already
+calls `isValidDocumentType`/`isValidLifecycle`/`isValidDepartment` and stores the result as `null`
+when invalid — Document Integrity Verification reads those three already-resolved metadata fields
+rather than importing and re-running the same three functions a second time.
 
 ## Debug Mode
 
@@ -460,6 +470,50 @@ routed page content, so no wrapper styling was needed either.
 default-furniture-suppression technique `docs/ddi-intelligence-archive-dashboard.md` describes are
 untouched — this feature doesn't hide or replace any existing homepage/category-page content, only
 adds a card above it, so it doesn't preempt or conflict with that larger, still-unbuilt feature.
+
+## Document Integrity Verification
+
+Five PASS/WARN checks — Classification, Department, Document Type, Lifecycle, Metadata — against
+the current document, shown only when `ddi_debug_mode_enabled` is on. Not enforcement (a theme still
+can't block a save, per **Metadata Validation** above) — a QA read of whether a document's tags are
+complete enough for the rest of the theme's classification/department/type/lifecycle-dependent
+features to work as intended.
+
+**Reads the Metadata Engine's output; does not re-derive it.** `lib/ddi-integrity.js`'s
+`verifyDocumentIntegrity(metadata)` takes the exact object `ddi-document-metadata.js` already
+produces. Department, Document Type, and Lifecycle checks are `Boolean(metadata.department)` /
+`Boolean(metadata.documentType)` / `Boolean(metadata.lifecycle)` — each already `null` when its tag
+was invalid or absent (the metadata service already ran `isValidDepartment`/`isValidDocumentType`/
+`isValidLifecycle` to produce that), so no library beyond `ddi-classification.js` is imported here.
+Classification is the one exception, and deliberately so: `metadata.classification` is always a
+valid display value by construction (`getClassification()` never returns anything else), so the only
+way to detect "this document has no explicit classification tag and is silently defaulting" is to
+check the raw `metadata.tags` array against `isValidClassification` directly — reusing the exported
+predicate, not the private `CLASSIFICATIONS` data it's built from.
+
+**Metadata (the fifth check) covers what the other four don't** — general resolution failures the
+per-field checks wouldn't catch: an empty title, an author that fell back to `formatDocumentAuthor()`'s
+`"SYSTEM"` sentinel, or a created date that fell back to `formatDocumentDate()`'s `"UNKNOWN"`
+sentinel. Reusing those two existing fallback sentinels as the signal means this check needs no new
+date or author logic of its own — it only recognizes values the Metadata Engine already produces.
+
+**PASS/WARN only, no FAIL state.** Matches the "pure validity checks, not enforcement" framing
+already established in **Metadata Validation** — a WARN is "this field wasn't declared, so a
+default or fallback was used," not an error condition the theme has any way to prevent or correct.
+
+**New connector, same gate as Debug Mode, no new setting.** `ddi-verification-panel.js`'s
+`shouldRender()` reads `settings.ddi_debug_mode_enabled` — the identical zero-argument pattern
+`ddi-debug-panel.js` already established — rather than introducing a second debug-visibility toggle
+for what is, from an admin's perspective, the same "diagnostic, staging-only" concern. It is a
+separate connector file, not an edit to `ddi-debug-panel.js` itself, so the existing Debug Mode panel
+is untouched.
+
+**Template reuses `.ddi-card.ddi-restricted` and `.ddi-intel-grid` verbatim** — the same shell and
+grid Debug Mode already uses for its own field list — plus two one-line color-modifier classes,
+`.ddi-integrity-pass`/`.ddi-integrity-warn`, built from the existing `--ddi-green`/`--ddi-red` tokens
+(`--ddi-green` was already declared in `:root` but unused anywhere until now). WARN detail text
+renders in a plain `.ddi-card-body` list below the grid, shown only when at least one check warns,
+so a fully clean document's panel is just five short PASS rows.
 
 ## CSS Architecture
 
