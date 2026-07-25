@@ -2339,3 +2339,112 @@ a:hover {
   font-size: .86rem;
   line-height: 1.5;
 }
+
+/* ============================================================
+   DDI COMMAND PALETTE
+   (Ctrl+K / Cmd+K — see api-initializers/ddi-command-palette.js.
+   Reuses .ddi-card for the dialog shell, .ddi-toc-item/.ddi-toc-title
+   for result rows, and .ddi-nav-section-label for section headers)
+   ============================================================ */
+
+.ddi-command-palette-backdrop {
+  position: fixed;
+  inset: 0;
+
+  z-index: 2000;
+
+  display: none;
+
+  align-items: flex-start;
+  justify-content: center;
+
+  padding-top: 12vh;
+
+  background: rgba(5, 7, 10, .7);
+}
+
+.ddi-command-palette-backdrop.ddi-command-palette-open {
+  display: flex;
+}
+
+.ddi-command-palette {
+  width: 100%;
+  max-width: 560px;
+  max-height: 64vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+.ddi-command-palette-input {
+  width: 100%;
+  padding: 16px;
+
+  background: transparent;
+
+  border: none;
+  border-bottom: 1px solid var(--ddi-border);
+
+  color: var(--ddi-text-primary);
+
+  font-family: inherit;
+  font-size: 15px;
+  letter-spacing: .03em;
+
+  outline: none;
+}
+
+.ddi-command-palette-input::placeholder {
+  color: var(--ddi-text-muted);
+
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.ddi-command-palette-results {
+  overflow-y: auto;
+
+  padding: 8px 16px 16px;
+}
+
+.ddi-command-palette-item {
+  cursor: pointer;
+}
+
+.ddi-command-palette-item-sublabel {
+  display: block;
+
+  margin-top: 2px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ddi-command-palette-item-active {
+  color: var(--ddi-red);
+
+  background: var(--ddi-red-12);
+}
+
+.ddi-command-palette .sr-only {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  padding: 0;
+  margin: -1px;
+
+  overflow: hidden;
+
+  clip: rect(0, 0, 0, 0);
+
+  white-space: nowrap;
+
+  border: 0;
+}

@@ -8,6 +8,50 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Command Palette: Ctrl+K / Cmd+K archive navigation
+
+- Added `api-initializers/ddi-command-palette.js` — a floating palette opened via `Ctrl+K`/`Cmd+K`
+  supporting document search, department search, Open Homepage, Open Category Pages, and recently
+  viewed documents. Fully keyboard-navigable (arrows, Enter, Escape) with mouse support too.
+- Registered through Discourse's own `api.addKeyboardShortcut()` rather than a raw `keydown`
+  listener — the real mechanism behind "preserve native Discourse shortcuts." No history of using
+  this API in the theme before, so its exact shape is based on general Discourse API knowledge, not
+  confirmed live; wrapped in `try`/`catch` so a wrong assumption fails gracefully (palette just isn't
+  keyboard-reachable) rather than breaking theme init. As far as could be checked, Discourse's
+  documented default shortcuts don't use Ctrl+K/Cmd+K; some browsers reserve it at the chrome level
+  regardless, which is inherent to the shortcut choice, not something a page script controls.
+- **No duplicate search logic:** document search reuses `ddi-intelligence-index.js`'s `getIndex()`
+  unchanged; a new, narrow `lib/ddi-command-palette.js` does free-text substring matching (title/
+  Document Number/department/classification/type) — a genuinely different concern from
+  `lib/ddi-document-index.js`'s existing exact-match `filterDocuments()`, not a re-implementation of
+  it. Discourse's own search ranking at `/search` is untouched and not reimplemented here.
+- **Two real caches, not one generic one:** the full document/department lists are fetched once per
+  page session and reused across every palette open (client-side filtering against the cached copy,
+  not re-fetched per keystroke); recently viewed documents are tracked via `localStorage` (capped at
+  8, deduplicated) and hydrated through Citation Preview's own `getCitationById()`, already cached by
+  document ID.
+- Recently-viewed tracking is genuinely new (no existing feature tracks per-user browsing history —
+  Dashboard/Index's "Recently Updated" is archive-wide by edit time, a different concept). Reuses
+  `ddi-dossier-refresh.js`'s established `controller:topic` lookup pattern to detect the current
+  topic; wrapped in `try`/`catch` so a `localStorage`-unavailable environment just means no tracking.
+- Navigation uses `DiscourseURL.routeTo()` — Discourse's own utility for this. An earlier draft
+  called `service:router`'s `transitionTo()` directly with a manual fallback; caught in self-review
+  and replaced with the actual established utility before this shipped.
+- Accessibility is a real combobox/listbox pattern: `role="combobox"` + `aria-activedescendant` on
+  the input, `role="listbox"`/`role="option"` on results (rows are `tabindex="-1"`, not independently
+  tabbable, by design), a visually-hidden `aria-live="polite"` region announcing result counts, focus
+  moved to the input on open and restored to the previously-focused element on close. Stated
+  limitation: background content isn't `aria-hidden` while the palette is open — judged out of scope
+  for "keep lightweight."
+- New CSS reuses `.ddi-card` (dialog shell), `.ddi-toc-item`/`.ddi-toc-title` (result rows), and
+  `.ddi-nav-section-label` (section headers) verbatim; only the backdrop, input, and active-row
+  highlight are new.
+- Verified the pure filtering logic directly: title/Document Number/department/classification/type
+  matching, empty-query behavior (departments and actions shown, documents withheld until typing),
+  and no-match cases — plus the full entry-building flow end-to-end against simulated site
+  categories and documents, including a non-division category correctly excluded from department
+  results.
+
 ## 2026-07-25 — Document Quick Preview: global hover card
 
 - Added `api-initializers/ddi-document-preview.js` — a floating hover card (Document Number, Title,

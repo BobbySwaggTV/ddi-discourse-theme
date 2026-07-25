@@ -1370,6 +1370,84 @@ badge is the only one of the five with a `classificationClass`, so it's the only
 non-neutral color, consistent with how classification color-coding works everywhere else in this
 theme.
 
+## Command Palette
+
+`Ctrl+K` / `Cmd+K` opens a floating palette — `api-initializers/ddi-command-palette.js` — supporting
+document search, department search, Open Homepage, Open Category Pages, and recently viewed
+documents, all keyboard-navigable (arrows, Enter, Escape) with mouse support too.
+
+**Registered through Discourse's own keyboard-shortcut API, not a raw `keydown` listener — the
+actual mechanism behind "preserve native Discourse shortcuts."** `api.addKeyboardShortcut("ctrl+k",
+...)` / `api.addKeyboardShortcut("meta+k", ...)` are the platform's own registration point for
+exactly this purpose, the same "reuse the platform's mechanism rather than hand-roll an equivalent"
+principle already applied elsewhere (`decorateCookedElement` for Cross References,
+`api.onPageChange` for Dossier Refresh and Search Results). A raw global `keydown` listener would
+have been the more obviously riskier path — this codebase has no history of using
+`addKeyboardShortcut` before, so its exact call shape (particularly the options object, here
+`{ global: true }`) is based on general knowledge of the Discourse plugin API, not confirmed against
+a live instance. The registration is wrapped in a `try`/`catch`: if the method doesn't exist or
+throws, the palette simply isn't keyboard-reachable rather than breaking theme initialization —
+consistent with "fail gracefully."
+
+**No conflict with Discourse's default shortcuts, as far as could be verified without a live
+instance.** Discourse's own documented default shortcut set (`j`/`k` topic navigation, `#` topic
+list, `/` search, etc.) doesn't include Ctrl+K/Cmd+K. The one caveat that's genuinely out of this
+theme's control: some browsers reserve Ctrl+K/Cmd+K at the chrome level (address-bar search, in
+some older browser versions) before page JavaScript ever sees the keystroke — an inherent property
+of choosing this specific shortcut, not something a page-level script can detect or work around.
+
+**Reuses Intelligence Index and Citation Preview completely — the actual "no duplicate search
+logic" mechanism.** Document search calls the existing `ddi-intelligence-index.js`'s `getIndex()`
+unchanged (the same archive-wide fetch every other archive-wide feature uses) and filters the
+result with a new, narrow `lib/ddi-command-palette.js` (`filterDocumentsByQuery()`/
+`filterDepartmentsByQuery()`) — free-text substring matching across title/Document Number/
+department/classification/type, a genuinely different concern from `lib/ddi-document-index.js`'s
+existing `filterDocuments()` (exact department/classification matching) and not a re-implementation
+of it. Neither this nor anything else in the palette reimplements Discourse's own search relevance
+ranking — that remains exclusively `/search`'s job (see **Search Results** above), this is a
+lightweight quick-jump filter over an already-fetched list, not a second search engine.
+
+**"Cache recent results" is two distinct things, both real:** (1) the full document list and
+department list are each fetched once per page session and reused for every subsequent palette open
+(module-level variables, not re-fetched per keystroke or per open — filtering happens client-side
+against the cached copy); (2) "recently viewed documents" is inherently a cache of recent
+activity, tracked via `localStorage` (capped at 8 entries, deduplicated, most-recent-first) and
+hydrated on each palette open through Citation Preview's own `getCitationById()` — which is already
+cached by document ID, so repeat opens re-fetch nothing for a document already seen this session.
+
+**Recently viewed tracking is genuinely new — nothing existing tracks per-user browsing history.**
+This is a different concept from Intelligence Dashboard/Index's "Recently Updated" (archive-wide,
+by edit timestamp, no per-user state). `api.onPageChange` checks `router.currentRouteName` for a
+`topic.` prefix and, if so, reads `controller:topic`'s `.model` — the exact same lookup
+`ddi-dossier-refresh.js` already established for "get the current topic" — and records `{id, title}`
+to `localStorage`. Wrapped in `try`/`catch`: if `localStorage` is unavailable (privacy mode, quota,
+disabled), tracking silently no-ops rather than throwing.
+
+**Navigation reuses `DiscourseURL.routeTo()`, Discourse's own utility for exactly this** — not a
+hand-rolled router transition. An earlier draft of this feature called `service:router`'s
+`transitionTo()` directly with a bare URL string and a manual `window.location.assign()` fallback;
+`DiscourseURL.routeTo()` is the actual, well-established Discourse utility built for "navigate to
+this URL, handling both Ember and full-page cases correctly," and reusing it is strictly safer than
+the hand-rolled equivalent this initially had. Caught during self-review, fixed before this shipped.
+
+**Accessibility: a real combobox/listbox pattern, not decorative ARIA.** The input carries
+`role="combobox"` and `aria-activedescendant` pointing at whichever result row is currently
+selected; the results container is `role="listbox"`; each row is `role="option"` with
+`tabindex="-1"` (deliberately *not* independently tabbable — selection moves via
+`aria-activedescendant`, keeping the input the single real focus target while open, which is also
+why `Tab` is prevented from leaving the dialog: there's nothing else to trap focus between). A
+visually-hidden `aria-live="polite"` status region announces the result count on every keystroke,
+for screen-reader users who can't see the list update. Opening moves focus to the input; closing
+restores focus to whatever was focused before the palette opened, so keyboard users aren't dropped
+back at the top of the page. Known, stated limitation: content *behind* the palette isn't marked
+`aria-hidden` while it's open (a fuller implementation would toggle that on the rest of the page) —
+judged out of scope for "keep lightweight" against the actual accessibility gains of doing so.
+
+**New CSS reuses the established shell and row patterns.** `.ddi-card` (dialog background/border/
+shadow), `.ddi-toc-item`/`.ddi-toc-title` (result rows, identical to every other document list in
+this theme), and `.ddi-nav-section-label` (section headers) are all reused verbatim; only the
+backdrop, positioning, input styling, and active-row highlight are new.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
