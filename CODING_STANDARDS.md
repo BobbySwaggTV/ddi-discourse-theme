@@ -42,10 +42,11 @@ you're not sure an outlet name is current, say so in the PR rather than guessing
 Discourse core version.
 
 **CSS classes** — flat kebab-case, `.ddi-` prefix, **no BEM double-underscore**:
-`.ddi-card-title`, `.ddi-dossier-grid`, `.ddi-security-banner`. One existing exception,
-`.welcome-banner__*`, uses BEM — it was styling for `common/homepage.html`, a dead file removed in
-RC cleanup (see `ARCHITECTURE.md`). Don't treat it as precedent; it's leftover from work that was
-never wired in, not an alternate accepted style.
+`.ddi-card-title`, `.ddi-dossier-grid`, `.ddi-security-banner`. No exceptions remain — `.welcome-
+banner__*` (BEM-style, styling for the dead `common/homepage.html`) was removed as part of the
+post-RC homepage hierarchy pass, once it was confirmed to target nothing in the current DOM (see
+`ARCHITECTURE.md`'s **Intelligence Index** section). If a BEM-style exception ever reappears without
+a documented reason, treat it the same way this one was treated: as leftover, not precedent.
 
 **CSS custom properties** — `--ddi-<category>[-<variant>]`: `--ddi-text-muted`, `--ddi-red-18`,
 `--ddi-shadow-lg`. Opacity variants are named by whole-number percentage (`-18` means 0.18 alpha),

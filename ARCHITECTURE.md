@@ -145,11 +145,13 @@ Everything above is scoped to a single topic page (`args.model` is that topic). 
 component that isn't: it renders on every *non-document* route instead of one document, off a
 different Discourse outlet family.
 
-1. **Intelligence Index** (`connectors/above-main-container/ddi-intelligence-index.*` +
+1. **Intelligence Index** (`connectors/below-main-container/ddi-intelligence-index.*` +
    `services/ddi-intelligence-index.js`) — an alphabetical, archive-wide list of every document
-   (Document Number, Title, Department, Classification, Revision). Gated by the new
+   (Document Number, Title, Department, Classification, Revision). Gated by the
    `ddi_intelligence_index_enabled` setting (default `true`) and, at render time, by a route check
-   that hides it on document (`topic.*`) and `admin` routes. See **Intelligence Index** below.
+   that hides it on document (`topic.*`) and `admin` routes. Moved from `above-main-container` to
+   `below-main-container` as part of the post-RC homepage hierarchy pass — see **Intelligence
+   Index** below for why.
 
 ## Backend-Only Services
 
@@ -462,9 +464,21 @@ set, not new literals.
 ## Intelligence Index
 
 An alphabetical (by title) list of every document in the archive — Document Number, Title,
-Department, Classification, Revision — rendered above the page content on browsing routes
+Department, Classification, Revision — rendered below the page content on browsing routes
 (homepage, categories, tags), so the archive has one place to scan its full contents rather than
 only per-category listings.
+
+**Post-RC homepage hierarchy pass: moved from `above-main-container` to `below-main-container`.**
+This shipped on `above-main-container` (see below for why that outlet, not a specific route, was
+the guard mechanism), which — being *above* the routed template — put a full archive listing ahead
+of Discourse's native search banner and topic list on the homepage: the least time-sensitive of the
+three homepage components was rendering first. `below-main-container` is `above-main-container`'s
+standard counterpart on the other side of `#main-outlet`, so this was a one-line outlet change (a
+folder rename, `connectors/above-main-container/` → `connectors/below-main-container/`) — the
+connector's internals (`shouldRender`, the route guard, the service call) are untouched, since none
+of them depend on which side of the main content they render on. Net effect: Search Banner, then the
+topic list, then the full index — reading flow first, reference material last, still fully visible
+and still not collapsed.
 
 **Reuses Citation Preview end to end — no new "topic to display fields" mapping.**
 `services/ddi-intelligence-index.js` maps every fetched topic through
@@ -491,16 +505,18 @@ or filter the already-loaded array with `filterDocuments()` directly; no service
 is needed to add it.
 
 **A new outlet family for this theme, guarded conservatively.** Every previous DDI component is
-scoped to a topic page via `topic-*` outlets. `above-main-container` is different — Discourse renders
-it on every route, a fact `docs/ddi-intelligence-archive-dashboard.md` already flagged as needing a
-route guard when it designed (but never built) a *different*, much larger homepage-replacement
-feature. This component's guard is deliberately simpler and safer than guessing that plan's specific
-homepage route name: `setupComponent` looks up `service:router` (Ember's own router service, not a
-Discourse-specific API) and hides the panel via a template-level `{{#if this.isVisible}}` whenever
-`currentRouteName` starts with `topic.` or `admin` — both stable, well-known Discourse route-name
-prefixes — rather than trying to allow-list one exact homepage route that could differ by site
-configuration. Net effect: shows on discovery/category/tag listing pages, never on a document (where
-it would be redundant with the topic page's own components) or in admin. The `shouldRender(args,
+scoped to a topic page via `topic-*` outlets. `above-main-container`/`below-main-container` are
+different — Discourse renders both on every route, a fact `docs/ddi-intelligence-archive-
+dashboard.md` already flagged as needing a route guard when it designed (but never built) a
+*different*, much larger homepage-replacement feature. This component's guard is deliberately
+simpler and safer than guessing that plan's specific homepage route name: `setupComponent` looks up
+`service:router` (Ember's own router service, not a Discourse-specific API) and hides the panel via
+a template-level `{{#if this.isVisible}}` whenever `currentRouteName` starts with `topic.` or
+`admin` — both stable, well-known Discourse route-name prefixes — rather than trying to allow-list
+one exact homepage route that could differ by site configuration. Net effect: shows on discovery/
+category/tag listing pages, never on a document (where it would be redundant with the topic page's
+own components) or in admin — true regardless of which of the two outlets it's mounted on, which is
+exactly why moving outlets required no change to this guard. The `shouldRender(args,
 context)`-with-route-argument approach that dashboard doc describes was deliberately avoided here —
 its exact argument shape is unconfirmed against a live instance, whereas `setupComponent` +
 `getOwner(component).lookup(...)` is the one connector mechanism already proven throughout this
@@ -519,10 +535,20 @@ dashboard.md` already called for ("No new component vocabulary is needed"). `#ma
 existing width/padding/background styling applies to this connector's content the same as it does to
 routed page content, so no wrapper styling was needed either.
 
+**Unrelated dead CSS removed in the same pass, not new to this feature.** `.welcome-banner`,
+`.welcome-banner h1`/`p`, `.welcome-banner__wrap`, `.welcome-banner__title` (plus its
+`::after` tagline), and `.welcome-banner__search-menu` — seven rules across three section banners,
+two of them duplicate-titled — were confirmed to target nothing (the only file that ever would have
+carried a plain `.welcome-banner` element, `common/homepage.html`, was already deleted in RC
+cleanup) and removed. `.custom-search-banner-wrap`, the adjacent and differently-named rule
+immediately after them, was deliberately left alone — it's the live styling for Discourse's native
+Search Banner, not part of the same dead family, and removing it would have been a real functional
+regression, not cleanup.
+
 **Does not touch the Homepage Dashboard's territory.** `ddi_homepage_dashboard_enabled` and the
 default-furniture-suppression technique `docs/ddi-intelligence-archive-dashboard.md` describes are
 untouched — this feature doesn't hide or replace any existing homepage/category-page content, only
-adds a card above it, so it doesn't preempt or conflict with that larger, still-unbuilt feature.
+adds a card below it, so it doesn't preempt or conflict with that larger, still-unbuilt feature.
 
 ## Document Integrity Verification
 

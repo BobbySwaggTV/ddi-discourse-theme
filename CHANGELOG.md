@@ -8,6 +8,24 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Post-RC homepage hierarchy pass
+
+- Moved Intelligence Index from `above-main-container` to `below-main-container`
+  (`connectors/below-main-container/ddi-intelligence-index.*`, a pure outlet/folder rename — no
+  logic changed). `above-main-container` rendering *before* the routed template meant a full,
+  alphabetical archive listing was the first thing on the homepage, ahead of Discourse's native
+  Search Banner and topic list. The new order — Search Banner, then topic list, then the Index —
+  matches how an intelligence archive should read: fastest path to a known document first,
+  recent-activity browsing second, full reference index last. The Index remains fully visible and
+  is not collapsed.
+- Removed seven CSS rules confirmed to target nothing: `.welcome-banner`, `.welcome-banner h1`/`p`,
+  `.welcome-banner__wrap`, `.welcome-banner__title` (and its `::after` tagline), and
+  `.welcome-banner__search-menu` — leftover styling for `common/homepage.html`, deleted in RC
+  cleanup, previously documented in `CODING_STANDARDS.md` as an intentional-but-dead BEM exception.
+  `.custom-search-banner-wrap` (the live styling for the native Search Banner) was confirmed
+  separate and left untouched.
+- Updated `CODING_STANDARDS.md` to drop the now-resolved `.welcome-banner__*` exception note.
+
 ## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation, intelligence index, document integrity verification, document relationships, knowledge graph
 
 - Added the DDI Knowledge Graph: `services/ddi-knowledge-graph.js`'s `getDocumentGraph(topic)`
