@@ -1,0 +1,58 @@
+<div class="ddi-card">
+
+  <div class="ddi-card-title">
+    DOCUMENT RELATIONSHIPS
+  </div>
+
+  {{#if this.isLoading}}
+    <div class="ddi-card-body">
+      RESOLVING RELATIONSHIPS…
+    </div>
+  {{else if this.relationships.length}}
+    <div class="ddi-card-body">
+
+      {{#each this.relationships as |relationship|}}
+        <a
+         class="ddi-toc-item {{relationship.classificationClass}}"
+         href="{{relationship.url}}"
+        >
+        <div>
+          <span class="ddi-toc-title">
+              {{relationship.title}}
+          </span>
+
+          <div class="ddi-dossier-grid">
+
+            <div>
+              <span>Document Number</span>
+              <strong>{{relationship.documentNumber}}</strong>
+            </div>
+
+            <div>
+              <span>Relationship Type</span>
+              <strong>{{relationship.type}}</strong>
+            </div>
+
+            <div>
+              <span>Classification</span>
+              <strong>{{relationship.classification}}</strong>
+            </div>
+
+            <div>
+              <span>Revision</span>
+              <strong>{{relationship.revision}}</strong>
+            </div>
+
+          </div>
+        </div>
+        </a>
+      {{/each}}
+
+    </div>
+  {{else}}
+    <div class="ddi-card-body">
+      NO DECLARED RELATIONSHIPS
+    </div>
+  {{/if}}
+
+</div>

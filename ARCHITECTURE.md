@@ -46,7 +46,12 @@ for any new work:
   `ddi-related-intelligence.js` injects `ddi-citation-preview.js` rather than shaping its own result
   objects — a service depending on another service for a shared concern (turning a topic into
   display-ready fields) is the same pattern as any other reuse rule here, just at the service layer
-  instead of `lib/`.
+  instead of `lib/`. `ddi-document-metadata.js` is the canonical, synchronous metadata resolver for
+  the *current* topic page; `ddi-relationship.js` injects both it and `ddi-citation-preview.js` —
+  the metadata engine for the current document (no fetch needed), citation-preview for any *other*
+  referenced document (which does need a fetch, and already handles the snake_case/camelCase shape
+  difference between a raw AJAX response and an Ember topic model — see **Document Relationships**
+  below for why that distinction matters).
 - **`connectors/<outlet-name>/<name>.js` + `.hbs`** — the classic Discourse plugin-outlet-connector
   shape: a `{ setupComponent(args, component) { ... } }` export paired with a template that reads
   `{{this.someProperty}}`. Connectors should contain wiring only — look up data, call into `lib/`
@@ -102,27 +107,32 @@ All topic-page components follow the pattern above. In render order:
    re-verified the same way) so the document's own closing metadata appears before the secondary
    "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
    ordering requirement was ever set for it, so there's nothing to verify there.
-10. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+10. **Document Relationships** (`connectors/topic-below-post-stream/ddi-document-relationships.*` +
+    `services/ddi-relationship.js`) — up to N declared relationships (References, Supersedes,
+    Superseded By, Related Intelligence, Required Reading, Supporting Documentation) to other
+    documents, parsed from the current document's own body text. Sorts immediately after Document
+    Footer in the same outlet. See **Document Relationships** below.
+11. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
     `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
     (+100), same classification (+50, see caveat below), and +25 per shared tag. See
     `docs/ddi-intelligence-network.md` for the full design rationale.
-11. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-navigation.*` +
+12. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-navigation.*` +
     `services/ddi-archive-navigation.js`) — Previous Document, Next Document, Department Home, and
     up to 5 Recent Documents in Department. Filename (`ddi-navigation`) deliberately sorts after
     `ddi-intelligence-network` so it renders last among this outlet's existing cards without
     disturbing their current order. See **Archive Navigation** below.
-12. **Cross References** (`api-initializers/ddi-cross-references.js` +
+13. **Cross References** (`api-initializers/ddi-cross-references.js` +
     `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
     and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
     everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
     already-rendered post HTML, and this project already has one precedent for that class of work
     (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
     between the pure detection/parsing library and this DOM-mutation layer.
-13. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+14. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
-14. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
+15. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
     + `lib/ddi-integrity.js`) — five PASS/WARN checks (Classification, Department, Document Type,
     Lifecycle, Metadata) against the current document's already-resolved metadata. Gated by the same
     `ddi_debug_mode_enabled` setting as Debug Mode, not a new one. Filename (`ddi-verification-panel`)
@@ -204,6 +214,43 @@ one place, not duplicated between the two features that both need it.
 in this document: `decorateCookedElement`'s `{ onlyStream: true }` option and `helper.getModel()`
 are standard, well-established patterns, but haven't been confirmed against this project's actual
 target Discourse core version.
+
+## Document Relationships
+
+A document declares relationships to other documents by writing a labeled line in its own body
+text — e.g. `Supersedes: DDI-000123` or `References: DDI-000456, DDI-000789` — one of the 6 types in
+`lib/ddi-relationship.js`'s `RELATIONSHIP_TYPES`, followed by one or more `DDI-NNNNNN` references.
+This is a theme, with no database and no plugin, so a document's own body text is the only place an
+author can put custom, per-document data — the same constraint Cross References already works
+within, and this feature reuses its detection function (`findDocumentReferences`) rather than
+re-parsing `DDI-NNNNNN` patterns a second way.
+
+**Why two different services resolve the referenced documents' data, not one:** `_resolve()` in
+`services/ddi-relationship.js` checks whether a declared reference points at the *current* topic
+(a defensive, cheap check — `declaration.documentId === topic.id`) and, if so, uses
+`ddi-document-metadata.js` directly — synchronous, no fetch, since the current topic is already
+fully loaded. Every other reference goes through `ddi-citation-preview.js`'s `getCitationById()`,
+which fetches, caches, and already correctly handles the raw-AJAX-response shape (`post_stream`,
+`category_id` only) that `ddi-document-metadata.js` does not accept — it expects a full Ember topic
+model (`postStream`, a resolved `category` object). Passing a fetched document straight to the
+metadata engine would silently produce wrong values (empty word count, "SYSTEM" as author, `"R01"`
+as revision) rather than an error, because every field it reads would just be `undefined` — this is
+exactly the class of bug already caught once this session (a cache-key type mismatch in this same
+citation-preview file); reusing the service that's already correct for this shape avoids repeating
+it.
+
+**Fails gracefully per-reference, not per-card.** If a declared reference can't be resolved (deleted
+topic, no access, bad ID), `getCitationById` already resolves to `null` — `_resolve()` passes that
+through, and the caller filters `null`s out. A card with 3 declared relationships where 1 is broken
+simply shows the other 2; it doesn't show an error row, matching how Intelligence Network already
+handles individual fetch failures.
+
+**Designed for expansion, concretely:** the 6 relationship types are a single array
+(`RELATIONSHIP_TYPES`) the regex is built from — adding a 7th type is a one-line change, nothing
+else. `isValidRelationshipType()` is exported even though this feature's own parsing doesn't need to
+call it (the regex only ever matches known types), for the same reason `ddi-document-type.js`,
+`ddi-lifecycle.js`, and `ddi-department.js` each export their own `isValid*` — a future consumer
+(composer-side validation, an admin tool) gets it for free rather than having to add it later.
 
 ## Metadata Validation
 
