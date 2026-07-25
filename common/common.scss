@@ -1558,6 +1558,28 @@ a:hover {
   font-weight: 700;
 }
 
+.ddi-lifecycle-badge {
+  display: inline-block;
+
+  margin-left: 8px;
+
+  padding: 2px 8px;
+
+  border: 1px solid var(--ddi-border);
+
+  border-radius: 3px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: 10px;
+
+  font-weight: 600;
+
+  letter-spacing: .08em;
+
+  vertical-align: middle;
+}
+
 .ddi-dossier-issued {
 
   margin-top:

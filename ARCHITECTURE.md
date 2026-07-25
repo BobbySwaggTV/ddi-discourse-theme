@@ -65,11 +65,20 @@ for any new work:
 All topic-page components follow the pattern above. In render order:
 
 1. **Dossier Header** (`connectors/topic-above-post-stream/ddi-dossier-header.*`) — classification
-   color, author, status (open/closed), document type, and (see **Known Gaps** below) document ID /
-   issued date. Document type is `metadata.documentType` (the Metadata Engine's already-resolved tag)
-   run through `lib/ddi-document-type.js`'s `getDocumentTypeLabel()` — a pure slug-to-label formatter
-   added alongside `isValidDocumentType()` in the same file, not a new lookup table — falling back to
-   the literal string `"INTELLIGENCE BRIEF"` only when the topic has no valid Document Type tag.
+   color, author, status (open/closed), document type, lifecycle, and (see **Known Gaps** below)
+   document ID / issued date. Document type is `metadata.documentType` (the Metadata Engine's
+   already-resolved tag) run through `lib/ddi-document-type.js`'s `getDocumentTypeLabel()` — a pure
+   slug-to-label formatter added alongside `isValidDocumentType()` in the same file, not a new lookup
+   table — falling back to the literal string `"INTELLIGENCE BRIEF"` only when the topic has no valid
+   Document Type tag. Lifecycle is a small badge shown beside it (same grid cell, not a new grid
+   column — the grid's `repeat(4, 1fr)` is unchanged): `metadata.lifecycle` run through
+   `lib/ddi-lifecycle.js`'s new `getLifecycleLabel()`, which maps each of the five real
+   `LIFECYCLE_STATES` slugs to a display word (`under-review` → `"REVIEW"`, `superseded` →
+   `"DEPRECATED"`, the rest unchanged), falling back to `"ACTIVE"` when no valid lifecycle tag is
+   present. **Note:** a sixth requested badge value, "Approved," has no backing slug in
+   `LIFECYCLE_STATES` — by explicit choice (see `CHANGELOG.md`), the vocabulary itself was left
+   untouched rather than adding a new tag as part of a display task, so "Approved" cannot currently
+   appear; it would require a genuine vocabulary change (new admin tag), out of scope here.
 2. **Classification Watermark** (`connectors/topic-above-post-stream/ddi-classification-watermark.*`)
    — a fixed, full-viewport, low-opacity classification label rendered behind the document while its
    topic page is mounted. Shares the `topic-above-post-stream` outlet with Dossier Header; DOM order

@@ -8,6 +8,29 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Dynamic Document Lifecycle badge in the Dossier Header
+
+- The Dossier Header now shows a small lifecycle badge beside the document type, reading
+  `metadata.lifecycle` (already resolved by `ddi-document-metadata.js`) through a new
+  `getLifecycleLabel(slug)` in `lib/ddi-lifecycle.js` — the existing lifecycle library, extended
+  rather than duplicated. `LIFECYCLE_STATES`/`isValidLifecycle()` are unchanged, so
+  `ddi-document-metadata.js`, `ddi-integrity.js`, and `ddi-timeline.js` — the library's other three
+  consumers — are unaffected.
+- **Requested labels didn't match the existing vocabulary 1:1**, and this was resolved with the user
+  before implementing rather than guessed: `under-review` → `"REVIEW"` and `superseded` →
+  `"DEPRECATED"` are display-label renames only (the underlying slugs, and everything else that reads
+  them, are untouched). The sixth requested value, `"Approved"`, has no corresponding slug in
+  `LIFECYCLE_STATES` — the user chose to keep the vocabulary closed rather than add a new tag as part
+  of a display task, so `getLifecycleLabel()` returns `null` for it like any other unrecognized input,
+  and the badge shows the fallback (`"ACTIVE"`) instead. Adding a real `approved` state (and its
+  Discourse admin tag) is a follow-up, not done here.
+- Badge is inline text inside the existing `DOCUMENT TYPE` grid cell, not a new grid column —
+  `.ddi-dossier-grid`'s `repeat(4, 1fr)` is untouched. One new, additive CSS rule
+  (`.ddi-lifecycle-badge`) was added using only existing design tokens (`--ddi-border`,
+  `--ddi-text-muted`); no existing rule was modified.
+- Verified all 5 real lifecycle states produce the correct label, and that `null`/invalid/unrecognized
+  input (including the unsupported `"approved"`) all correctly fall back to `"ACTIVE"`.
+
 ## 2026-07-25 — Dynamic Document Type display in the Dossier Header
 
 - The Dossier Header's `DOCUMENT TYPE` field displayed the hardcoded literal string
