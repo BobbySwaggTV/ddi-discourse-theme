@@ -10,6 +10,12 @@ export default apiInitializer("1.0", (api) => {
         return;
       }
 
+      if (element.dataset.ddiCrossReferencesProcessed) {
+        return;
+      }
+
+      element.dataset.ddiCrossReferencesProcessed = "true";
+
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
       const textNodes = [];
 

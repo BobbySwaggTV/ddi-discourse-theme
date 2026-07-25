@@ -14,18 +14,20 @@ export default class DdiCitationPreviewService extends Service {
       return null;
     }
 
-    if (!this._cache.has(documentId)) {
-      this._cache.set(documentId, this._loadCitationById(documentId));
+    const key = String(documentId);
+
+    if (!this._cache.has(key)) {
+      this._cache.set(key, this._loadCitationById(documentId));
     }
 
-    return this._cache.get(documentId);
+    return this._cache.get(key);
   }
 
   async _loadCitationById(documentId) {
     const topic = await ajax(`/t/${documentId}.json`).catch(() => null);
 
     if (!topic) {
-      this._cache.delete(documentId);
+      this._cache.delete(String(documentId));
       return null;
     }
 
@@ -46,7 +48,7 @@ export default class DdiCitationPreviewService extends Service {
 
     const revision = await this._resolveRevision(topic);
 
-    return {
+    const citation = {
       id: topic.id,
       documentId: formatDocumentId(topic.id),
       title: topic.title,
@@ -56,6 +58,10 @@ export default class DdiCitationPreviewService extends Service {
       revision,
       url: topic.slug ? `/t/${topic.slug}/${topic.id}` : `/t/${topic.id}`,
     };
+
+    this._cache.set(String(topic.id), Promise.resolve(citation));
+
+    return citation;
   }
 
   async _resolveRevision(topic) {

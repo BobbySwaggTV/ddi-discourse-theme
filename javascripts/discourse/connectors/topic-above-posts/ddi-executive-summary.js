@@ -1,9 +1,10 @@
+import { parseCookedHtml } from "../../lib/ddi-cooked-parser";
+
 export default {
   setupComponent(args, component) {
-    const cooked = args.model.postStream?.posts?.[0]?.cooked || "";
+    const cooked = args.model.postStream?.posts?.[0]?.cooked;
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(cooked, "text/html");
+    const doc = parseCookedHtml(cooked);
 
     const firstParagraph = doc.querySelector("p");
 

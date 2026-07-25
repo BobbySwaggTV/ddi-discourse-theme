@@ -1,6 +1,7 @@
+import { parseCookedHtml } from "./ddi-cooked-parser";
+
 export function analyzeReadingTime(cooked) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(cooked || "", "text/html");
+  const doc = parseCookedHtml(cooked);
   const text = doc.body.textContent.trim();
 
   const wordCount = text ? text.split(/\s+/).length : 0;
