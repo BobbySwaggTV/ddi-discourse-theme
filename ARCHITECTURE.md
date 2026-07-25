@@ -815,6 +815,60 @@ returns `null`, and both components fall back to identical archive-wide behavior
 fallback already required for any non-category page. There's no failure mode where a wrong guess
 here produces a broken page, only an un-scoped one.
 
+## Categories Page Layout (Division Command Center, Phase 2)
+
+Stock Discourse renders the `/categories` page as two side-by-side panels — Category list, Latest
+topics — via a wrapper class, `.categories-and-latest`, that this theme had never targeted before
+this pass (confirmed present in this exact codebase already, in `mobile/mobile.scss`'s
+`.categories-and-latest .category-list .category` selector and `desktop/desktop.scss`'s own
+`.categories-and-latest` gap rule — not a guess based on general Discourse knowledge, unlike the
+`discovery-list-container-top`/`controller:discovery/category` decisions above).
+
+**CSS-only: no new connector, no new JS.** The requested layout — Division Information + Recent
+Intelligence, then Category Navigation, then Latest Intelligence — needs only one new thing built,
+and it already exists: **Intelligence Dashboard** (Total Documents / Document Types / Classification
+Levels / Recently Updated, per Phase 1) already renders above the categories/latest area via the
+`discovery-list-container-top` outlet, the same outlet family used on every other discovery route.
+Since `/categories` isn't a single-category route, `ddi-category-context.js`'s
+`getCurrentDepartment()` returns `null` there, so Dashboard shows archive-wide statistics — an
+appropriate "Division Information" overview for a page that isn't scoped to one division. Nothing
+was built or changed for this zone; it was already correct by construction once Phase 1 shipped.
+
+**`.categories-and-latest` forced to stack**, in `common/common.scss`:
+`display: flex !important; flex-direction: column !important;` overrides Discourse's native
+side-by-side arrangement. `!important` was necessary to reliably beat Discourse core's own rule for
+this wrapper — consistent with this file's existing, established use of `!important` elsewhere for
+the same reason. Because this rule isn't scoped to a media query, the stacked layout applies at every
+viewport width, not just mobile — this *is* the redesign being requested, not an accidental
+mobile-only behavior leaking to desktop. Category Navigation renders above Latest Intelligence
+because that's their existing DOM order in `.categories-and-latest`; no `order` property was needed.
+
+**Category boxes and "latest" rows extend the existing topic-card rule instead of duplicating
+it.** `.category-box` and `.latest-topic-list-item` — both real, pre-existing Discourse classes this
+theme had never styled — were added to the selector list of the rule that already gives
+`.topic-list-item` its card treatment (gradient background, red accent left-border, hover lift),
+rather than copy-pasting that ruleset three times. The section comment above that rule was renamed
+from the misleading "DDI Intelligence Index" (it was never specific to that feature — it's general
+topic-row styling) to reflect what it now covers. Desktop/mobile breakpoint overrides for
+`.category-box`/`.latest-topic-list-item` (min-height, padding, `clip-path`) already existed in
+`desktop/desktop.scss`/`mobile/mobile.scss` and were left untouched — they layer on top of this
+shared rule at their existing breakpoints exactly as they did before.
+
+**One pre-existing rule split, not removed.** `desktop/desktop.scss` previously set
+`gap: 1rem` on `.category-list` (gap between category boxes in its grid — unrelated, kept) and
+`.categories-and-latest` (gap *between* the old side-by-side columns) in one shared rule. Since
+`.categories-and-latest`'s gap now serves a different purpose (vertical spacing between the two
+stacked sections) with its own value already set in `common.scss`, `.categories-and-latest` was
+removed from that shared desktop rule rather than left to silently override the new stacking gap at
+wider viewports.
+
+**Responsive behavior preserved, not fought.** No new media queries were added. `.category-list`'s
+own internal grid (`grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))`, unchanged, ≥1024px)
+still reflows its box count responsively; the existing mobile-width overrides for topic/category/
+latest rows are untouched. "Preserve responsive behavior" here means those continue working
+unmodified — not that the categories/latest split itself remains conditionally side-by-side, since
+replacing that split everywhere is the actual point of this phase.
+
 ## Document Integrity Verification
 
 Five PASS/WARN checks — Classification, Department, Document Type, Lifecycle, Metadata — against

@@ -8,6 +8,31 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Division Command Center, Phase 2: Categories page layout
+
+- Restyled the stock `/categories` page (previously: Category list left, Latest topics right,
+  unstyled and mostly empty) into a vertical DDI stack: Intelligence Dashboard (Total Documents /
+  Document Types / Classification Levels / Recently Updated, archive-wide here since no single
+  division is being viewed) on top, then Category Navigation, then Latest Intelligence below it.
+- **CSS-only — no new connector, no new JS.** The "Division Information / Recent Intelligence" zone
+  at the top needed nothing new: Intelligence Dashboard already renders there via the
+  `discovery-list-container-top` outlet (Phase 1), and already shows archive-wide stats on any route
+  that isn't a single category page.
+- `.categories-and-latest` (confirmed present in this theme's own `desktop.scss`/`mobile.scss`, not
+  guessed) forced to `display: flex !important; flex-direction: column !important;` in
+  `common/common.scss`, replacing Discourse's native side-by-side layout at every viewport width —
+  this redesign is the point, not an accidental desktop change. Category Navigation renders above
+  Latest Intelligence because that's already their DOM order; no reordering needed.
+- `.category-box` and `.latest-topic-list-item` (both real, previously-unstyled Discourse classes)
+  added to the existing card-treatment rule that already styles `.topic-list-item`, rather than
+  duplicating that ruleset. Renamed that rule's section comment from "DDI Intelligence Index" (it
+  was never specific to that feature) to reflect its actual, broader scope.
+- Split one line in `desktop/desktop.scss`: `.categories-and-latest` no longer shares a `gap: 1rem`
+  rule with `.category-list` — that gap was sized for the old side-by-side columns, and would have
+  silently overridden the new vertical-stack spacing at desktop widths.
+- No new media queries; existing desktop/mobile breakpoint overrides for category/topic rows were
+  left untouched and continue to apply unmodified.
+
 ## 2026-07-25 — Division Command Center, Phase 1: department-aware Dashboard and Index
 
 - Intelligence Dashboard and Intelligence Index now automatically scope themselves to the current

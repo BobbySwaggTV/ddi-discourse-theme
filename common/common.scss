@@ -151,6 +151,28 @@ body::before {
     blur(4px);
 }
 
+/* ============================================================
+   DDI DIVISION COMMAND CENTER — CATEGORIES PAGE LAYOUT
+   (Phase 2: stock Discourse renders Categories/Latest side by side
+   on the /categories page via .categories-and-latest; stacked here
+   instead — Category Navigation, then Latest Intelligence below it,
+   both full-width, with Intelligence Dashboard already rendering
+   above both via the discovery-list-container-top outlet)
+   ============================================================ */
+
+.categories-and-latest {
+  display: flex !important;
+
+  flex-direction: column !important;
+
+  gap: 36px;
+}
+
+.categories-and-latest .latest-topic-list {
+  padding-top: 28px;
+
+  border-top: 1px solid var(--ddi-border-strong);
+}
 
 /* ============================================================
    GLOBAL BORDERS
@@ -205,10 +227,16 @@ a:hover {
 }
 
 /* ============================================================
-   DDI INTELLIGENCE INDEX
+   DDI TOPIC / CATEGORY CARD TREATMENT
+   (topic rows, category boxes, and the categories page's "latest"
+   rows all share one card treatment — see Division Command Center,
+   Phase 2, for why .category-box / .latest-topic-list-item were
+   added to this existing rule rather than duplicating it)
    ============================================================ */
 
-.topic-list .topic-list-item {
+.topic-list .topic-list-item,
+.category-box,
+.latest-topic-list-item {
 
   margin-bottom: 12px;
 
@@ -237,7 +265,9 @@ a:hover {
 }
 
 
-.topic-list .topic-list-item:hover {
+.topic-list .topic-list-item:hover,
+.category-box:hover,
+.latest-topic-list-item:hover {
 
   transform:
     translateY(-2px);
