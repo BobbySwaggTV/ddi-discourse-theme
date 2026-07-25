@@ -1202,6 +1202,86 @@ still exist, one per signal that found it (this is a multigraph, not a simplifie
    documents can mutually declare `References` on each other) — worth designing deliberately rather
    than defaulting to an arbitrary depth.
 
+## Search Results (Intelligence Search, Phase 1)
+
+Annotates Discourse's own native search results — `api-initializers/ddi-search-results.js` — with a
+badge row per result: Document Number, Classification (color-coded), Department, Document Type.
+Native title, blurb/excerpt, highlighted matched terms, ranking, permissions, and pagination are
+completely untouched; this only reads what Discourse already rendered and prepends new content.
+Complements, and doesn't duplicate, `docs/ddi-intelligence-search.md`'s design for the *search form*
+(the query-building layer feeding this page) — that document explicitly left results-page styling
+for later; this is that later work, scoped to Phase 1 only (no structured search form here).
+
+**Not a plugin-outlet connector — deliberately.** Every other DDI feature in this document is a
+connector into a named outlet. Search results are rendered entirely by Discourse's own search
+component with no DDI-controlled outlet inside it, so the only way to add content is to decorate the
+already-rendered DOM after the fact — the same category of technique
+`api-initializers/ddi-cross-references.js` (post content) and `ddi-dossier-refresh.js` (topic header)
+already use in this codebase, applied here to a third kind of surface (search results) instead of
+post content or the topic header.
+
+**`api.onPageChange` plus a `MutationObserver`, not `onPageChange` alone.** `onPageChange` fires on
+route transitions and correctly handles navigating *to* `/search` fresh. It's a real, open question
+— not confirmed against a live instance — whether typing a new query or paginating within the same
+search page re-fires it, since Discourse's search page is heavily AJAX-driven and may update results
+in place without a full route transition. A `MutationObserver` on `.search-results` (re-created on
+every `onPageChange`, so a page navigation always gets a fresh one scoped to the current container)
+covers that gap generically, without needing to know or guess whichever specific Discourse hook fires
+for "search results changed." `decorateResult()` is idempotent (`dataset.ddiSearchDecorated` guard,
+the same pattern `ddi-cross-references.js` already established) specifically because the observer
+watches for the very DOM insertions this code itself performs — without the guard, decorating a
+result would re-trigger the observer, which would re-decorate it, forever appending duplicate badge
+rows. With it, that re-trigger is a harmless no-op.
+
+**No new services, no new fetches — every field is read out of DOM Discourse already rendered, not
+re-fetched.** Document Number is `formatDocumentId()` (unchanged) applied to a topic ID parsed out of
+each result's own title link (`a.search-link`, `href` matching `/t/(?:slug/)?(\d+)`) — the same ID
+Discourse's own link already encodes, not a new lookup. Classification and Document Type are derived
+by treating each result's already-rendered tag pill text (`.discourse-tag`) as the tag list: a small
+`{ tags }` object is constructed from that text and handed to the *existing*
+`getClassification(topic)` unmodified (it only ever reads `topic?.tags`, so a bare `{ tags }` object
+satisfies it exactly the way a full topic model would), and `isValidDocumentType()`/
+`getDocumentTypeLabel()` are called directly on the tag strings, exactly as `ddi-citation-preview.js`
+already does. Department reads a result's rendered category badge (`.badge-category`)'s `href` to
+recover the category slug, validated through the existing `isValidDepartment()` before trusting its
+displayed name — a category badge for a non-division category (if one exists) is deliberately
+excluded rather than shown, since it isn't part of the archive's department vocabulary.
+
+**Classification color reuses `--ddi-accent` exactly as the rest of the theme does — no new color
+logic.** The classification badge gets `classificationClass` (e.g. `ddi-restricted`) as an extra
+class, which is the *existing* mechanism (see **Classification System**) that sets `--ddi-accent`
+locally; the new `.ddi-search-badge` rule reads `var(--ddi-accent, var(--ddi-border))` /
+`var(--ddi-accent, var(--ddi-text-muted))`, so only the classification badge picks up a
+classification-specific color and every other badge (Document Number, Department, Document Type,
+none of which carry `classificationClass`) falls back to the neutral border/muted-text default.
+
+**New CSS, not a reuse of `.ddi-lifecycle-badge`, despite the visual similarity — a deliberate choice
+to avoid a side effect.** `.ddi-lifecycle-badge` already exists and looks like what this needed, but
+it's nested inside `.ddi-dossier-header {{classificationClass}}` on the topic page — meaning that
+context *already* has `--ddi-accent` set on an ancestor. Making `.ddi-lifecycle-badge` itself read
+`var(--ddi-accent, ...)` to reuse it here would have silently recolored the existing Lifecycle badge
+on every document page too, a behavior change to a working component that nothing in this task asked
+for. `.ddi-search-badge` is a new, independently-scoped rule instead — same visual proportions
+(padding, border-radius, letter-spacing), copied rather than shared, precisely to avoid coupling two
+features that happen to look alike but don't share a rendering context.
+
+**Result container gets a light, static card border — not the accent color.** `.ddi-search-result`
+uses `--ddi-border`/`--ddi-red-65` (static tokens), not `--ddi-accent`, because the result element is
+also the ancestor of every badge in its row — if the whole card picked up `--ddi-accent`, badges
+without their own `classificationClass` would inherit the classification color too, undermining the
+"only the classification badge is color-coded" design. Deeper restyling of the native title/blurb
+typography was deliberately deferred — this phase adds only a border, background tint, and the
+badge row, leaving the internal native markup untouched, since its exact structure isn't confirmed
+against a live instance.
+
+**Confidence caveat, same class as every other DOM-structure assumption in this document.**
+`.fps-result`, `a.search-link`, `.badge-category`, `.discourse-tag`, and `.search-results` are
+reasonably well-established Discourse class names based on general knowledge, not confirmed against
+a live instance of this theme (none available this session). The failure mode if any is wrong is
+safe: `querySelector`/`querySelectorAll` simply return nothing, the corresponding badge is skipped,
+and native search behavior is completely unaffected either way — decoration is purely additive, so a
+wrong selector produces a plainer result row, never a broken one.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`

@@ -8,6 +8,40 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Intelligence Search Results, Phase 1: badge-annotated search results
+
+- Added `api-initializers/ddi-search-results.js`, decorating Discourse's own native search results
+  with a badge row per result — Document Number, Classification (color-coded), Department, Document
+  Type. Native title, excerpt/blurb, highlighted matched terms, ranking, permissions, and pagination
+  are completely untouched; this only reads already-rendered DOM and prepends new content.
+- Not a plugin-outlet connector: search results have no DDI-controlled outlet, so this follows the
+  same DOM-decoration technique `ddi-cross-references.js`/`ddi-dossier-refresh.js` already use, now
+  applied to a third surface.
+- `api.onPageChange` sets up a `MutationObserver` on `.search-results` (recreated per navigation) to
+  also catch in-place result updates (new query, pagination) that may not fire a full route
+  transition — genuinely uncertain without a live instance, so covered generically rather than
+  guessed at. `decorateResult()` is idempotent (`dataset.ddiSearchDecorated`, same pattern Cross
+  References already established) specifically because the observer would otherwise re-trigger on
+  its own decorations.
+- **No new services, no new fetches.** Document Number is the existing `formatDocumentId()` applied
+  to a topic ID parsed from each result's own title link. Classification and Document Type are
+  derived by handing each result's already-rendered tag text to the *existing*
+  `getClassification()`/`isValidDocumentType()`/`getDocumentTypeLabel()` unmodified — `{ tags }` from
+  parsed text satisfies `getClassification()`'s signature exactly. Department reads the rendered
+  category badge's slug (from its `href`), validated through the existing `isValidDepartment()`.
+- Classification color reuses the existing `--ddi-accent` mechanism (classificationClass sets it,
+  `.ddi-search-badge` reads it with a neutral fallback) — no new color logic. New CSS was written
+  independently of the visually-similar `.ddi-lifecycle-badge` rather than sharing its selector,
+  specifically to avoid silently recoloring the existing Lifecycle badge on the topic page (which
+  already sits inside a `classificationClass`-scoped ancestor).
+- Confidence caveat: `.fps-result`/`a.search-link`/`.badge-category`/`.discourse-tag`/
+  `.search-results` are based on general Discourse knowledge, not confirmed against a live instance.
+  Failure mode is safe — a wrong selector just means a skipped badge, never broken native behavior.
+- Verified the pure extraction/derivation logic directly: topic ID parsing across several href
+  shapes, classification/document-type resolution from rendered tag text (including graceful default
+  to `PUBLIC RELEASE` when no tag matches), and department slug validation (including correct
+  rejection of a non-division category).
+
 ## 2026-07-25 — Division Command Center: Directory vs. Division page routing fix
 
 - Fixed a real bug: `ddi-category-context.js`'s `getCurrentCategory()` trusted

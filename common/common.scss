@@ -2262,3 +2262,47 @@ a:hover {
 .topic-post:first-child .cooked p {
   margin-bottom: 1.25rem;
 }
+
+/* ============================================================
+   DDI INTELLIGENCE SEARCH RESULTS
+   (Phase 1: annotates Discourse's own rendered .fps-result rows —
+   see api-initializers/ddi-search-results.js — with a badge row.
+   Native title/blurb/highlighting/pagination markup is untouched;
+   only a thin border/background and a prepended badge row are added)
+   ============================================================ */
+
+.ddi-search-result {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+
+  background: var(--ddi-bg-panel);
+
+  border: 1px solid var(--ddi-border);
+  border-left: 3px solid var(--ddi-red-65);
+}
+
+.ddi-search-badges {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-bottom: 8px;
+}
+
+.ddi-search-badge {
+  display: inline-block;
+
+  padding: 2px 8px;
+
+  border: 1px solid var(--ddi-accent, var(--ddi-border));
+  border-radius: 3px;
+
+  color: var(--ddi-accent, var(--ddi-text-muted));
+
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
