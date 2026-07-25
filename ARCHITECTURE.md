@@ -292,6 +292,17 @@ calls `isValidDocumentType`/`isValidLifecycle`/`isValidDepartment` and stores th
 when invalid — Document Integrity Verification reads those three already-resolved metadata fields
 rather than importing and re-running the same three functions a second time.
 
+**`DOCUMENT_TYPES` expanded from 17 to 23 slugs** (Charter, Policy, Manual, Procedure, Reference,
+Training Guide added; Directive, Strategic Plan, and Threat Assessment were already present) to
+close the gap the Document Template Standard's own Appendix had flagged. Purely additive — one
+array, six new entries, appended after the existing 17 rather than reordered among them. No other
+file changed: `isValidDocumentType()`'s signature and behavior are unchanged, and every existing
+consumer (`ddi-document-metadata.js`, Document Integrity Verification) already reads the vocabulary
+generically rather than hardcoding a count or list, so they picked up the six new types with zero
+edits. Required Discourse admin tags for the new six are documented in
+`docs/ddi-archive-information-architecture.md` §4 — a theme cannot create them itself, the same
+constraint as every other tag in this system.
+
 ## Debug Mode
 
 An opt-in diagnostic panel, gated by `ddi_debug_mode_enabled` (`settings.yml`, default `false`) —

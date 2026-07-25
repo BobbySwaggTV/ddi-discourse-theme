@@ -16,6 +16,12 @@ export const DOCUMENT_TYPES = Object.freeze([
   "public-statement",
   "meeting-minutes",
   "correspondence",
+  "charter",
+  "policy",
+  "manual",
+  "procedure",
+  "reference",
+  "training-guide",
 ]);
 
 export function isValidDocumentType(slug) {

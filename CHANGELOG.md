@@ -8,6 +8,16 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Document Type vocabulary expansion
+
+- Added six Document Type slugs — `charter`, `policy`, `manual`, `procedure`, `reference`,
+  `training-guide` — to `lib/ddi-document-type.js`'s `DOCUMENT_TYPES` (17 → 23; `directive`,
+  `strategic-plan`, and `threat-assessment` were already present and untouched). Purely additive,
+  appended after the existing 17. No other file changed: `ddi-document-metadata.js` and Document
+  Integrity Verification both already read `isValidDocumentType()`/`metadata.documentType`
+  generically, so they recognize the six new types with zero edits. Required Discourse admin tags
+  documented in `docs/ddi-archive-information-architecture.md` §4.
+
 ## 2026-07-25 — Post-RC homepage hierarchy pass
 
 - Moved Intelligence Index from `above-main-container` to `below-main-container`

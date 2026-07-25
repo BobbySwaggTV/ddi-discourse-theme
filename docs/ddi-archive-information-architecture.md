@@ -98,8 +98,20 @@ One primary type per document, shared across divisions so the same type (e.g. `i
 | `public-statement` | Non-press public communication | Public Affairs |
 | `meeting-minutes` | Recorded meeting outcomes | All divisions |
 | `correspondence` | Letters, memos, formal messages | All divisions |
+| `charter` | Establishes a division, program, or standing body and its governing authority | All divisions |
+| `policy` | Standing rule or position, in force until revised | All divisions |
+| `manual` | Comprehensive operating reference, consulted repeatedly rather than read start to end | All divisions |
+| `procedure` | Specific, repeatable sequence of steps for one task | All divisions |
+| `reference` | Lookup material — terminology, tables, standards — with no procedural content of its own | All divisions |
+| `training-guide` | Instructional material structured as a learning path toward a skill or certification | All divisions |
 
 Keep this list closed and curated by editors rather than freely created per-topic — an uncontrolled Document Type vocabulary is the fastest way to make "find related documents" unreliable.
+
+**Admin action required, not automatic:** like every tag in this section, a theme cannot create
+Discourse tags on its own — an admin must add these six as real tags (**Tags → New Tag**, plain
+`type` group, no special configuration) before any document can be tagged with them. The theme-side
+support (`lib/ddi-document-type.js`'s `DOCUMENT_TYPES`) recognizes all six as of this pass; the tags
+existing in Discourse admin is the other, separate half of "supported."
 
 ## 5. Lifecycle Tags
 
