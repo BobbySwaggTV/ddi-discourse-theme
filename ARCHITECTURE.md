@@ -996,6 +996,41 @@ removed, `.topic-list-item`/`.latest-topic-list-item`'s entries in those same sh
 those remain genuinely live. `.category-list` itself was also dropped from the earlier "Discourse
 Surface Panels" background/border rule for the same reason.
 
+### Routing Refinement: Directory vs. Individual Division Pages
+
+A real bug, not a hypothetical one: `getCurrentCategory()` trusted
+`controller:discovery/category`'s `.category` unconditionally. That controller is an Ember singleton
+— it doesn't reset when the route changes — so after visiting an individual division page and then
+navigating (client-side, no full reload) to `/categories`, the controller could still hold the
+*previous* division, wrongly making Division Header render there and wrongly making Dashboard show
+department-scoped instead of archive-wide statistics on the directory page.
+
+**Fixed once, in the shared service, not once per connector.** `ddi-category-context.js` gained
+`isCategoriesIndexRoute()` (an exact match against `router.currentRouteName === "discovery.categories"`,
+the same route name Division Cards already used), and `getCurrentCategory()` now checks it first: on
+`/categories`, it returns `null` regardless of whatever the controller happens to hold. Because
+Division Header and Intelligence Dashboard both already went through `getCurrentCategory()`/
+`getCurrentDepartment()` rather than reading the controller directly, **neither connector needed a
+single line changed** — both inherited the fix automatically. Verified via `git diff` showing zero
+delta on both files.
+
+**Division Cards refactored to consume the same signal instead of its own copy.** It previously kept
+its own `CATEGORIES_ROUTE_NAME` constant and did its own exact-match check against
+`router.currentRouteName` — a second place asserting "this route name means the directory," which is
+exactly the kind of routing-logic duplication this task called out. It now calls
+`ddi-category-context.js`'s `isCategoriesIndexRoute()` instead, so the `"discovery.categories"`
+string literal exists in exactly one place in the codebase. This also removed Division Cards' own
+`service:router` lookup entirely, since checking the route was its only use for it.
+
+**Net effect, verified by simulation (real DOM/router objects aren't available outside a live
+instance, so the service's logic was exercised directly against fake owner/router objects
+reproducing the exact stale-controller scenario):** a fresh visit to an individual division page
+still resolves that division correctly; `/categories` with a *stale* controller still holding the
+last-viewed division correctly resolves to `null` despite that stale state; the homepage is
+unaffected. Division Cards' own route gate was independently confirmed to show only on
+`/categories` and hide everywhere else, unchanged in behavior from Phase 4, just re-expressed through
+the shared service.
+
 ## Document Integrity Verification
 
 Five PASS/WARN checks — Classification, Department, Document Type, Lifecycle, Metadata — against

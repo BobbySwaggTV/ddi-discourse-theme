@@ -3,15 +3,15 @@ import { isValidDepartment } from "../../lib/ddi-department";
 import { getShortDescription } from "../../lib/ddi-division-summary";
 import { buildArchiveStatistics } from "../../lib/ddi-archive-statistics";
 
-const CATEGORIES_ROUTE_NAME = "discovery.categories";
 const RECENT_LIMIT = 1;
 
 export default {
   setupComponent(args, component) {
     const owner = getOwner(component);
-    const router = owner.lookup("service:router");
 
-    if (router.currentRouteName !== CATEGORIES_ROUTE_NAME) {
+    if (
+      !owner.lookup("service:ddi-category-context").isCategoriesIndexRoute()
+    ) {
       component.setProperties({ isVisible: false });
       return;
     }

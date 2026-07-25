@@ -8,6 +8,28 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Division Command Center: Directory vs. Division page routing fix
+
+- Fixed a real bug: `ddi-category-context.js`'s `getCurrentCategory()` trusted
+  `controller:discovery/category`'s `.category` unconditionally, but that controller is an Ember
+  singleton that doesn't reset on route change — after visiting a division page and then navigating
+  client-side to `/categories`, it could still hold the previous division, wrongly showing Division
+  Header there and wrongly making Dashboard department-scoped instead of archive-wide.
+- Added `isCategoriesIndexRoute()` to the service (exact match on `router.currentRouteName ===
+  "discovery.categories"`); `getCurrentCategory()` now checks it first and returns `null` on
+  `/categories` regardless of stale controller state.
+- **Division Header and Intelligence Dashboard needed zero changes** — both already went through
+  `getCurrentCategory()`/`getCurrentDepartment()` rather than reading the controller directly, so
+  both inherited the fix automatically. Confirmed via `git diff` showing zero delta on either file.
+- Division Cards refactored to call the service's `isCategoriesIndexRoute()` instead of keeping its
+  own separate `CATEGORIES_ROUTE_NAME` constant and route check — the `"discovery.categories"`
+  string now exists in exactly one place instead of two. This also removed Division Cards' own
+  `service:router` lookup, since checking the route was its only use for it.
+- No new connectors, no CSS changes. Verified by simulating the exact stale-controller scenario
+  against fake owner/router objects: a fresh division-page visit still resolves correctly; a
+  `/categories` visit with a stale controller correctly resolves to `null`; the homepage is
+  unaffected; Division Cards' own route gate is unchanged in behavior.
+
 ## 2026-07-25 — Division Command Center, Phase 4: Division Cards
 
 - Replaced the stock `.category-list` grid on `/categories` with DDI-styled Division Cards —
