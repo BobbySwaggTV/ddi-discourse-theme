@@ -106,14 +106,19 @@ All topic-page components follow the pattern above. In render order:
     `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
     (+100), same classification (+50, see caveat below), and +25 per shared tag. See
     `docs/ddi-intelligence-network.md` for the full design rationale.
-11. **Cross References** (`api-initializers/ddi-cross-references.js` +
+11. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-navigation.*` +
+    `services/ddi-archive-navigation.js`) — Previous Document, Next Document, Department Home, and
+    up to 5 Recent Documents in Department. Filename (`ddi-navigation`) deliberately sorts after
+    `ddi-intelligence-network` so it renders last among this outlet's existing cards without
+    disturbing their current order. See **Archive Navigation** below.
+12. **Cross References** (`api-initializers/ddi-cross-references.js` +
     `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
     and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
     everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
     already-rendered post HTML, and this project already has one precedent for that class of work
     (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
     between the pure detection/parsing library and this DOM-mutation layer.
-12. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+13. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
@@ -331,6 +336,53 @@ Banner and the Dossier Header's classification field).
 `shouldRender` or page check of its own — Discourse's outlet system only mounts
 `topic-above-post-stream` connectors on a topic page, so the watermark appears and disappears with
 the topic itself, the same "no extra guard code" precedent Dossier Header already established.
+
+## Archive Navigation
+
+A topic-page card offering four ways to keep moving through the archive without going back to a
+list view: **Previous Document** and **Next Document** (the adjacent documents in the same
+department, ordered by filing date), **Department Home** (a link to the document's own category),
+and **Recent Documents in Department** (up to 5 other documents most recently filed there).
+
+**Reuses the Metadata Engine for department identity, not a second resolution.**
+`services/ddi-archive-navigation.js` injects `ddi-document-metadata.js` and reads
+`metadata.departmentDisplay` for the department's display name — the same
+`UNCATEGORIZED_LABEL`-aware fallback Document Footer and Document Intelligence already get from the
+metadata engine — rather than re-deriving `topic.category?.name` and its fallback a second time.
+Only the category's `slug`/`id` (native Discourse fields, not a classification/business concept the
+metadata engine owns) are read directly off `topic.category` to build the Department Home URL.
+
+**Fetches one topic list, derives three of the four things from it.** `_fetchDepartmentTopics()`
+calls the exact same `/c/{slug}/{id}.json` endpoint `ddi-related-intelligence.js`'s
+`_fetchCategoryTopics()` already established as this codebase's way of listing a category's topics
+— not a new endpoint assumption. `lib/ddi-document-order.js`'s two pure functions,
+`findAdjacentDocuments()` and `selectRecentDocuments()`, both work off that single fetched array:
+the former sorts by `created_at` ascending and returns the immediate neighbors of the current
+topic's index; the latter excludes the current topic and returns the `created_at`-descending top 5.
+Sorting is done client-side deliberately, rather than trusting the endpoint's own default order (its
+exact sort — latest activity vs. creation date — isn't confirmed against a live instance, the same
+class of caveat already flagged for other endpoints in this document) — this sidesteps the question
+entirely instead of assuming an answer.
+
+**Presentation reuses Citation Preview, not a new "topic to display fields" mapping.** Previous,
+Next, and each Recent Documents row are all passed through `ddi-citation-preview.js`'s
+`getCitation()` — the same service `ddi-related-intelligence.js` already uses to shape its related-
+document rows from this identical raw-AJAX-topic shape. Because `getCitation()` caches by document
+ID, a document that appears in both Intelligence Network and Archive Navigation on the same page
+view is only fully resolved once.
+
+**One page each is enough; no new pagination system.** `_fetchDepartmentTopics()` fetches a single
+page (Discourse's default topic-list page size) and does not follow further pages. For a department
+with more topics than that, Previous/Next/Recent could be inaccurate at the boundary — an honest
+limitation, not a silent one, matching the same eager-vs-bounded trade-off already reasoned through
+(and left as a flagged simplification rather than solved) in `docs/ddi-revision-history.md`.
+
+**Template reuses existing rows, not a new list pattern.** The Department Home link and each Recent
+Documents row reuse `.ddi-toc-item` / `.ddi-toc-title` / `.ddi-dossier-grid` exactly as Intelligence
+Network already does. Only the Previous/Next two-up row (`.ddi-nav-links`/`.ddi-nav-link`) is new
+markup, since no existing component in this theme is a two-column button pair — everything else
+(color tokens, hover treatment, uppercase label convention) is drawn from the existing `:root` token
+set, not new literals.
 
 ## CSS Architecture
 

@@ -8,8 +8,15 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
-## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark
+## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark, archive navigation
 
+- Added Archive Navigation: Previous Document, Next Document, Department Home, and Recent Documents
+  in Department on every document page. `services/ddi-archive-navigation.js` reuses
+  `ddi-document-metadata.js` for department identity, the existing `/c/{slug}/{id}.json` category-
+  topics fetch already established by Intelligence Network, and `ddi-citation-preview.js` to present
+  each linked document — no new "topic to display fields" mapping. Prev/next/recent ordering is a
+  new pure `lib/ddi-document-order.js`. Implemented as
+  `connectors/topic-below-post-stream/ddi-navigation.*`.
 - Added the Classification Watermark: a fixed, full-viewport, low-opacity classification label
   (PUBLIC RELEASE / INTERNAL / CONFIDENTIAL / RESTRICTED / TOP SECRET) rendered behind the open
   document. Reuses `metadata.classification`/`metadata.classificationClass` from

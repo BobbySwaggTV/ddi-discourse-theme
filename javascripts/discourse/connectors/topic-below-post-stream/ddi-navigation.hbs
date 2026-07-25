@@ -1,0 +1,91 @@
+<div class="ddi-card">
+
+  <div class="ddi-card-title">
+    ARCHIVE NAVIGATION
+  </div>
+
+  {{#if this.isLoading}}
+    <div class="ddi-card-body">
+      LOADING ARCHIVE NAVIGATION…
+    </div>
+  {{else}}
+
+    <div class="ddi-nav-links">
+      {{#if this.previous}}
+        <a class="ddi-nav-link" href="{{this.previous.url}}">
+          <span>Previous Document</span>
+          <strong>{{this.previous.title}}</strong>
+        </a>
+      {{else}}
+        <div class="ddi-nav-link ddi-nav-link-disabled">
+          <span>Previous Document</span>
+          <strong>No earlier document in department</strong>
+        </div>
+      {{/if}}
+
+      {{#if this.next}}
+        <a class="ddi-nav-link ddi-nav-link-next" href="{{this.next.url}}">
+          <span>Next Document</span>
+          <strong>{{this.next.title}}</strong>
+        </a>
+      {{else}}
+        <div class="ddi-nav-link ddi-nav-link-next ddi-nav-link-disabled">
+          <span>Next Document</span>
+          <strong>No later document in department</strong>
+        </div>
+      {{/if}}
+    </div>
+
+    {{#if this.department.url}}
+      <a class="ddi-toc-item" href="{{this.department.url}}">
+        <span class="ddi-toc-title">
+          Department Home — {{this.department.name}}
+        </span>
+      </a>
+    {{/if}}
+
+    <div class="ddi-nav-section-label">
+      Recent Documents in Department
+    </div>
+
+    {{#if this.recent.length}}
+      {{#each this.recent as |doc|}}
+        <a
+         class="ddi-toc-item {{doc.classificationClass}}"
+         href="{{doc.url}}"
+        >
+        <div>
+          <span class="ddi-toc-title">
+              {{doc.title}}
+          </span>
+
+          <div class="ddi-dossier-grid">
+
+            <div>
+              <span>Document Number</span>
+              <strong>{{doc.documentId}}</strong>
+            </div>
+
+            <div>
+              <span>Classification</span>
+              <strong>{{doc.classification}}</strong>
+            </div>
+
+            <div>
+              <span>Revision</span>
+              <strong>{{doc.revision}}</strong>
+            </div>
+
+          </div>
+        </div>
+        </a>
+      {{/each}}
+    {{else}}
+      <div class="ddi-card-body">
+        NO OTHER DOCUMENTS FILED IN THIS DEPARTMENT
+      </div>
+    {{/if}}
+
+  {{/if}}
+
+</div>

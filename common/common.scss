@@ -2048,6 +2048,85 @@ a:hover {
   scroll-margin-top: 110px;
 }
 
+/* ============================================================
+   DDI ARCHIVE NAVIGATION
+   ============================================================ */
+
+.ddi-nav-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  margin-bottom: 20px;
+}
+
+.ddi-nav-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  padding: 14px 16px;
+
+  color: var(--ddi-text-primary);
+  text-decoration: none;
+  text-align: left;
+
+  background: var(--ddi-bg-panel);
+  border: 1px solid var(--ddi-border);
+
+  transition: all .18s ease;
+}
+
+.ddi-nav-link:hover {
+  color: var(--ddi-red);
+
+  border-color: var(--ddi-red-65);
+}
+
+.ddi-nav-link-next {
+  text-align: right;
+}
+
+.ddi-nav-link-disabled {
+  color: var(--ddi-text-faint);
+
+  opacity: .5;
+}
+
+.ddi-nav-link span {
+  color: var(--ddi-text-muted);
+
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.ddi-nav-link strong {
+  font-size: .92rem;
+  font-weight: 700;
+}
+
+.ddi-nav-section-label {
+  margin: 4px 0 10px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 600px) {
+  .ddi-nav-links {
+    grid-template-columns: 1fr;
+  }
+
+  .ddi-nav-link-next {
+    text-align: left;
+  }
+}
+
 /* ==========================================
    DDI DOCUMENT BODY
 ========================================== */
