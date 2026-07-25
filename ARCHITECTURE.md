@@ -61,18 +61,23 @@ All topic-page components follow the pattern above. In render order:
 
 1. **Dossier Header** (`connectors/topic-above-post-stream/ddi-dossier-header.*`) — classification
    color, author, status (open/closed), and (see **Known Gaps** below) document ID / issued date.
-2. **Security Banner** (`connectors/topic-above-posts/ddi-security-banner.*`) — classification name
+2. **Classification Watermark** (`connectors/topic-above-post-stream/ddi-classification-watermark.*`)
+   — a fixed, full-viewport, low-opacity classification label rendered behind the document while its
+   topic page is mounted. Shares the `topic-above-post-stream` outlet with Dossier Header; DOM order
+   between the two doesn't matter since the watermark is removed from normal flow (`position: fixed`).
+   See **Classification Watermark** below.
+3. **Security Banner** (`connectors/topic-above-posts/ddi-security-banner.*`) — classification name
    and message, via `lib/ddi-classification.js`.
-3. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
+4. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
    first post's cooked HTML, parses it with `DOMParser`, and shows the text of the first `<p>`
    element. This is a simple extraction, not a generated summary.
-4. **Document Intelligence** (`connectors/topic-above-posts/ddi-document-intelligence.*`) — reading
+5. **Document Intelligence** (`connectors/topic-above-posts/ddi-document-intelligence.*`) — reading
    time (word count ÷ 200, min 1 minute), word count, category name, reply count, view count, and a
    revision label derived from the first post's version.
-5. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
+6. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
    post's rendered `<h2>` elements after render (`requestAnimationFrame`), assigns each an `id`, and
    lists them as anchor links.
-6. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
+7. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
    Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
    synchronously from the first post — no service, since nothing here needs async I/O or
    cross-component reuse. Positioned directly below Document Intelligence via filename-based outlet
@@ -82,7 +87,7 @@ All topic-page components follow the pattern above. In render order:
    listing) — what remains genuinely unverified is the underlying assumption that Discourse renders
    same-outlet connectors in filename order at all, which requires a running instance to confirm and
    wasn't something this cleanup pass had access to.
-7. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
+8. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
    chronologically-ordered list of lifecycle events (Created, Approved, Revised, Reviewed,
    Deprecated, Archived), synchronous, derived entirely from `ddi-document-metadata.js`'s existing
    fields (no new fetch, no new tag, no new topic custom field). Filename sorts directly after
@@ -90,25 +95,25 @@ All topic-page components follow the pattern above. In render order:
    `ddi-document-timeline` < `ddi-document-toc`), same filename-ordering technique and the same
    unverified-against-a-live-instance caveat noted for Revision History above. See **Intelligence
    Timeline** below.
-8. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
+9. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
    Number, Classification, Revision, Department, Last Updated, Author, and a static "End of
    Document" marker. Synchronous, same reasoning as Revision History (no service needed). Ordered
    before Intelligence Network within the same outlet (filename-based, same caveat as above,
    re-verified the same way) so the document's own closing metadata appears before the secondary
    "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
    ordering requirement was ever set for it, so there's nothing to verify there.
-9. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
-   `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
-   (+100), same classification (+50, see caveat below), and +25 per shared tag. See
-   `docs/ddi-intelligence-network.md` for the full design rationale.
-10. **Cross References** (`api-initializers/ddi-cross-references.js` +
+10. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+    `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
+    (+100), same classification (+50, see caveat below), and +25 per shared tag. See
+    `docs/ddi-intelligence-network.md` for the full design rationale.
+11. **Cross References** (`api-initializers/ddi-cross-references.js` +
     `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
     and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
     everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
     already-rendered post HTML, and this project already has one precedent for that class of work
     (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
     between the pure detection/parsing library and this DOM-mutation layer.
-11. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+12. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
@@ -288,6 +293,44 @@ addition to that array plus (if it's lifecycle-driven) one entry in the adjacent
 else. A future event source that isn't lifecycle-derived (e.g. Last Reviewed, once §4.8 above is
 actually implemented) only needs to add another key to the `eventDates` object `buildTimeline()`
 builds internally — the filtering/ordering/rendering pipeline around it doesn't change.
+
+## Classification Watermark
+
+A fixed, full-viewport, low-opacity classification label — `PUBLIC RELEASE`, `INTERNAL`,
+`CONFIDENTIAL`, `RESTRICTED`, or `TOP SECRET` — rendered diagonally behind whatever document is
+currently open, so a document's sensitivity is visible even at a glance, not just in the Dossier
+Header/Security Banner text.
+
+**Zero new classification logic — reuses the same two fields Security Banner already consumes.**
+`ddi-classification-watermark.js` looks up `service:ddi-document-metadata` and copies
+`metadata.classification` (the label) and `metadata.classificationClass` (`ddi-public` /
+`ddi-internal` / `ddi-confidential` / `ddi-restricted` / `ddi-top-secret`) onto the component —
+exactly `ddi-security-banner.js`'s shape, field for field. `getClassification()` in
+`lib/ddi-classification.js` is still the only place the tag-to-classification mapping is defined;
+this feature does not read `topic.tags` itself and does not know what a classification slug is.
+
+**The color comes from CSS reuse too, not a second palette.** `.ddi-watermark-text`'s `color` reads
+`var(--ddi-accent)`, the same custom property `.ddi-public`/`.ddi-internal`/`.ddi-confidential`/
+`.ddi-restricted`/`.ddi-top-secret` already set (**DDI Classification Levels**, `common.scss`) for
+the Dossier Header and Security Banner's accent color. Applying `classificationClass` to the
+watermark's own root element means each classification's watermark is auto-tinted with the exact
+color that classification already uses everywhere else — no new color decisions, no risk of the
+watermark and the banner ever disagreeing about what color "RESTRICTED" is.
+
+**CSS does the actual watermark effect; JS only supplies the two data points above.** Fixed
+positioning, full-viewport coverage, the diagonal rotation, the large type size, and the low
+opacity are all plain `common.scss` rules on `.ddi-watermark`/`.ddi-watermark-text` — mirroring the
+`position: fixed; inset: 0; pointer-events: none;` full-viewport-overlay pattern this stylesheet
+already uses for the page-wide grid texture (`body::before`, **Command Network Grid**), rather than
+inventing a new positioning technique. `pointer-events: none` and `aria-hidden="true"` keep it
+inert — it never blocks clicks or gets announced to screen readers, consistent with it being a
+decorative cue, not new information (the classification is already stated in text by Security
+Banner and the Dossier Header's classification field).
+
+**Automatically per-document, with no manual guard.** Like Dossier Header, this connector has no
+`shouldRender` or page check of its own — Discourse's outlet system only mounts
+`topic-above-post-stream` connectors on a topic page, so the watermark appears and disappears with
+the topic itself, the same "no extra guard code" precedent Dossier Header already established.
 
 ## CSS Architecture
 

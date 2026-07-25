@@ -8,8 +8,14 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
-## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline
+## 2026-07-25 — CSS token consolidation, related-documents feature, intelligence timeline, classification watermark
 
+- Added the Classification Watermark: a fixed, full-viewport, low-opacity classification label
+  (PUBLIC RELEASE / INTERNAL / CONFIDENTIAL / RESTRICTED / TOP SECRET) rendered behind the open
+  document. Reuses `metadata.classification`/`metadata.classificationClass` from
+  `ddi-document-metadata.js` (same fields Security Banner already consumes) and the existing
+  `--ddi-accent` color set by the Classification Levels CSS — no new classification logic, no new
+  color palette. Implemented as `connectors/topic-above-post-stream/ddi-classification-watermark.*`.
 - Added the Intelligence Timeline: a vertical, document-page list of lifecycle events (Created,
   Approved, Revised, Reviewed, Deprecated, Archived), derived entirely from existing
   `ddi-document-metadata.js` fields with no new tags or fetches. Implemented as

@@ -1780,6 +1780,46 @@ a:hover {
 }
 
 /* ==========================================
+   DDI CLASSIFICATION WATERMARK
+========================================== */
+
+.ddi-watermark {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  pointer-events: none;
+
+  z-index: 0;
+}
+
+.ddi-watermark-text {
+  color: var(--ddi-accent, #7b8794);
+
+  font-size: 9rem;
+  font-weight: 800;
+
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  opacity: 0.06;
+
+  transform: rotate(-30deg);
+}
+
+@media (max-width: 900px) {
+  .ddi-watermark-text {
+    font-size: 5rem;
+  }
+}
+
+/* ==========================================
    DDI SECURITY BANNER
 ========================================== */
 
