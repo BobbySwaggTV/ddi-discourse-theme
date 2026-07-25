@@ -8,6 +8,35 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Division Command Center, Phase 1: department-aware Dashboard and Index
+
+- Intelligence Dashboard and Intelligence Index now automatically scope themselves to the current
+  department when rendered on a category page. Homepage behavior is unchanged — both only apply a
+  filter when a category is actually detected.
+- New `services/ddi-category-context.js` — `getCurrentDepartment()` looks up
+  `controller:discovery/category` (wrapped in a `try`/`catch`, since this is the one lookup in this
+  change that isn't already proven elsewhere in this codebase) and returns the category's display
+  name, or `null` on the homepage/any non-category route.
+- **No new filtering logic.** Both connectors now call the existing
+  `ddi-intelligence-index.js`'s `getIndex(department ? { department } : {})` instead of `getIndex()`
+  — `lib/ddi-document-index.js`'s `filterDocuments()` is completely unchanged, and passing `{}` is
+  behaviorally identical to omitting the argument (the function's own default). `lib/ddi-archive-
+  statistics.js` is equally untouched.
+- Dashboard hides its Departments breakdown tile when department-scoped (a one-entry "this
+  department" tile would be redundant) via a new `isDepartmentScoped` flag and a template
+  `{{#unless}}` — not by changing `buildArchiveStatistics()`'s return shape, which stays
+  context-independent for its one existing homepage caller.
+- Intelligence Index's template was not touched at all — only the data feeding it changed.
+- **Discrepancy flagged, not silently resolved:** the request said Intelligence Index should
+  "preserve sorting by Document Number," but Intelligence Index has always sorted alphabetically by
+  title (Document Number ordering is Archive Navigation's behavior, not this feature's). Changing the
+  sort algorithm was out of scope for a filtering task, so it was left as-is rather than guessed at
+  either way — see `ARCHITECTURE.md`'s **Department-Aware on Category Pages** section.
+- Verified: homepage passes `{}` (identical to the prior no-argument call); a simulated category
+  page correctly returns only that department's documents, with statistics computed from the
+  filtered set; a department with zero documents gracefully degrades to all-empty statistics, same
+  as an archive-wide fetch failure already does.
+
 ## 2026-07-25 — Intelligence Dashboard relocated to achieve true between-placement
 
 - Moved `connectors/above-main-container/ddi-intelligence-dashboard.*` to

@@ -19,14 +19,16 @@
             <strong>{{this.statistics.totalDocuments}}</strong>
           </div>
 
-          <div class="ddi-stat-tile">
-            <span>Departments</span>
-            <ul class="ddi-stat-list">
-              {{#each this.statistics.departments as |entry|}}
-                <li><span>{{entry.name}}</span><strong>{{entry.count}}</strong></li>
-              {{/each}}
-            </ul>
-          </div>
+          {{#unless this.isDepartmentScoped}}
+            <div class="ddi-stat-tile">
+              <span>Departments</span>
+              <ul class="ddi-stat-list">
+                {{#each this.statistics.departments as |entry|}}
+                  <li><span>{{entry.name}}</span><strong>{{entry.count}}</strong></li>
+                {{/each}}
+              </ul>
+            </div>
+          {{/unless}}
 
           <div class="ddi-stat-tile">
             <span>Document Types</span>

@@ -190,7 +190,8 @@ family.
    `ddi_intelligence_index_enabled` setting (default `true`) and, at render time, by a route check
    that hides it on document (`topic.*`) and `admin` routes. Moved from `above-main-container` to
    `below-main-container` as part of the post-RC homepage hierarchy pass — see **Intelligence
-   Index** below for why.
+   Index** below for why. Automatically department-scoped on category pages (Division Command
+   Center, Phase 1) via the new `services/ddi-category-context.js` — see below.
 2. **Intelligence Dashboard** (`connectors/discovery-list-container-top/ddi-intelligence-dashboard.*` +
    `lib/ddi-archive-statistics.js`) — live archive statistics: Total Documents, a Departments
    breakdown, a Document Types breakdown, a Classification Levels breakdown, and up to 5 Recently
@@ -755,6 +756,64 @@ is needed"). Four new rules were added for the one thing that didn't already exi
 theme — a labeled count breakdown and a big total-count tile (`.ddi-stat-grid`, `.ddi-stat-tile`,
 `.ddi-stat-list`, `.ddi-stat-updated-date`) — built entirely from existing `:root` tokens
 (`--ddi-bg-panel`, `--ddi-border`, `--ddi-text-muted`, `--ddi-text-primary`), no new color literals.
+
+### Department-Aware on Category Pages (Division Command Center, Phase 1)
+
+Both Intelligence Dashboard and Intelligence Index now detect whether they're rendering on a
+category page and, if so, scope themselves to that category's department automatically — the first
+implemented slice of the Division Command Center plan (see
+`docs/ddi-archive-information-architecture.md` and the category-page planning review). Homepage
+behavior is unchanged: both components only apply a filter when a category is actually detected.
+
+**New `services/ddi-category-context.js`, not a new lib function — deliberately.** Detecting the
+current category requires an Ember owner lookup (`controller:discovery/category`), which is a
+Discourse/Ember dependency the `lib/` rule explicitly excludes. `getCurrentDepartment()` returns the
+current category's display name (matching Citation Preview's `department` field, the same
+"display name, not slug" gotcha already documented under **Archive Navigation** above) or `null` if
+none is found. Both connectors call this exactly once via `owner.lookup("service:ddi-category-context")`,
+the same wiring pattern already used for every other service lookup in this codebase — no new lookup
+mechanism invented.
+
+**No new filtering logic — this is entirely about supplying the existing filter's argument.**
+`ddi-intelligence-index.js`'s `getIndex(filters = {})` and `lib/ddi-document-index.js`'s
+`filterDocuments()` are completely unchanged. Both connectors now call
+`getIndex(department ? { department } : {})` instead of `getIndex()` — passing `{}` when no
+department is detected is behaviorally identical to omitting the argument, since that's the
+function's own default. `lib/ddi-archive-statistics.js` is equally untouched: Dashboard still calls
+`buildArchiveStatistics()` on whatever `getIndex()` returns, department-filtered or not.
+
+**Dashboard hides its own Departments breakdown when scoped, rather than the aggregator omitting
+it.** Showing a one-entry "department: this department" tile once already filtered to one
+department is redundant. Rather than adding a conditional to `buildArchiveStatistics()` (which would
+make its return shape context-dependent, complicating its one existing homepage caller), the
+connector sets `isDepartmentScoped` and the template wraps the Departments tile in
+`{{#unless this.isDepartmentScoped}}`. The statistics object itself still contains a (unused, in
+this case) `departments` array — a small, deliberate bit of unused-but-harmless computation, chosen
+over branching the shared aggregator's output shape.
+
+**Intelligence Index's layout is untouched — only its data changed.** No template edits at all;
+`getCategoryDepartment`'s result flows into the same `getIndex()` call the connector already made,
+so every existing row/column/empty-state in `ddi-intelligence-index.hbs` behaves exactly as before,
+just against a smaller (or identical, on the homepage) document set.
+
+**A discrepancy worth recording, not silently resolved either way.** The task that requested this
+said Intelligence Index should "preserve sorting by Document Number." Intelligence Index has never
+sorted by Document Number — `lib/ddi-document-index.js`'s `sortDocumentsAlphabetically()` sorts by
+title, and always has, since the feature was first built (see **Intelligence Index** above; Document
+Number ordering is Archive Navigation's behavior, not this feature's). Changing the sort algorithm
+was out of scope for a department-filtering task and would have been a second, unrequested behavior
+change, so the existing alphabetical-by-title sort was left exactly as it was — "preserved" in the
+sense of "not touched," which may not be what was meant. Flagged rather than guessed either way.
+
+**The one unverified touchpoint, given a safety net.** `controller:discovery/category` is a
+standard Discourse controller based on general knowledge, not confirmed against a live instance of
+this theme (none available this session — the same limitation already flagged for the
+`discovery-list-container-top` outlet choice). Unlike every other service/router lookup in this
+codebase, which are already proven here, this one is new and unverified, which is why it's the one
+lookup in this change wrapped in a `try`/`catch`: if the controller name is wrong, `getCurrentDepartment()`
+returns `null`, and both components fall back to identical archive-wide behavior — the same
+fallback already required for any non-category page. There's no failure mode where a wrong guess
+here produces a broken page, only an un-scoped one.
 
 ## Document Integrity Verification
 

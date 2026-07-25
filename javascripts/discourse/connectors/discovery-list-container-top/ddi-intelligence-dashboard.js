@@ -18,15 +18,20 @@ export default {
       return;
     }
 
+    const department = owner
+      .lookup("service:ddi-category-context")
+      .getCurrentDepartment();
+
     component.setProperties({
       isVisible: true,
       isLoading: true,
+      isDepartmentScoped: Boolean(department),
       statistics: null,
     });
 
     owner
       .lookup("service:ddi-intelligence-index")
-      .getIndex()
+      .getIndex(department ? { department } : {})
       .then((documents) => {
         if (component.isDestroying || component.isDestroyed) {
           return;
