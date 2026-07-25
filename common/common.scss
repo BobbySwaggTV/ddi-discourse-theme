@@ -2091,6 +2091,94 @@ a:hover {
 }
 
 /* ============================================================
+   DDI INTELLIGENCE DASHBOARD
+   ============================================================ */
+
+.ddi-stat-grid {
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+
+  gap: 16px;
+
+  margin-bottom: 20px;
+}
+
+.ddi-stat-tile {
+  padding: 14px 16px;
+
+  background: var(--ddi-bg-panel);
+  border: 1px solid var(--ddi-border);
+}
+
+.ddi-stat-tile > span {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.ddi-stat-tile-total strong {
+  display: block;
+
+  color: var(--ddi-text-primary);
+
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.ddi-stat-list {
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.ddi-stat-list li {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 8px;
+
+  padding: 4px 0;
+
+  font-size: .82rem;
+}
+
+.ddi-stat-list li span {
+  color: var(--ddi-text-primary);
+}
+
+.ddi-stat-list li strong {
+  color: var(--ddi-text-muted);
+}
+
+.ddi-stat-updated-date {
+  margin-left: auto;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .ddi-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
    DDI INTEGRITY VERIFICATION
    ============================================================ */
 

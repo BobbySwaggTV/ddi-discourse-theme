@@ -15,7 +15,7 @@ ddi_red_glow_strength:
 ddi_homepage_dashboard_enabled:
   type: bool
   default: true
-  description: "Render command dashboard homepage sections from categories"
+  description: "Show the Intelligence Dashboard (archive statistics: total documents, departments, document types, classification levels, recently updated) above the page content — disable if it doesn't suit a given route configuration"
 
 ddi_sidebar_command_panel_enabled:
   type: bool

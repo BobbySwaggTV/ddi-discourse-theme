@@ -1,9 +1,12 @@
 import { getOwner } from "@ember/owner";
 import { isExcludedRoute } from "../../lib/ddi-route-guard";
+import { buildArchiveStatistics } from "../../lib/ddi-archive-statistics";
+
+const RECENT_LIMIT = 5;
 
 export default {
   shouldRender() {
-    return settings.ddi_intelligence_index_enabled;
+    return settings.ddi_homepage_dashboard_enabled;
   },
 
   setupComponent(args, component) {
@@ -18,7 +21,7 @@ export default {
     component.setProperties({
       isVisible: true,
       isLoading: true,
-      documents: [],
+      statistics: null,
     });
 
     owner
@@ -29,7 +32,10 @@ export default {
           return;
         }
 
-        component.setProperties({ isLoading: false, documents });
+        component.setProperties({
+          isLoading: false,
+          statistics: buildArchiveStatistics(documents, RECENT_LIMIT),
+        });
       });
   },
 };

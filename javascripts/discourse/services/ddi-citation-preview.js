@@ -3,6 +3,8 @@ import { ajax } from "discourse/lib/ajax";
 import { getClassification } from "../lib/ddi-classification";
 import { formatDocumentId } from "../lib/ddi-document-id";
 import { formatRevision } from "../lib/ddi-revision";
+import { formatDocumentDate } from "../lib/ddi-format-date";
+import { isValidDocumentType, getDocumentTypeLabel } from "../lib/ddi-document-type";
 import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
 
 export default class DdiCitationPreviewService extends Service {
@@ -47,6 +49,11 @@ export default class DdiCitationPreviewService extends Service {
       this.site.categories?.findBy("id", topic.category_id)?.name ||
       UNCATEGORIZED_LABEL;
 
+    const documentType =
+      (topic.tags || []).find((tag) => isValidDocumentType(tag)) || null;
+
+    const updatedAt = topic.bumped_at || topic.created_at || null;
+
     const revision = await this._resolveRevision(topic);
 
     const citation = {
@@ -56,7 +63,11 @@ export default class DdiCitationPreviewService extends Service {
       classification,
       classificationClass,
       department,
+      documentType,
+      documentTypeLabel: getDocumentTypeLabel(documentType),
       revision,
+      updatedAt,
+      updatedDate: formatDocumentDate(updatedAt),
       url: topic.slug ? `/t/${topic.slug}/${topic.id}` : `/t/${topic.id}`,
     };
 

@@ -180,9 +180,9 @@ All topic-page components follow the pattern above. In render order:
 
 ## Archive-Wide Components
 
-Everything above is scoped to a single topic page (`args.model` is that topic). This is the first
-component that isn't: it renders on every *non-document* route instead of one document, off a
-different Discourse outlet family.
+Everything above is scoped to a single topic page (`args.model` is that topic). These two aren't:
+they render on every *non-document* route instead of one document, off a different Discourse outlet
+family.
 
 1. **Intelligence Index** (`connectors/below-main-container/ddi-intelligence-index.*` +
    `services/ddi-intelligence-index.js`) — an alphabetical, archive-wide list of every document
@@ -191,6 +191,15 @@ different Discourse outlet family.
    that hides it on document (`topic.*`) and `admin` routes. Moved from `above-main-container` to
    `below-main-container` as part of the post-RC homepage hierarchy pass — see **Intelligence
    Index** below for why.
+2. **Intelligence Dashboard** (`connectors/above-main-container/ddi-intelligence-dashboard.*` +
+   `lib/ddi-archive-statistics.js`) — live archive statistics: Total Documents, a Departments
+   breakdown, a Document Types breakdown, a Classification Levels breakdown, and up to 5 Recently
+   Updated Documents. Gated by `ddi_homepage_dashboard_enabled` (already defined in `settings.yml`,
+   previously unused by anything — this is its first real consumer) and the same route-guard
+   `isExcludedRoute()` Intelligence Index uses, now shared from `lib/ddi-route-guard.js` rather than
+   duplicated a second time. See **Intelligence Dashboard** below for the full design, including why
+   it renders on `above-main-container` rather than literally between the Search Banner and Topic
+   List as requested.
 
 ## Backend-Only Services
 
@@ -607,10 +616,117 @@ immediately after them, was deliberately left alone — it's the live styling fo
 Search Banner, not part of the same dead family, and removing it would have been a real functional
 regression, not cleanup.
 
-**Does not touch the Homepage Dashboard's territory.** `ddi_homepage_dashboard_enabled` and the
-default-furniture-suppression technique `docs/ddi-intelligence-archive-dashboard.md` describes are
-untouched — this feature doesn't hide or replace any existing homepage/category-page content, only
-adds a card below it, so it doesn't preempt or conflict with that larger, still-unbuilt feature.
+**Did not touch the Homepage Dashboard's territory — written before that feature existed.** At the
+time this was built, `ddi_homepage_dashboard_enabled` and `docs/ddi-intelligence-archive-
+dashboard.md`'s default-furniture-suppression technique were both untouched, and this feature only
+added a card below existing homepage/category-page content rather than hiding or replacing any of
+it. A scoped version of the dashboard was built later — see **Intelligence Dashboard** below — and
+the two still don't conflict: Intelligence Dashboard renders on `above-main-container` (before the
+routed template), this renders on `below-main-container` (after it), so they bound the same content
+from opposite sides without overlapping.
+
+## Intelligence Dashboard
+
+Live archive statistics rendered on browsing routes: **Total Documents** (a single count),
+**Departments**, **Document Types**, and **Classification Levels** (each a count-per-value
+breakdown, highest count first), and **Recently Updated Documents** (up to 5, newest activity
+first). Requested as "between the Search Banner and the Topic List" — see the placement note below
+for why it doesn't land exactly there.
+
+**A scoped implementation of a much larger, pre-existing design.**
+`docs/ddi-intelligence-archive-dashboard.md` (v0.4.0, proposed) describes a 7-section homepage
+*replacement* — Search Intelligence, Operational Divisions, Recent Intelligence, Recently Updated,
+Document Statistics, Classification Breakdown, Recent Revisions — built across 6 phases, retiring
+`common/homepage.html`/`common/sidebar.html` (already removed in RC cleanup) entirely. This feature
+is not that: it's one additive card covering the 5 items actually requested, most of which map onto
+that doc's Document Statistics + Classification Breakdown + Recently Updated sections (Document
+Types has no equivalent in that doc; it's new). Search Intelligence, Operational Divisions, Recent
+Intelligence, and Recent Revisions were not built — out of scope for what was asked, and each carries
+its own dependency chain in the source doc (Recent Revisions in particular explicitly depends on a
+per-document Revision History component existing first, which is a topic-page concern this task was
+told not to touch).
+
+**Confirmed the design doc's one blocking dependency was already resolved.** The doc flags
+`getClassification()`'s tag-shape bug (comparing `tag.slug` against what are actually plain strings)
+as something Classification Breakdown depends on. That bug was already fixed in an earlier session
+(see **Classification System** above) — verified by reading the current source before relying on it,
+not assumed from the doc, which predates the fix and doesn't reflect it.
+
+**Reuses the Intelligence Index service instead of a new fetch — the core "no duplicate data
+fetching" decision.** `getIndex()` (no filter) returns every archive document already shaped through
+Citation Preview. All 5 dashboard sections are derived from that one array by
+`lib/ddi-archive-statistics.js` — no second network request, no new service. This differs from the
+design doc's Phase 2 plan (reusing already-loaded `Site.categories` data and each category's
+`topic_count` for zero-fetch statistics) in favor of internal consistency: every number on this
+dashboard comes from the same underlying document list, so Total Documents, the Departments
+breakdown, and Recently Updated Documents can never disagree with each other the way two
+independently-sourced counts could.
+
+**Citation Preview extended by two fields, not duplicated elsewhere.** `documentType` /
+`documentTypeLabel` and `updatedAt` / `updatedDate` were added to `ddi-citation-preview.js`'s
+`getCitation()` output — the first pair reuses `lib/ddi-document-type.js`'s `isValidDocumentType()` /
+`getDocumentTypeLabel()` exactly as the Dossier Header does; the second reuses
+`lib/ddi-format-date.js`'s `formatDocumentDate()` exactly as the Metadata Engine does, sourced from
+`topic.bumped_at` (the topic-list-level activity timestamp, the field this design doc's own Recently
+Updated section names) rather than the Metadata Engine's post-level `updated_at` field, which isn't
+present on lightweight topic-list items. Both additions are purely additive — every existing
+consumer of `getCitation()` (Intelligence Index, Archive Navigation, Intelligence Network's citation
+calls, Knowledge Graph) reads the same fields it already read and is unaffected.
+
+**Aggregation is pure `lib/` code, not service- or template-embedded.**
+`lib/ddi-archive-statistics.js` exports `countByDepartment()`, `countByDocumentType()`,
+`countByClassification()` (all three the same `countBy()` helper parameterized by which field to
+group on, sorted by count descending), `selectRecentlyUpdated()` (filters out documents with no
+`updatedAt`, sorts descending, bounds to a limit), and `buildArchiveStatistics()`, which composes all
+four into the connector's exact display shape. Zero Discourse/Ember dependencies, following the same
+`lib/` rule as everything else in this codebase.
+
+**Route guard extracted to `lib/ddi-route-guard.js` rather than duplicated a second time.**
+Intelligence Index's `isExcludedRoute()` (hide on `topic.*`/`admin` routes) previously lived inline
+in its own connector. Since this feature needed the identical guard, it was extracted to a shared
+`lib/` function and both connectors now import it — the same "if two pieces of code need the same
+computation, it belongs in `lib/`" rule stated at the top of this document, applied here for the
+first time to connector-guard logic rather than data logic.
+
+**Placement: `above-main-container`, not literally "between the Search Banner and the Topic
+List."** This project has exactly two "renders on every route" outlets in active use —
+`above-main-container` (before the routed template, i.e. before the Search Banner and Topic List
+both) and `below-main-container` (after both, where Intelligence Index lives). Neither achieves
+literal between-placement; no finer-grained Discourse outlet has been verified against a live
+instance in this project (there was none available this session either — the same limitation already
+flagged for connector render order elsewhere in this document), and guessing an unverified outlet
+name risks the feature silently not rendering at all, a worse failure than an honest positioning gap.
+`above-main-container` was chosen because it's the exact outlet `docs/ddi-intelligence-archive-
+dashboard.md` itself specifies for this feature, and it's already proven in this codebase (Intelligence
+Index shipped on it before its post-RC move). Net effect: the dashboard renders above the Search
+Banner, not between it and the Topic List. If literal between-placement is required, it needs a more
+specific outlet (a reasonable candidate, going purely on general Discourse knowledge rather than
+anything confirmed in this project, is `discovery-list-container-top`) verified live before switching
+to it.
+
+**Fails gracefully by construction, not via a separate error path.** `getIndex()` already resolves to
+`[]` on a fetch failure rather than rejecting (see **Intelligence Index** above), so
+`buildArchiveStatistics([], limit)` naturally produces `{ totalDocuments: 0, departments: [],
+documentTypes: [], classifications: [], recentlyUpdated: [] }` — no `try`/`catch`, no new error
+state, matching the connector's existing `.then()`-only precedent rather than adding defensive code
+the codebase doesn't already consider necessary. The template shows "NO ARCHIVE STATISTICS
+AVAILABLE" / "NO RECENTLY UPDATED DOCUMENTS" for the empty case, the same empty-state convention
+Intelligence Index and Archive Navigation already use.
+
+**One page is enough; inherits Intelligence Index's own limitation.** Because this reuses `getIndex()`
+directly, Total Documents and every breakdown reflect only the single page of `/latest.json`
+Intelligence Index fetches — for an archive larger than that page, these are undercounts, not exact
+totals. Same honest, already-documented limitation as Intelligence Index itself and, before it,
+Archive Navigation's original category fetch — not a new one introduced here.
+
+**New CSS is additive and reuses existing tokens; no existing rule changed.** `.ddi-card` /
+`.ddi-card-title` / `.ddi-card-body` (the shell) and `.ddi-toc-item` / `.ddi-toc-title` /
+`.ddi-nav-section-label` (the Recently Updated list) are reused verbatim, matching
+`docs/ddi-intelligence-archive-dashboard.md`'s own explicit direction ("No new component vocabulary
+is needed"). Four new rules were added for the one thing that didn't already exist anywhere in this
+theme — a labeled count breakdown and a big total-count tile (`.ddi-stat-grid`, `.ddi-stat-tile`,
+`.ddi-stat-list`, `.ddi-stat-updated-date`) — built entirely from existing `:root` tokens
+(`--ddi-bg-panel`, `--ddi-border`, `--ddi-text-muted`, `--ddi-text-primary`), no new color literals.
 
 ## Document Integrity Verification
 
@@ -810,9 +926,12 @@ was verified by grepping for references — not assumed.
   are `head_tag`, `header`, `after_header`, `body_tag`, and `footer`, plus embedded variants) — neither
   file was ever rendered. `docs/ddi-command-network-interface.md` planned real connectors for this
   (`connectors/above-main-container/ddi-homepage-dashboard.hbs` and `ddi-sidebar-panel.hbs`) that were
-  never built. The design intent isn't lost — `docs/ddi-intelligence-archive-dashboard.md` is the
-  current, accurate roadmap for implementing the homepage dashboard correctly, and doesn't depend on
-  the deleted files.
+  never built at the time. **Partially addressed since**: a scoped version now exists at
+  `connectors/above-main-container/ddi-intelligence-dashboard.*` — see **Intelligence Dashboard**
+  above — covering 5 of the design doc's statistics-oriented sections. The sidebar half, and the
+  dashboard's remaining sections (Search Intelligence, Operational Divisions, Recent Intelligence,
+  Recent Revisions), are still unbuilt; `docs/ddi-intelligence-archive-dashboard.md` remains the
+  roadmap for those.
 - **`common/footer.html` is empty, and was deliberately kept, not removed**, unlike the two files
   above — it's a real, Discourse-recognized template target (unlike `homepage.html`/`sidebar.html`,
   which were never valid filenames at all), so there's nothing broken about it; it's just unpopulated.
@@ -827,8 +946,9 @@ was verified by grepping for references — not assumed.
   - `ddi_compact_density` and `ddi_red_glow_strength` are kept — `docs/ddi-intelligence-archive-dashboard.md`'s
     Phase 6 explicitly names both for the dashboard's "new section styling," a concrete, specific tie
     to planned work, not a vague aspiration.
-  - `ddi_homepage_dashboard_enabled` is kept — it's the exact gate `docs/ddi-intelligence-archive-dashboard.md`
-    already specifies the dashboard connector should check.
+  - `ddi_homepage_dashboard_enabled` is now wired (Intelligence Dashboard) — it was kept, pre-wiring,
+    specifically because it was the exact gate `docs/ddi-intelligence-archive-dashboard.md` specified
+    the dashboard connector should check, and that's exactly what it now does.
   - `ddi_sidebar_command_panel_enabled` is kept, on weaker footing than the above: the sidebar rebuild
     is acknowledged intent (`docs/ddi-roadmap.md`'s "Excluded / Not Yet Ready") but has no design past
     that acknowledgment. Kept because the intent is real, not because a plan exists yet.

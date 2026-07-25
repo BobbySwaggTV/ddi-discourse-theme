@@ -1,0 +1,81 @@
+{{#if this.isVisible}}
+  <div class="ddi-card ddi-intelligence-dashboard">
+
+    <div class="ddi-card-title">
+      INTELLIGENCE DASHBOARD
+    </div>
+
+    {{#if this.isLoading}}
+      <div class="ddi-card-body">
+        LOADING ARCHIVE STATISTICS…
+      </div>
+    {{else if this.statistics.totalDocuments}}
+      <div class="ddi-card-body">
+
+        <div class="ddi-stat-grid">
+
+          <div class="ddi-stat-tile ddi-stat-tile-total">
+            <span>Total Documents</span>
+            <strong>{{this.statistics.totalDocuments}}</strong>
+          </div>
+
+          <div class="ddi-stat-tile">
+            <span>Departments</span>
+            <ul class="ddi-stat-list">
+              {{#each this.statistics.departments as |entry|}}
+                <li><span>{{entry.name}}</span><strong>{{entry.count}}</strong></li>
+              {{/each}}
+            </ul>
+          </div>
+
+          <div class="ddi-stat-tile">
+            <span>Document Types</span>
+            <ul class="ddi-stat-list">
+              {{#each this.statistics.documentTypes as |entry|}}
+                <li><span>{{entry.name}}</span><strong>{{entry.count}}</strong></li>
+              {{/each}}
+            </ul>
+          </div>
+
+          <div class="ddi-stat-tile">
+            <span>Classification Levels</span>
+            <ul class="ddi-stat-list">
+              {{#each this.statistics.classifications as |entry|}}
+                <li><span>{{entry.name}}</span><strong>{{entry.count}}</strong></li>
+              {{/each}}
+            </ul>
+          </div>
+
+        </div>
+
+        <div class="ddi-nav-section-label">
+          Recently Updated Documents
+        </div>
+
+        {{#if this.statistics.recentlyUpdated.length}}
+          {{#each this.statistics.recentlyUpdated as |doc|}}
+            <a
+             class="ddi-toc-item {{doc.classificationClass}}"
+             href="{{doc.url}}"
+            >
+              <span class="ddi-toc-title">
+                {{doc.title}}
+              </span>
+              <span class="ddi-stat-updated-date">{{doc.updatedDate}}</span>
+            </a>
+          {{/each}}
+        {{else}}
+          <div class="ddi-card-body">
+            NO RECENTLY UPDATED DOCUMENTS
+          </div>
+        {{/if}}
+
+      </div>
+    {{else}}
+      <div class="ddi-card-body">
+        NO ARCHIVE STATISTICS AVAILABLE
+      </div>
+    {{/if}}
+
+  </div>
+{{/if}}

@@ -8,6 +8,49 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Intelligence Dashboard: live archive statistics on the homepage
+
+- Added a new homepage card — Total Documents, a Departments breakdown, a Document Types breakdown,
+  a Classification Levels breakdown, and up to 5 Recently Updated Documents — as
+  `connectors/above-main-container/ddi-intelligence-dashboard.*`. This is a scoped implementation of
+  5 sections from the much larger, still-mostly-unbuilt design in
+  `docs/ddi-intelligence-archive-dashboard.md` (v0.4.0), not the full 7-section homepage replacement
+  that document describes; Search Intelligence, Operational Divisions, Recent Intelligence, and
+  Recent Revisions were not built.
+- **No new fetch.** All 5 sections are derived from one call to the existing
+  `ddi-intelligence-index.js`'s `getIndex()` — the same archive-wide document list Intelligence Index
+  itself renders — aggregated by a new pure `lib/ddi-archive-statistics.js`
+  (`countByDepartment`/`countByDocumentType`/`countByClassification`/`selectRecentlyUpdated`/
+  `buildArchiveStatistics`). Confirmed before relying on it that `getClassification()`'s tag-shape bug
+  the design doc flagged as a blocker for classification statistics was already fixed in an earlier
+  session.
+- `ddi-citation-preview.js`'s `getCitation()` extended with two new field pairs —
+  `documentType`/`documentTypeLabel` (reusing `lib/ddi-document-type.js`, same as the Dossier Header)
+  and `updatedAt`/`updatedDate` (reusing `lib/ddi-format-date.js`, sourced from `topic.bumped_at`,
+  the topic-list-level activity timestamp) — purely additive; every existing consumer (Intelligence
+  Index, Archive Navigation, Intelligence Network, Knowledge Graph) is unaffected.
+- Gated by `ddi_homepage_dashboard_enabled` (already defined in `settings.yml`, unused until now —
+  its description was corrected to describe what it actually gates) and a route guard extracted from
+  Intelligence Index's connector into a new shared `lib/ddi-route-guard.js`, so both connectors import
+  one `isExcludedRoute()` instead of each carrying their own copy.
+- **Placement caveat, stated plainly:** requested "between the Search Banner and the Topic List," but
+  this project has only two proven "renders on every route" outlets — `above-main-container` (before
+  the routed template, i.e. before the Search Banner too) and `below-main-container` (after both,
+  where Intelligence Index lives). Neither is literally "between." Used `above-main-container` — the
+  exact outlet the pre-existing design doc specifies for this feature, and already proven in this
+  codebase — rather than an unverified, more specific outlet name that could cause the feature to
+  silently not render at all. See `ARCHITECTURE.md`'s **Intelligence Dashboard** section for the full
+  reasoning and a concrete outlet candidate if literal between-placement is confirmed later.
+- Reuses `.ddi-card`/`.ddi-card-title`/`.ddi-card-body`/`.ddi-toc-item`/`.ddi-nav-section-label`
+  verbatim; four new CSS rules (`.ddi-stat-grid`, `.ddi-stat-tile`, `.ddi-stat-list`,
+  `.ddi-stat-updated-date`) for the one visual element with no prior equivalent in this theme (a
+  count breakdown / big-number tile), built entirely from existing `:root` tokens.
+- Fails gracefully by construction: `getIndex()` already resolves to `[]` on fetch failure rather than
+  rejecting, so the aggregator naturally produces an all-empty statistics object with no new
+  error-handling path; verified this explicitly, along with every real aggregation case, against
+  simulated document sets.
+- Topic page not touched, per instruction.
+
 ## 2026-07-25 — Document Navigation: reworked Archive Navigation's ordering and data source
 
 - A "Document Navigation" task was requested with a spec that substantially overlapped the existing
