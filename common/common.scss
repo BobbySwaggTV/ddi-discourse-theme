@@ -14,16 +14,34 @@
   --ddi-blue: #3c8dbc;
   --ddi-green: #55f29b;
 
+  --ddi-white: #ffffff;
+  --ddi-accent-cyan: #7dd3fc;
+
   --ddi-border: rgba(140, 150, 170, 0.18);
+  --ddi-border-soft: rgba(140, 150, 170, 0.12);
   --ddi-border-strong: rgba(195, 28, 38, 0.55);
+  --ddi-border-hairline: rgba(255, 255, 255, 0.08);
 
   --ddi-text-primary: #e5e7eb;
   --ddi-text-secondary: #8b98a8;
+  --ddi-text-muted: #94a3b8;
+  --ddi-text-dim: #cbd5e1;
+  --ddi-text-faint: #64748b;
+
+    /* Red accent at repeated opacities (hover/border/glow treatments) */
+    --ddi-red-05: rgba(195, 28, 38, 0.05);
+    --ddi-red-12: rgba(195, 28, 38, 0.12);
+    --ddi-red-18: rgba(195, 28, 38, 0.18);
+    --ddi-red-25: rgba(195, 28, 38, 0.25);
+    --ddi-red-65: rgba(195, 28, 38, 0.65);
+    --ddi-red-75: rgba(195, 28, 38, 0.75);
 
     /* Shadows */
+    --ddi-shadow-xs: 0 10px 30px rgba(0, 0, 0, 0.35);
     --ddi-shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.30);
     --ddi-shadow-md: 0 15px 40px rgba(0, 0, 0, 0.45);
     --ddi-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.45);
+    --ddi-shadow-glow: 0 0 20px var(--ddi-red-25);
 
   --ddi-font:
     "Inter",
@@ -51,7 +69,7 @@ body {
   background:
     radial-gradient(
       circle at 50% -20%,
-      rgba(195,28,38,0.18),
+      var(--ddi-red-18),
       transparent 45%
     ),
     radial-gradient(
@@ -127,7 +145,7 @@ body::before {
   1px solid var(--ddi-border);
 
   box-shadow:
-    0 20px 60px rgba(0,0,0,0.45);
+    var(--ddi-shadow-lg);
 
   backdrop-filter:
     blur(4px);
@@ -174,13 +192,13 @@ a:hover {
 
 ::-webkit-scrollbar-track {
   background:
-    #05070a;
+    var(--ddi-bg-primary);
 }
 
 
 ::-webkit-scrollbar-thumb {
   background:
-    rgba(195,28,38,.55);
+    var(--ddi-border-strong);
 
   border-radius:
     10px;
@@ -209,10 +227,10 @@ a:hover {
     1px solid rgba(140,150,170,.22);
 
   border-left:
-    3px solid rgba(195,28,38,.65);
+    3px solid var(--ddi-red-65);
 
   box-shadow:
-    0 15px 40px rgba(0,0,0,.45);
+    var(--ddi-shadow-md);
 
   transition:
     .25s ease;
@@ -224,11 +242,18 @@ a:hover {
   transform:
     translateY(-2px);
 
+  background:
+    linear-gradient(
+      90deg,
+      var(--ddi-red-12),
+      rgba(7,9,12,.96)
+    );
+
   border-left-color:
     var(--ddi-red);
 
   box-shadow:
-    0 20px 50px rgba(195,28,38,.18);
+    0 20px 50px var(--ddi-red-18);
 }
 
 /* keep Discourse's internal layout */
@@ -239,32 +264,6 @@ a:hover {
 
 .topic-list .topic-list-item .main-link {
   padding-right: 20px;
-}
-
-
-.topic-list .topic-list-item .topic-title {
-  display: block;
-
-  color:
-    var(--ddi-text-primary);
-
-  font-size:
-    17px;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    .08em;
-
-  text-transform:
-    uppercase;
-}
-
-
-.topic-list .topic-list-item .topic-excerpt {
-  color:
-    var(--ddi-text-secondary);
 }
 
 
@@ -285,29 +284,6 @@ a:hover {
     .15em;
 }
 
-
-/* status glow */
-
-.topic-list .topic-list-item:hover {
-
-  transform:
-    translateY(-2px);
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(195,28,38,.14),
-      rgba(10,14,20,.95)
-    );
-
-  border-left-color:
-    var(--ddi-red);
-
-  box-shadow:
-    0 20px 50px rgba(195,28,38,.18);
-
-}
-
 /* ============================================================
    DDI TOPIC CONTENT ALIGNMENT
    ============================================================ */
@@ -318,14 +294,15 @@ a:hover {
 }
 
 
+.topic-list .main-link a.title,
 .topic-list .main-link .topic-title {
     display: block;
 
-    color: #e5e7eb !important;
+    color: var(--ddi-text-primary) !important;
 
     font-size: 17px;
 
-    font-weight: 700;
+    font-weight: 800;
 
     letter-spacing: .08em;
 
@@ -334,96 +311,23 @@ a:hover {
 
 
 .topic-list .main-link .topic-excerpt {
-    color: #94a3b8;
-}
-
-
-/* keep stats compact */
-
-.topic-list .topic-list-data {
-    vertical-align: middle;
-}
-
-/* ============================================================
-   DDI TOPIC LIST SURFACE
-   ============================================================ */
-
-.topic-list thead {
-  background:
-    rgba(10, 12, 16, 0.8);
-
-  border-bottom:
-    1px solid rgba(140, 150, 170, 0.18);
-}
-
-
-.topic-list th {
-  color:
-    #718096;
-
-  font-size:
-    11px;
-
-  letter-spacing:
-    .25em;
-
-  text-transform:
-    uppercase;
-}
-
-.topic-list .topic-list-item:hover {
-
-  transform:
-    translateY(-2px);
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(195,28,38,.12),
-      rgba(7,9,12,.96)
-    );
-
-  border-left-color:
-    var(--ddi-red);
-
-  box-shadow:
-    0 20px 50px rgba(195,28,38,.18);
+    color: var(--ddi-text-muted);
 }
 
 /* ============================================================
    DDI TOPIC TYPOGRAPHY
    ============================================================ */
 
-.topic-list .main-link a.title,
-.topic-list .main-link .topic-title {
-
-    color: #e5e7eb !important;
-
-    font-size: 17px;
-
-    font-weight: 800;
-
-    letter-spacing: .08em;
-}
-
-
 .topic-list .main-link a.title:hover {
 
-    color: #ffffff !important;
-}
-
-
-.topic-list .topic-excerpt {
-
-    color: #94a3b8;
-
+    color: var(--ddi-white) !important;
 }
 
 
 .topic-list .category-name {
 
     color:
-      #7dd3fc;
+      var(--ddi-accent-cyan);
 
     font-size:
       11px;
@@ -437,20 +341,6 @@ a:hover {
     text-transform:
       uppercase;
 
-}
-
-
-/* stats */
-
-.topic-list .num,
-.topic-list .views,
-.topic-list .age {
-
-    color: #94a3b8;
-
-    font-size: 12px;
-
-    letter-spacing: .12em;
 }
 
 /* ============================================================
@@ -467,7 +357,7 @@ a:hover {
         1px solid rgba(140,150,170,.25);
 
     color:
-        #cbd5e1;
+        var(--ddi-text-dim);
 
     text-transform:
         uppercase;
@@ -490,7 +380,7 @@ a:hover {
         rgba(195,28,38,.8);
 
     color:
-        #ffffff;
+        var(--ddi-white);
 
 }
 
@@ -502,15 +392,15 @@ a:hover {
     background:
         linear-gradient(
             180deg,
-            #c31c26,
+            var(--ddi-red),
             #8f141b
         ) !important;
 
     border-color:
-        #c31c26 !important;
+        var(--ddi-red) !important;
 
     color:
-        #ffffff !important;
+        var(--ddi-white) !important;
 
 }
 
@@ -536,10 +426,13 @@ a:hover {
         );
 
     border-bottom:
-        1px solid rgba(195, 28, 38, .35);
+        1px solid var(--ddi-red-soft);
 
     box-shadow:
         0 8px 30px rgba(0,0,0,.45);
+
+    height: 90px;
+    min-height: 90px;
 }
 
 
@@ -548,7 +441,7 @@ a:hover {
 .d-header-icons .icon {
 
     color:
-        #94a3b8;
+        var(--ddi-text-muted);
 
 }
 
@@ -556,7 +449,7 @@ a:hover {
 .d-header-icons .icon:hover {
 
     color:
-        #ffffff;
+        var(--ddi-white);
 
 }
 
@@ -566,7 +459,7 @@ a:hover {
 .sidebar-toggle button {
 
     color:
-        #cbd5e1;
+        var(--ddi-text-dim);
 
 }
 
@@ -592,14 +485,14 @@ a:hover {
         );
 
     border-right:
-        1px solid rgba(195,28,38,.25);
+        1px solid var(--ddi-red-25);
 }
 
 
 .sidebar-section-header {
 
     color:
-        #64748b;
+        var(--ddi-text-faint);
 
     font-size:
         11px;
@@ -615,7 +508,7 @@ a:hover {
 .sidebar-row {
 
     color:
-        #cbd5e1;
+        var(--ddi-text-dim);
 
 }
 
@@ -623,10 +516,10 @@ a:hover {
 .sidebar-row:hover {
 
     background:
-        rgba(195,28,38,.12);
+        var(--ddi-red-12);
 
     color:
-        #ffffff;
+        var(--ddi-white);
 
 }
 
@@ -634,10 +527,10 @@ a:hover {
 .sidebar-row.active {
 
     background:
-        rgba(195,28,38,.18);
+        var(--ddi-red-18);
 
     border-left:
-        2px solid #c31c26;
+        2px solid var(--ddi-red);
 
 }
 
@@ -649,7 +542,6 @@ a:hover {
   background: rgba(10,12,18,0.75);
 }
 
-.navigation-container .nav-pills li a,
 .category-breadcrumb {
   background: #080b12;
   border: 1px solid rgba(255,255,255,0.12);
@@ -674,8 +566,8 @@ a:hover {
     rgba(5,7,11,.85)
   );
 
-  border: 1px solid rgba(140,150,170,.12);
-  border-top: 1px solid rgba(195,28,38,.35);
+  border: 1px solid var(--ddi-border-soft);
+  border-top: 1px solid var(--ddi-red-soft);
 
   box-shadow:
     0 25px 80px rgba(0,0,0,.55);
@@ -706,14 +598,6 @@ a:hover {
 /* =========================================
    DDI Command Header
    ========================================= */
-
-.welcome-banner__title {
-  text-transform: uppercase;
-  letter-spacing: 4px;
-  font-size: 32px;
-  font-weight: 700;
-  color: #e6e9ef;
-}
 
 .welcome-banner__title::after {
 
@@ -748,6 +632,23 @@ a:hover {
   max-width: 1100px;
   margin: 35px auto 15px;
   text-align: center;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10,14,22,.85),
+      rgba(5,7,11,.95)
+    );
+
+  border:
+    1px solid var(--ddi-border);
+
+  box-shadow:
+    inset 0 0 50px var(--ddi-red-05),
+    var(--ddi-shadow-lg);
+
+  padding:
+    30px 20px;
 }
 
 .welcome-banner__title {
@@ -758,37 +659,12 @@ a:hover {
   color: #e6e9ef;
   margin-bottom: 25px;
   text-shadow:
-  0 0 20px rgba(195,28,38,.25);
+  var(--ddi-shadow-glow);
 }
 
 .welcome-banner__search-menu {
   max-width: 650px;
   margin: 0 auto;
-}
-
-/* =========================================
-   DDI Command Header Panel
-   ========================================= */
-
-.welcome-banner__wrap {
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(10,14,22,.85),
-      rgba(5,7,11,.95)
-    );
-
-  border:
-    1px solid rgba(140,150,170,.18);
-
-  box-shadow:
-    inset 0 0 50px rgba(195,28,38,.05),
-    0 20px 60px rgba(0,0,0,.45);
-
-  padding:
-    30px 20px;
-
 }
 
 /* =========================================
@@ -800,6 +676,12 @@ a:hover {
   margin: 40px auto 30px;
   padding: 35px 45px;
 
+  min-height: 210px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
   background:
     linear-gradient(
       135deg,
@@ -808,27 +690,13 @@ a:hover {
     );
 
   border:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
   box-shadow:
-    0 20px 60px rgba(0,0,0,.45),
-    inset 0 0 60px rgba(195,28,38,.05);
+    var(--ddi-shadow-lg),
+    inset 0 0 60px var(--ddi-red-05);
 
   position: relative;
-}
-
-/* =========================================
-   DDI Command Header Refinement
-   ========================================= */
-
-.custom-search-banner-wrap {
-
-  min-height: 210px;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
 }
 
 /* =========================================
@@ -847,7 +715,7 @@ a:hover {
     rgba(5, 8, 14, 0.85);
 
   border:
-    1px solid rgba(255,255,255,.08);
+    1px solid var(--ddi-border-hairline);
 
   box-shadow:
     0 0 35px rgba(0,0,0,.55),
@@ -855,8 +723,7 @@ a:hover {
 
 }
 
-.navigation-container,
-.list-controls {
+.navigation-container {
 
   background:
     rgba(5,8,14,.85);
@@ -872,6 +739,8 @@ a:hover {
 
 .list-controls {
 
+  position: relative;
+
   background:
     rgba(5,8,14,.85);
 
@@ -879,10 +748,13 @@ a:hover {
     1px solid rgba(140,150,170,.15);
 
   border-bottom:
-    1px solid rgba(195,28,38,.35);
+    1px solid var(--ddi-red-soft);
 
   padding:
     10px;
+
+  padding-top:
+    24px;
 
 }
 
@@ -906,10 +778,10 @@ a:hover {
     rgba(10,14,22,.9);
 
   border:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
   color:
-    #94a3b8;
+    var(--ddi-text-muted);
 
   text-transform:
     uppercase;
@@ -934,13 +806,13 @@ a:hover {
 .navigation-container .nav-pills li a.active {
 
   background:
-    rgba(195,28,38,.18);
+    var(--ddi-red-18);
 
   border-color:
-    rgba(195,28,38,.75);
+    var(--ddi-red-75);
 
   color:
-    #ffffff;
+    var(--ddi-white);
 
 }
 
@@ -950,10 +822,10 @@ a:hover {
 .navigation-container .nav-pills li a:hover {
 
   background:
-    rgba(195,28,38,.12);
+    var(--ddi-red-12);
 
   color:
-    #ffffff;
+    var(--ddi-white);
 
 }
 
@@ -975,18 +847,13 @@ a:hover {
     .12em;
 
   box-shadow:
-    0 0 20px rgba(195,28,38,.25);
+    var(--ddi-shadow-glow);
 
 }
 
 /* ============================================================
    DDI Navigation Terminal Accent
    ============================================================ */
-
-.list-controls {
-  position: relative;
-  padding-top: 24px;
-}
 
 .list-controls::before {
 
@@ -1058,13 +925,13 @@ a:hover {
   .select-kit-header:hover {
 
     border-color:
-      rgba(195,28,38,.75);
+      var(--ddi-red-75);
 
     color:
-      #ffffff;
+      var(--ddi-white);
 
     background:
-      rgba(195,28,38,.12);
+      var(--ddi-red-12);
 
   }
 
@@ -1079,7 +946,7 @@ a:hover {
     var(--ddi-red);
 
   box-shadow:
-    0 0 20px rgba(195,28,38,.25);
+    var(--ddi-shadow-glow);
 
 }
 
@@ -1103,10 +970,10 @@ a:hover {
     rgba(5,8,14,.95);
 
   border-top:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
   border-bottom:
-    1px solid rgba(195,28,38,.35);
+    1px solid var(--ddi-red-soft);
 
 }
 
@@ -1114,7 +981,7 @@ a:hover {
 .topic-list thead th {
 
   color:
-    #94a3b8;
+    var(--ddi-text-muted);
 
   font-size:
     11px;
@@ -1139,7 +1006,7 @@ a:hover {
 .topic-list thead th:first-child {
 
   color:
-    #ffffff;
+    var(--ddi-white);
 
 }
 
@@ -1149,7 +1016,7 @@ a:hover {
 .topic-list thead th:not(:first-child) {
 
   color:
-    #64748b;
+    var(--ddi-text-faint);
 
 }
 
@@ -1161,32 +1028,7 @@ a:hover {
 .topic-list .topic-list-data {
 
   color:
-    #94a3b8;
-
-}
-
-/* ============================================================
-   DDI TOPIC STATISTICS
-   ============================================================ */
-
-.topic-list .posts,
-.topic-list .views,
-.topic-list .age {
-
-  color:
-    #64748b;
-
-  font-size:
-    11px;
-
-  font-weight:
-    700;
-
-  letter-spacing:
-    .18em;
-
-  text-transform:
-    uppercase;
+    var(--ddi-text-muted);
 
 }
 
@@ -1219,13 +1061,8 @@ a:hover {
 }
 
 /* =========================================
-   DDI Header Logo Scaling
+   DDI HEADER LOGO
    ========================================= */
-
-.d-header .home-logo img {
-  max-height: 60px;
-  width: auto;
-}
 
 .d-header .home-logo {
   height: 70px;
@@ -1233,18 +1070,15 @@ a:hover {
   align-items: center;
 }
 
-/* =========================================
-   DDI Header Logo Override
-   ========================================= */
+.d-header .home-logo img {
+  max-height: 60px;
+  width: auto;
+}
 
 .d-header img.logo-big {
   height: 60px;
   width: auto;
   max-height: 60px;
-}
-
-.d-header {
-  min-height: 70px;
 }
 
 .d-header .contents {
@@ -1253,41 +1087,25 @@ a:hover {
   align-items: center;
 }
 
-/* =========================================
-   DDI Command Header Logo
-   ========================================= */
-
-#site-logo.logo-big {
-  width: 75px !important;
-  height: 75px !important;
-  max-width: 75px !important;
-  max-height: 75px !important;
-  object-fit: contain;
-}
-
 .d-header .title {
   height: 70px;
   display: flex;
   align-items: center;
 }
 
-/* =========================================
-   DDI Expanded Header Logo
-   ========================================= */
-
-.d-header {
-  height: 90px;
-  min-height: 90px;
-}
-
 .d-header .wrap {
   height: 90px;
 }
 
+/* Final #site-logo sizing below wins over `.d-header img.logo-big` and
+   `.d-header .home-logo img` above (ID beats class+type) if they target
+   the same <img> — kept only because that DOM assumption isn't verified. */
 #site-logo.logo-big {
   width: 85px !important;
   height: 85px !important;
+  max-width: 75px !important;
   max-height: 85px !important;
+  object-fit: contain;
 }
 
 /* =========================================
@@ -1313,7 +1131,7 @@ a:hover {
 .topic-list .badge-category__name {
 
   color:
-    #7dd3fc !important;
+    var(--ddi-accent-cyan) !important;
 
   font-size:
     11px;
@@ -1333,28 +1151,8 @@ a:hover {
    DDI Topic Title
    ============================================================ */
 
-.fancy-title {
-  display: inline-block;
-
-  color: #f8fafc !important;
-
-  font-size: 34px;
-
-  font-weight: 800;
-
-  text-transform: uppercase;
-
-  letter-spacing: .08em;
-
-  line-height: 1.2;
-
-  text-decoration: none !important;
-
-  margin-bottom: 8px;
-}
-
 .fancy-title:hover {
-  color: #ffffff !important;
+  color: var(--ddi-white) !important;
 }
 
 .fancy-title .edit-topic__wrapper {
@@ -1429,7 +1227,7 @@ a:hover {
     0 0 14px;
 
   border-bottom:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
 }
 
@@ -1471,7 +1269,7 @@ a:hover {
 .topic-meta-data .post-date {
 
   color:
-    #94a3b8 !important;
+    var(--ddi-text-muted) !important;
 
   font-size:
     11px;
@@ -1506,16 +1304,16 @@ a:hover {
     );
 
   border:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
   border-left:
-    3px solid rgba(195,28,38,.75);
+    3px solid var(--ddi-red-75);
 
   border-radius:
     4px;
 
   box-shadow:
-    0 20px 60px rgba(0,0,0,.45);
+    var(--ddi-shadow-lg);
 
   padding:
     0;
@@ -1550,7 +1348,7 @@ a:hover {
 .topic-post .cooked h3 {
 
   color:
-    #ffffff;
+    var(--ddi-white);
 
   letter-spacing:
     .08em;
@@ -1571,7 +1369,7 @@ a:hover {
   padding-top: 18px;
 
   border-top:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
 }
 
@@ -1593,7 +1391,7 @@ a:hover {
     rgba(8,11,16,.85) !important;
 
   border:
-    1px solid rgba(140,150,170,.18) !important;
+    1px solid var(--ddi-border) !important;
 
   color:
     #aab7c7 !important;
@@ -1610,13 +1408,13 @@ a:hover {
 .post-controls button:hover {
 
   background:
-    rgba(195,28,38,.18) !important;
+    var(--ddi-red-18) !important;
 
   border-color:
-    rgba(195,28,38,.65) !important;
+    var(--ddi-red-65) !important;
 
   color:
-    #ffffff !important;
+    var(--ddi-white) !important;
 
   transform:
     translateY(-1px);
@@ -1627,13 +1425,13 @@ a:hover {
 .post-controls .reply {
 
   background:
-    rgba(195,28,38,.18) !important;
+    var(--ddi-red-18) !important;
 
   border:
-    1px solid rgba(195,28,38,.65) !important;
+    1px solid var(--ddi-red-65) !important;
 
   color:
-    #ffffff !important;
+    var(--ddi-white) !important;
 
   font-weight:
     700;
@@ -1680,7 +1478,7 @@ a:hover {
     rgba(8,11,16,.92);
 
   border:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
   border-radius:
     4px;
@@ -1689,7 +1487,7 @@ a:hover {
     12px 0;
 
   box-shadow:
-    0 10px 30px rgba(0,0,0,.35);
+    var(--ddi-shadow-xs);
 
 }
 
@@ -1705,14 +1503,14 @@ a:hover {
   padding: 10px 0;
 
   border-bottom:
-    1px solid rgba(140,150,170,.12);
+    1px solid var(--ddi-border-soft);
 
 }
 
 .timeline-footer-controls {
 
   border-top:
-    1px solid rgba(140,150,170,.12);
+    1px solid var(--ddi-border-soft);
 
   border-bottom: none;
 
@@ -1722,14 +1520,14 @@ a:hover {
 
   margin: 12px 0;
 
-  border-left: 1px solid rgba(140,150,170,.18);
+  border-left: 1px solid var(--ddi-border);
 
 }
 
 .timeline-scroller {
 
   background:
-    rgba(195,28,38,.18);
+    var(--ddi-red-18);
 
   border:
     1px solid rgba(195,28,38,.45);
@@ -1744,7 +1542,7 @@ a:hover {
   background:
     linear-gradient(
       180deg,
-      #c31c26,
+      var(--ddi-red),
       #8d1017
     );
 
@@ -1753,7 +1551,7 @@ a:hover {
 .timeline-replies {
 
   color:
-    #ffffff;
+    var(--ddi-white);
 
   font-weight:
     700;
@@ -1767,7 +1565,7 @@ a:hover {
 .timeline-date-wrapper {
 
   color:
-    #94a3b8;
+    var(--ddi-text-muted);
 
   font-size:
     11px;
@@ -1796,11 +1594,11 @@ a:hover {
     rgba(5, 7, 11, .98)
   );
 
-  border: 1px solid rgba(140,150,170,.18);
+  border: 1px solid var(--ddi-border);
   border-left: 4px solid var(--ddi-red);
 
   box-shadow:
-    inset 0 0 40px rgba(195,28,38,.05),
+    inset 0 0 40px var(--ddi-red-05),
     0 15px 40px rgba(0,0,0,.35);
 }
 
@@ -1817,7 +1615,7 @@ a:hover {
 
   margin-bottom: 18px;
 
-  border-bottom: 1px solid rgba(195,28,38,.25);
+  border-bottom: 1px solid var(--ddi-red-25);
 
   padding-bottom: 12px;
 }
@@ -1863,10 +1661,10 @@ a:hover {
     12px;
 
   border-top:
-    1px solid rgba(140,150,170,.18);
+    1px solid var(--ddi-border);
 
   color:
-  #94a3b8;
+  var(--ddi-text-muted);
 
   font-size:
     11px;
@@ -1894,7 +1692,7 @@ a:hover {
 
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.02),
-    0 10px 30px rgba(0,0,0,.35);
+    var(--ddi-shadow-xs);
 }
 
 .ddi-card-title {
@@ -2049,15 +1847,20 @@ a:hover {
 ========================================== */
 
 .fancy-title {
+  display: inline-block;
+
+  color: #f8fafc !important;
 
   font-size: 2.35rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 
-  margin-bottom: .5rem;
+  line-height: 1.2;
 
-  color: #ffffff;
+  text-decoration: none !important;
+
+  margin-bottom: .5rem;
 }
 
 .fancy-title::after {
@@ -2072,7 +1875,7 @@ a:hover {
 
   height: 1px;
 
-  background: rgba(255,255,255,.08);
+  background: var(--ddi-border-hairline);
 
 }
 
@@ -2160,16 +1963,10 @@ a:hover {
 .topic-post:first-child .cooked h3 {
   margin-top: 2.5rem;
   margin-bottom: 1rem;
-
-  color: #ffffff;
-
-  text-transform: uppercase;
-
-  letter-spacing: .08em;
 }
 
 .topic-post:first-child .cooked h2 {
-  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid var(--ddi-border-hairline);
   padding-bottom: .5rem;
 }
 
