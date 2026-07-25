@@ -1,0 +1,43 @@
+{{#if this.isVisible}}
+  <div class="ddi-card">
+
+    <div class="ddi-card-title">
+      {{this.divisionName}}
+    </div>
+
+    {{#if this.divisionDescription}}
+      <div class="ddi-card-body">
+        {{this.divisionDescription}}
+      </div>
+    {{/if}}
+
+    <div class="ddi-nav-section-label">
+      Mission Statement
+    </div>
+
+    <div class="ddi-card-body">
+      {{this.missionStatement}}
+    </div>
+
+    {{#if this.isLoading}}
+      <div class="ddi-card-body">
+        LOADING DIVISION STATISTICS…
+      </div>
+    {{else}}
+      <div class="ddi-stat-grid">
+
+        <div class="ddi-stat-tile ddi-stat-tile-total">
+          <span>Total Documents</span>
+          <strong>{{this.statistics.totalDocuments}}</strong>
+        </div>
+
+        <div class="ddi-stat-tile">
+          <span>Last Updated</span>
+          <strong>{{this.lastUpdated}}</strong>
+        </div>
+
+      </div>
+    {{/if}}
+
+  </div>
+{{/if}}

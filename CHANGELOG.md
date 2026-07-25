@@ -8,6 +8,39 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Division Command Center, Phase 3: Division Header
+
+- Added a new card at the top of every individual category page —
+  `connectors/discovery-list-container-top/ddi-division-header.*` — showing Division Name, Division
+  Description, Mission Statement, Total Documents, and Last Updated, all scoped to that division.
+- `services/ddi-category-context.js`'s private `_getCurrentCategory()` (Phase 1) made public as
+  `getCurrentCategory()` instead of duplicating the lookup a second time — `getCurrentDepartment()`
+  now calls it. Pure, backward-compatible rename; verified by grep that nothing external referenced
+  the private name.
+- Mission Statement and Division Description both derive from `category.description` via
+  `lib/ddi-cooked-parser.js`'s existing `parseCookedHtml()` — the same HTML-to-text mechanism
+  Executive Summary already uses for post content — rather than guessing at unconfirmed Discourse
+  plain-text category field names. Division Description is the first paragraph's text; Mission
+  Statement is the full parsed body's text. Falls back to `"No mission statement available."`
+  (matching Executive Summary's own `"No summary available."` convention) when there's no text.
+- Total Documents and Last Updated reuse `buildArchiveStatistics()` completely — same `getIndex({
+  department })` call Phase 1 already made, `recentLimit: 1` since only the single most recent
+  document is needed. Falls back to `"—"` for a division with no documents; fails gracefully by the
+  same construction as Dashboard (`getIndex()` never rejects), no new error handling added.
+- **Total Documents now appears twice on a category page** (Dashboard's tile, this card's tile) —
+  by the letter of the request, which explicitly asked for it here while explicitly saying to
+  preserve Dashboard unchanged. The *computation* isn't duplicated (both call the same
+  `buildArchiveStatistics()`), only the display of one number is. Flagged, not silently resolved.
+- Zero new CSS — reuses `.ddi-card`/`.ddi-card-title`/`.ddi-card-body`/`.ddi-nav-section-label`/
+  `.ddi-stat-grid`/`.ddi-stat-tile`/`.ddi-stat-tile-total` verbatim.
+- No dedicated enable/disable setting, matching Archive Navigation's precedent (no per-component
+  toggle for topic-page components that weren't explicitly asked to have one).
+- `ddi-intelligence-dashboard.js`/`.hbs` confirmed untouched (`git diff` shows zero delta on both).
+- Connector named `ddi-division-header` specifically to sort alphabetically before
+  `ddi-intelligence-dashboard` within their shared outlet, in case intra-outlet ordering there turns
+  out to be filename-based — unconfirmed for this specific outlet (see `ARCHITECTURE.md`'s
+  **Division Header** section for the full caveat).
+
 ## 2026-07-25 — Division Command Center, Phase 2: Categories page layout
 
 - Restyled the stock `/categories` page (previously: Category list left, Latest topics right,

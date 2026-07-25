@@ -869,6 +869,74 @@ latest rows are untouched. "Preserve responsive behavior" here means those conti
 unmodified — not that the categories/latest split itself remains conditionally side-by-side, since
 replacing that split everywhere is the actual point of this phase.
 
+## Division Header (Division Command Center, Phase 3)
+
+A new card at the top of every individual category page — `connectors/discovery-list-container-top/
+ddi-division-header.*` — showing Division Name, a short Division Description, a fuller Mission
+Statement, Total Documents, and Last Updated, all scoped to that one division. Renders alongside
+Intelligence Dashboard on the same outlet, discussed below; `ddi-intelligence-dashboard.js`/`.hbs`
+were not touched by this change at all (confirmed via `git diff` showing zero delta on either file).
+
+**`ddi-category-context.js`'s private category lookup made public, not duplicated a second time.**
+Phase 1 added this service with one method, `getCurrentDepartment()`, backed by a private
+`_getCurrentCategory()`. Division Header needs the full category object — name, description — not
+just its derived department-name string, so the private method was renamed to a public
+`getCurrentCategory()` (a pure rename; `getCurrentDepartment()` now calls it instead of duplicating
+the same `controller:discovery/category` lookup). Nothing external ever referenced the private name
+(verified by grep before renaming), so this is a safe, backward-compatible refactor.
+
+**Mission Statement and Division Description both derive from `category.description` through the
+same HTML-to-text mechanism Executive Summary already established** — `lib/ddi-cooked-parser.js`'s
+`parseCookedHtml()`, generic enough to parse any HTML string, not just cooked post content. This was
+chosen over guessing at Discourse's plain-text category fields (`description_excerpt`/
+`description_text` — real in some Discourse versions, not confirmed against this instance) because
+it reuses an already-proven, already-in-this-codebase technique instead of a new unverified field
+name. Division Description is the first `<p>`'s text (Executive Summary's own extraction pattern,
+reused identically); Mission Statement is the full parsed body's text — genuinely two different views
+of the one field, not two different fields, and not a duplicate-content bug. Falls back to
+`"No mission statement available."` when the parsed body has no text (matching Executive Summary's
+own `"No summary available."` fallback convention); Division Description simply doesn't render
+(`{{#if this.divisionDescription}}`) rather than showing a second, redundant fallback message.
+
+**Total Documents and Last Updated reuse `buildArchiveStatistics()` completely — no new statistics
+logic.** `getIndex({ department: category.name })` (the same call Phase 1's Dashboard/Index make)
+feeds the same aggregator Dashboard already uses; Last Updated is simply
+`statistics.recentlyUpdated[0]?.updatedDate`, since that array is already sorted newest-first.
+`recentLimit` is passed as `1` — Division Header only needs the single most recent document, unlike
+Dashboard's 5. Falls back to `"—"` when a division has no documents (the same "no value" convention
+`ddi-citation-preview.js`'s revision fallback already established), which happens automatically
+because `getIndex()` never rejects — it resolves to `[]` on fetch failure — so this fails gracefully
+by the same construction as Dashboard, with no new error-handling path.
+
+**Total Documents appears twice on a category page — Dashboard's tile and this card's tile — by the
+letter of the request, not a mistake.** Phase 1 already made Dashboard show department-scoped Total
+Documents on category pages, and this task explicitly listed Total Documents for Division Header too
+while explicitly saying to preserve Dashboard unchanged. Both compute the number through the same
+`buildArchiveStatistics()` call — the *logic* isn't duplicated, only the on-page display of one
+number is, and that's what was asked for. Flagging it rather than unilaterally omitting it from one
+card to "fix" a redundancy that wasn't identified as a problem.
+
+**Zero new CSS.** The template uses only classes that already existed before this phase — `.ddi-card`
+/ `.ddi-card-title` / `.ddi-card-body` (the shell and both text blocks), `.ddi-nav-section-label`
+(the "Mission Statement" heading), and `.ddi-stat-grid` / `.ddi-stat-tile` /
+`.ddi-stat-tile-total` (Total Documents / Last Updated, styled identically to Dashboard's own tiles).
+
+**No dedicated enable/disable setting**, unlike Intelligence Index and Dashboard. Nothing in
+`settings.yml` fits this specifically, and none was requested; Archive Navigation has no toggle of
+its own either, and this follows that same precedent rather than inventing a new setting for
+something not asked for. Gated only by `isExcludedRoute()` (hides on `topic.*`/`admin`, same as
+every other component on this outlet) and by whether a category is actually detected — no category,
+no header, the same fallback shape Dashboard/Index already use.
+
+**Ordering relative to Intelligence Dashboard is a naming hedge, not a confirmed guarantee.** Both
+connectors share the `discovery-list-container-top` outlet. `ddi-division-header` was named
+specifically to sort alphabetically before `ddi-intelligence-dashboard` (`d` < `i`), in case this
+outlet's connector ordering turns out to be filename-based the way `topic-below-post-stream`'s is
+confirmed to be (see **Archive Navigation** above) — but that's confirmed for a different outlet,
+not this one. If live testing shows Dashboard rendering above the Division Header instead of below
+it, this is the one thing in this phase that would need adjusting, and it's a naming/outlet concern
+only — no data or logic would need to change.
+
 ## Document Integrity Verification
 
 Five PASS/WARN checks — Classification, Department, Document Type, Lifecycle, Metadata — against
