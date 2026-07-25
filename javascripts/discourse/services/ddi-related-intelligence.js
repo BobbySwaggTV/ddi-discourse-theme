@@ -1,7 +1,8 @@
-import Service from "@ember/service";
+import Service, { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { getClassification } from "../lib/ddi-classification";
 import { formatDocumentId } from "../lib/ddi-document-id";
+import { formatRevision } from "../lib/ddi-revision";
 
 const CATEGORY_MATCH_SCORE = 100;
 const CLASSIFICATION_MATCH_SCORE = 50;
@@ -9,6 +10,8 @@ const SHARED_TAG_SCORE = 25;
 const MAX_RESULTS = 5;
 
 export default class DdiRelatedIntelligenceService extends Service {
+  @service site;
+
   async findRelated(topic) {
     if (!topic) {
       return [];
@@ -16,9 +19,9 @@ export default class DdiRelatedIntelligenceService extends Service {
 
     const candidates = await this._fetchCandidates(topic);
 
-    return this._rank(topic, candidates)
-      .slice(0, MAX_RESULTS)
-      .map((candidate) => this._present(candidate));
+    const topResults = this._rank(topic, candidates).slice(0, MAX_RESULTS);
+
+    return Promise.all(topResults.map((candidate) => this._present(candidate)));
   }
 
   async _fetchCandidates(topic) {
@@ -101,9 +104,15 @@ export default class DdiRelatedIntelligenceService extends Service {
     return score;
   }
 
-  _present(candidate) {
+  async _present(candidate) {
     const { classification, className: classificationClass } =
       getClassification(candidate);
+
+    const department =
+      this.site.categories?.findBy("id", candidate.category_id)?.name ||
+      "Uncategorized";
+
+    const revision = await this._fetchRevisionNumber(candidate);
 
     return {
       id: candidate.id,
@@ -112,6 +121,18 @@ export default class DdiRelatedIntelligenceService extends Service {
       documentId: formatDocumentId(candidate.id),
       classification,
       classificationClass,
+      department,
+      revision,
     };
+  }
+
+  async _fetchRevisionNumber(candidate) {
+    const response = await ajax(
+      `/t/${candidate.slug}/${candidate.id}.json`
+    ).catch(() => null);
+
+    const version = response?.post_stream?.posts?.[0]?.version;
+
+    return version ? formatRevision(version) : "—";
   }
 }

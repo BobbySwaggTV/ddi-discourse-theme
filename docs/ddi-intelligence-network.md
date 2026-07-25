@@ -78,26 +78,34 @@ Follows the exact same shape as every other DDI connector in the codebase: a pla
 Reuses existing, already-styled classes rather than introducing new CSS, so `common.scss` did not need to change:
 
 - `.ddi-card` / `.ddi-card-title` / `.ddi-card-body` — same card shell as every other dossier component.
-- `.ddi-toc-item` / `.ddi-toc-item-number` — the same clickable-row treatment already used by Table of Contents, repurposed here as one row per related document (document id in the "number" slot, title as the label).
+- `.ddi-toc-item` — the same clickable-row treatment already used by Table of Contents, one row per related document.
+- `.ddi-toc-title` — the row's title heading.
+- `.ddi-dossier-grid` — reused from the Dossier Header for the 4-field metadata strip (Document Number, Classification, Department, Revision) beneath each row's title. A plain, unstyled `<div>` wraps the title and grid together so they stack vertically inside `.ddi-toc-item`'s flex row, without adding any new CSS.
 - The candidate's `classificationClass` (`ddi-public` / `ddi-internal` / `ddi-confidential` / `ddi-restricted` / `ddi-top-secret`) is applied to each row, so each related document's accent color reflects its classification for free via the existing `--ddi-accent` variable system.
 
 Three states are handled: loading, populated (up to 5 rows), and empty (no related documents found).
 
-### Proposed Row Enrichment (not implemented)
+### Row Enrichment (implemented)
 
-A later requirement asked each row to display 5 fields instead of the current 2: Document Number,
-Title, Classification, Department, Revision. Document Number/Title/Classification are already in
-`_present()`'s output. Department and Revision are not, and have different costs:
+Each row now displays 5 fields — Document Number, Title, Classification, Department, Revision —
+sourced from `_present()`, which is now `async`:
 
-- **Department** needs `candidate.category_id` resolved to a division name via Discourse's already-
-  loaded site categories — a small addition to `_present()`.
-- **Revision** needs each candidate's first-post `version`, which isn't in the topic-list JSON the
-  service already fetches for scoring — it requires an additional per-topic detail fetch. Doing this
-  for every candidate before ranking would be wasteful (most candidates are discarded); doing it only
-  for the final top 5 after ranking is bounded but still adds up to 5 more concurrent requests to a
-  service that already has an unresolved N+1 fetch pattern and no per-fetch error handling (see
-  `docs/ddi-document-metadata-standard.md` §4.6 for the Revision field's format). This should be a
-  deliberate decision, not something bundled silently into a template change.
+- **Department** resolves `candidate.category_id` against the injected `site` service's already-
+  loaded `categories` (`@service site`, `this.site.categories.findBy("id", ...)`) — no network
+  request, reusing data Discourse already loads app-wide.
+- **Revision** requires an additional per-candidate fetch (`_fetchRevisionNumber`), since a
+  candidate's first-post `version` isn't in the topic-list JSON already fetched for scoring. This
+  fetch only runs for the final top 5 results, after ranking — never for the full candidate pool —
+  and is wrapped in `.catch(() => null)` so a failed fetch degrades to a `"—"` placeholder for that
+  one field instead of rejecting the whole result. `findRelated`'s `.map` was changed to
+  `Promise.all(...)` to accommodate `_present` becoming async; the connector's `.js` file needed no
+  changes, since `findRelated`'s public contract (resolves to an array of display-ready objects) is
+  unchanged — only the shape of each object grew.
+
+**Visual note carried over from the design pass:** `.ddi-dossier-grid` was built for the Dossier
+Header's single, spacious instance. Reused verbatim here across up to 5 repeated rows, it may read
+as visually heavy — worth a look once this renders in a real instance. Not addressed now since it
+would mean adding new CSS, which wasn't necessary to satisfy the stated requirements.
 
 ## Future Extensibility
 
