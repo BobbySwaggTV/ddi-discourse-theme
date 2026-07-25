@@ -1282,6 +1282,94 @@ safe: `querySelector`/`querySelectorAll` simply return nothing, the correspondin
 and native search behavior is completely unaffected either way — decoration is purely additive, so a
 wrong selector produces a plainer result row, never a broken one.
 
+## Document Quick Preview
+
+A floating hover card — `api-initializers/ddi-document-preview.js` — showing Document Number, Title,
+Classification, Department, Document Type, Revision, and Executive Summary (first paragraph) for any
+document link on the page, after a short hover delay. Global by design: rather than instrument each
+of the six surfaces named for this feature individually (Intelligence Index, Search Results, Related
+Documents, Archive Navigation, Homepage Dashboard, Division Cards), it listens for `mouseover`/
+`mouseout` on `document` and matches any `a[href*='/t/']` — since every one of those surfaces already
+builds its document links through `ddi-citation-preview.js`'s own `/t/{slug}/{id}` convention, one
+generic listener covers all of them with zero changes to any of the six connectors.
+
+**Verified against each named surface, not assumed — and one genuine gap found.** Grepped every
+listed connector's template for `href`: Intelligence Index, Related Documents, Archive Navigation's
+Previous/Next/Recent rows, and Homepage Dashboard's Recently Updated all link through `doc.url`/
+`this.previous.url`/etc., all Citation-Preview-shaped `/t/...` links — the hover card works on all of
+them with no code changes there. **Division Cards does not have a document link at all** — its only
+link (`card.url`) is `/c/{slug}/{id}`, the division/category page, not a document. There is nothing
+for this feature to attach to on Division Cards, because Division Cards was never a list of document
+links to begin with (see **Division Cards** above — it links to divisions, not individual documents).
+Flagging this rather than inventing a document link there that wasn't asked for elsewhere, or
+silently claiming coverage that doesn't exist. Archive Navigation's Department Home link
+(`/c/...`) is correctly excluded for the same reason — a division link, not a document link.
+
+**Reuses Citation Preview entirely for data — the actual "no new fetch, cache after first load"
+mechanism.** The card calls `ddi-citation-preview.js`'s existing `getCitationById(topicId)` unchanged
+— the same already-cached-by-document-id method every other document-linking feature in this theme
+already uses. No new service, no new fetch path: Citation Preview's own `_cache` Map is what
+satisfies "cache preview data after first load," not anything new written for this feature. Because
+`getCitationById()` always does the full `/t/{id}.json` fetch (unlike `getCitation(topic)` called
+directly on a list-derived topic, which usually lacks post content), the response reliably includes
+`post_stream.posts[0].cooked` regardless of which of the six surfaces the hovered link came from —
+the preview's Executive Summary doesn't depend on what data the *originating* list happened to have.
+
+**Citation Preview gained one new field, `executiveSummary`, reusing an existing extraction
+function under a name that doesn't quite fit — flagged, not silently left as a small
+inconsistency.** `getShortDescription()` (`lib/ddi-division-summary.js`, first added for Division
+Header's category-description parsing) is reused as-is to pull the first paragraph out of
+`topic.post_stream?.posts?.[0]?.cooked` — the exact same "parse HTML, take the first `<p>`'s text"
+operation Executive Summary's own connector performs inline for the *current* topic page. Reusing it
+here (rather than a third copy of that logic) was straightforward; the function's name — written for
+category descriptions — is a slightly awkward fit for "first paragraph of a post," but renaming it or
+touching Executive Summary's own separate inline implementation to match was judged out of scope
+("do not redesign existing components") for what this task actually asked for. Purely additive to
+Citation Preview's output shape — every existing consumer (Intelligence Index, Archive Navigation,
+Intelligence Network, Knowledge Graph, Search Results) is unaffected, the same reasoning already
+applied when `documentType`/`updatedAt` were added.
+
+**Metadata Engine reuse, and why it doesn't apply directly here — same finding as Division
+Header's.** `ddi-document-metadata.js` resolves the *current* topic page's already-loaded model; a
+hover preview is, by definition, always about some *other* topic that may never have been loaded.
+Citation Preview is the parallel mechanism this codebase already built for exactly that case (see
+**The lib / service / connector pattern**), and it shares the Metadata Engine's same underlying
+`lib/` helpers (`formatDocumentId`, `formatDocumentDate`, `getClassification`,
+`getDocumentTypeLabel`) — reusing that shared foundation is what "reuse the Metadata Engine where
+possible" means in a context where the Metadata Engine's own service class structurally cannot apply.
+
+**`lib/ddi-document-id.js` gained `parseTopicIdFromUrl()` — extracted once, used twice, not
+duplicated a third time.** Both this feature and Search Results (Phase 1) need to recover a topic ID
+from a rendered `href`. The regex was written carefully to handle `/t/{id}/{post_number}` (no slug)
+correctly — an initial version mis-parsed that shape by treating the numeric id itself as a "slug"
+segment, which would have silently mis-attributed hover previews (and Search Results badges) on any
+link to a specific post rather than a topic's first post. Fixed before either consumer shipped it;
+`ddi-search-results.js` was refactored to call the shared function instead of keeping its own
+slightly-buggy inline copy, closing that bug there too as a side effect, not a separate fix.
+
+**Fails gracefully at every stage, not via a single top-level catch.** No topic ID parsed from the
+hovered link → nothing scheduled. `getCitationById()` resolves to `null` (deleted topic, fetch
+failure — it already never rejects) → nothing rendered. The user moves to a different link, or away
+entirely, before the delay elapses or the fetch resolves → a request-token plus a "still hovering the
+same link" check discards the stale response. Missing Executive Summary specifically falls back to
+`"No summary available."`, the same fallback text Executive Summary's own connector already
+established. In every case, the failure is silence — no error state, no broken layout, matching "fail
+gracefully" literally.
+
+**A UX simplification, stated rather than left implicit.** The card hides immediately when the mouse
+leaves the *link* — it does not stay open if the mouse moves onto the card itself (e.g., to read a
+longer summary or click through). Keeping the card open under the cursor would need additional
+mouse-tracking between the link and the card; deliberately left out to keep this "lightweight," per
+the explicit requirement, rather than building a more elaborate hover-intent state machine.
+
+**New CSS is one small addition, not a new component vocabulary.** `.ddi-document-preview` only adds
+fixed positioning and an opacity/visibility toggle; the card's background, border, and shadow come
+from `.ddi-card` (reused verbatim), and its metadata row reuses `.ddi-search-badge` (Search Results,
+Phase 1) exactly, including the same `--ddi-accent`-based classification coloring — the classification
+badge is the only one of the five with a `classificationClass`, so it's the only one that picks up a
+non-neutral color, consistent with how classification color-coding works everywhere else in this
+theme.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`

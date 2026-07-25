@@ -8,6 +8,40 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Document Quick Preview: global hover card
+
+- Added `api-initializers/ddi-document-preview.js` — a floating hover card (Document Number, Title,
+  Classification, Department, Document Type, Revision, Executive Summary) shown after a short delay
+  when hovering any `a[href*='/t/']` anywhere on the page. One generic listener, not six
+  per-connector integrations: every named surface (Intelligence Index, Search Results, Related
+  Documents, Archive Navigation, Homepage Dashboard) already builds its document links through
+  `ddi-citation-preview.js`'s `/t/{slug}/{id}` convention, so nothing in any of those connectors
+  needed to change.
+- **Verified against each surface, not assumed:** grepped every named connector's template. Found a
+  genuine gap — **Division Cards has no document link at all**, only a link to its division/category
+  page (`/c/{slug}/{id}`). Flagged rather than silently claimed as covered or worked around with an
+  invented document link.
+- No new fetch, no new service: reuses `ddi-citation-preview.js`'s existing `getCitationById()`
+  (already caches by document ID) unchanged. Citation Preview gained one new field,
+  `executiveSummary`, reusing the existing `getShortDescription()` (first added for Division Header)
+  against `topic.post_stream.posts[0].cooked` — purely additive, every existing consumer unaffected.
+  Noted, not silently glossed over: that function's name was written for category descriptions, a
+  slightly awkward fit for "first paragraph of a post," but renaming it was judged out of scope here.
+- `lib/ddi-document-id.js` gained `parseTopicIdFromUrl()`, shared by this feature and by
+  `ddi-search-results.js` (refactored to use it instead of its own copy). Along the way, found and
+  fixed a real bug in the original regex: it mis-parsed `/t/{id}/{post_number}` (no slug) by treating
+  the topic id itself as a slug segment. Fixed before either consumer shipped the corrected version.
+- Fails gracefully at every stage: no parseable topic ID → nothing scheduled; `getCitationById()`
+  resolving to `null` → nothing rendered; the user moving to a different link before the delay/fetch
+  completes → a request-token check discards the stale response; missing Executive Summary → falls
+  back to `"No summary available."`, matching Executive Summary's own existing fallback text.
+- Deliberate simplification, stated plainly: the card hides immediately on leaving the link, rather
+  than staying open if the mouse moves onto the card itself — a full hover-intent state machine was
+  judged unnecessary complexity for "keep the preview lightweight."
+- New CSS is minimal: `.ddi-document-preview` only adds fixed positioning and an opacity/visibility
+  toggle. The card's shell reuses `.ddi-card` verbatim; its metadata row reuses `.ddi-search-badge`
+  (including the same classification color-coding) exactly as Search Results Phase 1 established.
+
 ## 2026-07-25 — Intelligence Search Results, Phase 1: badge-annotated search results
 
 - Added `api-initializers/ddi-search-results.js`, decorating Discourse's own native search results

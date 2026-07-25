@@ -5,6 +5,7 @@ import { formatDocumentId } from "../lib/ddi-document-id";
 import { formatRevision } from "../lib/ddi-revision";
 import { formatDocumentDate } from "../lib/ddi-format-date";
 import { isValidDocumentType, getDocumentTypeLabel } from "../lib/ddi-document-type";
+import { getShortDescription } from "../lib/ddi-division-summary";
 import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
 
 export default class DdiCitationPreviewService extends Service {
@@ -56,6 +57,10 @@ export default class DdiCitationPreviewService extends Service {
 
     const revision = await this._resolveRevision(topic);
 
+    const executiveSummary = getShortDescription(
+      topic.post_stream?.posts?.[0]?.cooked
+    );
+
     const citation = {
       id: topic.id,
       documentId: formatDocumentId(topic.id),
@@ -66,6 +71,7 @@ export default class DdiCitationPreviewService extends Service {
       documentType,
       documentTypeLabel: getDocumentTypeLabel(documentType),
       revision,
+      executiveSummary,
       updatedAt,
       updatedDate: formatDocumentDate(updatedAt),
       url: topic.slug ? `/t/${topic.slug}/${topic.id}` : `/t/${topic.id}`,

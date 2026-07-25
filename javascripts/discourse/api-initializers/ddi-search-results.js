@@ -1,5 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
-import { formatDocumentId } from "../lib/ddi-document-id";
+import { formatDocumentId, parseTopicIdFromUrl } from "../lib/ddi-document-id";
 import { getClassification } from "../lib/ddi-classification";
 import {
   isValidDocumentType,
@@ -16,9 +16,8 @@ function extractTopicId(result) {
   const href = result
     .querySelector(TOPIC_LINK_SELECTOR)
     ?.getAttribute("href");
-  const match = href?.match(/\/t\/(?:[^/]+\/)?(\d+)/);
 
-  return match ? Number(match[1]) : null;
+  return parseTopicIdFromUrl(href);
 }
 
 function extractTagTexts(result) {
