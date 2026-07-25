@@ -1,6 +1,7 @@
 import { getClassification } from "../../lib/ddi-classification";
 import { analyzeReadingTime } from "../../lib/ddi-reading-time";
 import { formatRevision } from "../../lib/ddi-revision";
+import { UNCATEGORIZED_LABEL } from "../../lib/ddi-category";
 
 export default {
   setupComponent(args, component) {
@@ -26,7 +27,7 @@ export default {
     component.setProperties({
       replies: topic.reply_count ?? 0,
       views: topic.views ?? 0,
-      category: topic.category?.name ?? "Uncategorized",
+      category: topic.category?.name ?? UNCATEGORIZED_LABEL,
       wordCount,
       readingTime,
       classification,

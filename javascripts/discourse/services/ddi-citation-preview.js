@@ -3,6 +3,7 @@ import { ajax } from "discourse/lib/ajax";
 import { getClassification } from "../lib/ddi-classification";
 import { formatDocumentId } from "../lib/ddi-document-id";
 import { formatRevision } from "../lib/ddi-revision";
+import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
 
 export default class DdiCitationPreviewService extends Service {
   @service site;
@@ -44,7 +45,7 @@ export default class DdiCitationPreviewService extends Service {
 
     const department =
       this.site.categories?.findBy("id", topic.category_id)?.name ||
-      "Uncategorized";
+      UNCATEGORIZED_LABEL;
 
     const revision = await this._resolveRevision(topic);
 

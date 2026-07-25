@@ -38,7 +38,9 @@ for any new work:
   same computation, it belongs here, imported by both — not reimplemented in each place.
   `ddi-classification.js`, `ddi-document-type.js`, `ddi-lifecycle.js`, and `ddi-department.js` each
   export their field's canonical vocabulary plus an `isValid*(slug)` check against it — see
-  **Metadata Validation** below.
+  **Metadata Validation** below. `ddi-category.js` exports `UNCATEGORIZED_LABEL`, the fallback text
+  for a topic with no category — extracted in RC cleanup from 4 identical literal-string occurrences
+  across Document Intelligence, Document Footer, Debug Mode, and Citation Preview.
 - **`services/`** — Ember `Service` classes, used when logic needs to do async work (network
   requests) or would benefit from being injectable/reusable across multiple connectors.
   `ddi-related-intelligence.js` injects `ddi-citation-preview.js` rather than shaping its own result
@@ -74,13 +76,19 @@ All topic-page components follow the pattern above. In render order:
    Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
    synchronously from the first post — no service, since nothing here needs async I/O or
    cross-component reuse. Positioned directly below Document Intelligence via filename-based outlet
-   ordering (see `docs/ddi-intelligence-network.md` for the same technique applied elsewhere, and its
-   caveat that this ordering isn't independently verified against the live Discourse core version).
+   ordering (see `docs/ddi-intelligence-network.md` for the same technique applied elsewhere). RC
+   cleanup re-verified the sort arithmetic itself is correct (`ddi-document-intelligence` <
+   `ddi-document-revision-history` < `ddi-document-toc`, confirmed against the live directory
+   listing) — what remains genuinely unverified is the underlying assumption that Discourse renders
+   same-outlet connectors in filename order at all, which requires a running instance to confirm and
+   wasn't something this cleanup pass had access to.
 7. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
    Number, Classification, Revision, Department, Last Updated, Author, and a static "End of
    Document" marker. Synchronous, same reasoning as Revision History (no service needed). Ordered
-   before Intelligence Network within the same outlet (filename-based, same caveat as above) so the
-   document's own closing metadata appears before the secondary "related documents" panel.
+   before Intelligence Network within the same outlet (filename-based, same caveat as above,
+   re-verified the same way) so the document's own closing metadata appears before the secondary
+   "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
+   ordering requirement was ever set for it, so there's nothing to verify there.
 8. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
    `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
    (+100), same classification (+50, see caveat below), and +25 per shared tag. See
@@ -275,8 +283,12 @@ was verified by grepping for references — not assumed.
   - `ddi_footer_enabled` is kept, paired with the still-present `common/footer.html` above, for the
     same reasoning: real (if under-specified) intent, valid mechanism, zero cost to leave in place.
 - **`assets/ddi-logo.png` is never referenced** by any template, stylesheet, or `about.json` asset
-  entry. Out of scope for this cleanup pass (not in the RC cleanup task list) — noted for a future
-  pass.
+  entry — reviewed in RC cleanup. The header's actual logo sizing (`#site-logo.logo-big` in
+  `common.scss`) already targets Discourse's native, admin-uploaded branding image, not a
+  theme-bundled file, so this asset was never the mechanism in use. Recommendation: remove it — the
+  only "logo" mention anywhere in `docs/` is generic prototype-description context with no tie to
+  this specific file. Left in place pending an explicit decision, since deleting a branding asset
+  outright felt like it warranted a human call rather than a unilateral one.
 - **`javascripts/discourse.js`'s comment is stale.** It states "No runtime DOM injection is used for
   homepage/sidebar/footer assembly," which was true when written, but
   `api-initializers/ddi-dossier-refresh.js` does now use runtime DOM injection (`querySelector` +

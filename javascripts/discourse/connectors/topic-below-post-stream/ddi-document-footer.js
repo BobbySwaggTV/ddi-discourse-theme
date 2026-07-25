@@ -3,6 +3,7 @@ import { formatDocumentId } from "../../lib/ddi-document-id";
 import { formatDocumentDate } from "../../lib/ddi-format-date";
 import { formatRevision } from "../../lib/ddi-revision";
 import { formatDocumentAuthor } from "../../lib/ddi-author";
+import { UNCATEGORIZED_LABEL } from "../../lib/ddi-category";
 
 export default {
   setupComponent(args, component) {
@@ -17,7 +18,7 @@ export default {
       classification,
       classificationClass,
       revision: formatRevision(post?.version),
-      department: topic.category?.name ?? "Uncategorized",
+      department: topic.category?.name ?? UNCATEGORIZED_LABEL,
       lastUpdated: formatDocumentDate(post?.updated_at || post?.created_at),
       author: formatDocumentAuthor(post?.username),
     });
