@@ -27,3 +27,11 @@ export const DOCUMENT_TYPES = Object.freeze([
 export function isValidDocumentType(slug) {
   return DOCUMENT_TYPES.includes(slug);
 }
+
+export function getDocumentTypeLabel(slug) {
+  if (!isValidDocumentType(slug)) {
+    return null;
+  }
+
+  return slug.replace(/-/g, " ").toUpperCase();
+}

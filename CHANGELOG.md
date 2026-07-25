@@ -8,6 +8,21 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Dynamic Document Type display in the Dossier Header
+
+- The Dossier Header's `DOCUMENT TYPE` field displayed the hardcoded literal string
+  `INTELLIGENCE BRIEF` for every document, regardless of its actual tag. Replaced with
+  `metadata.documentType` (already resolved by `ddi-document-metadata.js`) run through a new
+  `getDocumentTypeLabel(slug)` in `lib/ddi-document-type.js` — the existing document type library,
+  extended rather than duplicated — which derives the display label straight from the slug
+  (`"intel-report"` → `"INTEL REPORT"`) instead of maintaining a separate label table that could
+  drift out of sync with `DOCUMENT_TYPES`. Falls back to `"INTELLIGENCE BRIEF"` only when
+  `metadata.documentType` is `null` (untagged topic) or fails `isValidDocumentType()`. Three files
+  touched: `lib/ddi-document-type.js` (new function), `ddi-dossier-header.js` (compute the label),
+  `ddi-dossier-header.hbs` (one line, hardcoded text → `{{documentTypeLabel}}`). No styling changed,
+  no new service introduced. Verified all 23 Document Type slugs resolve to correct labels and that
+  every invalid/missing input correctly falls back.
+
 ## 2026-07-25 — Document Type vocabulary expansion
 
 - Added six Document Type slugs — `charter`, `policy`, `manual`, `procedure`, `reference`,
