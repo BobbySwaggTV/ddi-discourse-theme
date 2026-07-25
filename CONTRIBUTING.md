@@ -28,10 +28,11 @@ both desktop and mobile breakpoints, before opening a PR.
 
 ## Before You Start
 
-Read [ARCHITECTURE.md](ARCHITECTURE.md), especially **Known Gaps / Unwired Code**. Several files in
-this repo (`common/homepage.html`, `common/sidebar.html`, `common/variables.scss`) look like they
-should do something and don't. Confirm what's actually wired in before building on top of something
-that turns out to be dead.
+Read [ARCHITECTURE.md](ARCHITECTURE.md), especially **Known Gaps / Unwired Code**. Most settings in
+`settings.yml` are declared but not read by any code — some are intentionally reserved for planned
+work, documented as such; confirm which before assuming a setting does something. Three genuinely
+dead files (`common/homepage.html`, `common/sidebar.html`, `common/variables.scss`) were removed in
+RC cleanup — if you're reading this in an older checkout, they no longer exist on the current branch.
 
 ## Code Conventions
 

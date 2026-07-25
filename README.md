@@ -17,12 +17,14 @@ for a precise list of what's implemented versus planned. In short:
 
 - The **topic page** transformation (dossier-style header, classification banner, summary,
   document intelligence panel, table of contents, related-documents panel) is implemented and live.
-- The **homepage, sidebar, and footer** redesigns are **not** implemented yet. Some early scaffolding
-  for them exists in `common/homepage.html` and `common/sidebar.html`, but those files use filenames
-  Discourse's theme compiler doesn't recognize, so they are never actually rendered. See
+- The **homepage and sidebar** redesigns are **not** implemented yet. Early scaffolding for them
+  (`common/homepage.html`, `common/sidebar.html`) used filenames Discourse's theme compiler doesn't
+  recognize, so it never actually rendered — those dead files were removed in RC cleanup. See
   `docs/ddi-intelligence-archive-dashboard.md` for the roadmap to build this properly.
-- All 7 settings in `settings.yml` are declared but **not currently read by any code** — toggling
-  them today has no effect. See [ARCHITECTURE.md](ARCHITECTURE.md#theme-settings) for detail.
+- Most settings in `settings.yml` are declared but **not currently read by any code** — toggling
+  them today has no effect (`ddi_debug_mode_enabled` is the one exception). See
+  [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which ones are intentionally
+  reserved for planned work versus removed as unaccountable.
 
 ## What's actually implemented
 
@@ -73,17 +75,17 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml`. **The first 7 are not currently consumed by any JS or SCSS in this
-repo** — they're reserved names for behavior that hasn't been wired up yet. `ddi_debug_mode_enabled`
-is the exception: it's read directly (`settings.ddi_debug_mode_enabled`) by the Debug Mode panel's
-connector.
+Declared in `settings.yml`. `ddi_debug_mode_enabled` is read directly
+(`settings.ddi_debug_mode_enabled`) by the Debug Mode panel's connector — the rest are not yet
+consumed by any JS or SCSS, but are intentionally reserved for specific planned work rather than
+orphaned (see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan each maps
+to). Two settings that had no such mapping (`ddi_header_enabled`, `ddi_interface_mode_enabled`) were
+removed in RC cleanup rather than kept as unaccountable toggles.
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `ddi_header_enabled` | bool | `true` | Enable DDI command network header shell |
 | `ddi_compact_density` | bool | `true` | Use compact dashboard spacing density |
 | `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | Controls ambient red glow intensity |
-| `ddi_interface_mode_enabled` | bool | `true` | Enable v0.2.0 DDI command network interface overrides |
 | `ddi_homepage_dashboard_enabled` | bool | `true` | Render command dashboard homepage sections from categories |
 | `ddi_sidebar_command_panel_enabled` | bool | `true` | Enable command-panel sidebar presentation |
 | `ddi_footer_enabled` | bool | `true` | Enable DDI corporate command footer |
@@ -93,13 +95,11 @@ connector.
 
 ```
 about.json            Theme metadata (name, version, authors)
-settings.yml           Theme settings (see above — currently unwired)
+settings.yml           Theme settings (see above — mostly reserved, one wired)
 common/                Styles and templates applied on all devices
   common.scss           Main stylesheet — the live CSS token system and all component styling
-  variables.scss         A second token system — NOT imported anywhere, currently dead
-  header.html / footer.html / homepage.html / sidebar.html
-                          footer.html is empty; homepage.html and sidebar.html are unrecognized
-                          filenames and are never compiled in (see ARCHITECTURE.md)
+  header.html / footer.html
+                          footer.html is empty, but a valid, recognized template target
 desktop/desktop.scss    Desktop-only breakpoint overrides
 mobile/mobile.scss      Mobile-only breakpoint overrides
 javascripts/discourse/

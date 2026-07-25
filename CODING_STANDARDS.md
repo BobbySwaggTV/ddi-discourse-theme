@@ -43,9 +43,9 @@ Discourse core version.
 
 **CSS classes** — flat kebab-case, `.ddi-` prefix, **no BEM double-underscore**:
 `.ddi-card-title`, `.ddi-dossier-grid`, `.ddi-security-banner`. One existing exception,
-`.welcome-banner__*`, uses BEM — it's confined to the styling for `common/homepage.html`, which is
-confirmed dead and never reaches the browser (see `ARCHITECTURE.md`). Don't treat it as precedent;
-it's leftover from work that was never wired in, not an alternate accepted style.
+`.welcome-banner__*`, uses BEM — it was styling for `common/homepage.html`, a dead file removed in
+RC cleanup (see `ARCHITECTURE.md`). Don't treat it as precedent; it's leftover from work that was
+never wired in, not an alternate accepted style.
 
 **CSS custom properties** — `--ddi-<category>[-<variant>]`: `--ddi-text-muted`, `--ddi-red-18`,
 `--ddi-shadow-lg`. Opacity variants are named by whole-number percentage (`-18` means 0.18 alpha),
@@ -82,12 +82,12 @@ follow, not as a heavily battle-tested convention with lots of prior art.
 - **All repeated colors, borders, and shadows go through the `:root` custom-property scale.** Don't
   hardcode a raw hex/rgba value that will be used more than once or twice — add a token and use
   `var(...)`.
-- **2-space indentation.** `desktop.scss`, `mobile.scss`, and `variables.scss` are currently
-  tab-indented — that's the inconsistency, not the standard. New code, and any file touched for
-  other reasons, should use 2-space.
-- **Never add to `common/variables.scss`.** It is confirmed dead — not `@import`ed anywhere, so
-  nothing in it reaches compiled CSS (see `ARCHITECTURE.md`). Any new token belongs in
-  `common.scss`'s `:root` block, the one that's actually live.
+- **2-space indentation.** `desktop.scss` and `mobile.scss` are currently tab-indented — that's the
+  inconsistency, not the standard. New code, and any file touched for other reasons, should use
+  2-space.
+- **All tokens belong in `common.scss`'s `:root` block.** A second token system
+  (`common/variables.scss`) existed early in this project, was never `@import`ed, and was removed in
+  RC cleanup — don't reintroduce a second token file.
 
 ## Connectors
 

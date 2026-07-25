@@ -232,47 +232,62 @@ border colors, and a shadow scale (`--ddi-shadow-xs` through `--ddi-shadow-lg`) 
 component rule in the file is built from those tokens rather than repeating raw hex/rgba values.
 New styling should extend this token set rather than introducing new raw color/shadow literals.
 
-**`common/variables.scss` is a second, separate token system that is not used.** It defines its own
-color/spacing/shadow variables under different names, but is never `@import`ed by `common.scss` (or
-anything else), and `about.json`'s `assets` field is empty — so none of its tokens reach the
-compiled CSS. `docs/ddi-design-system.md` describes it as the intended "source of truth," but that
-was never wired up. Do not add new tokens here expecting them to take effect — they won't. This file
-should either be deleted or actually imported and migrated onto; until one of those happens, treat
-it as dead.
+**`common/variables.scss` (RC cleanup: removed).** It defined a second, separate token system under
+different names, but was never `@import`ed by `common.scss` (or anything else), so none of its
+tokens ever reached compiled CSS. `docs/ddi-design-system.md` describes it as the intended "source
+of truth," but that was never wired up. If that migration is ever actually done, re-derive it from
+this doc rather than restoring the deleted file — the file itself was correct SCSS syntax, just
+entirely disconnected from the build.
 
 ## Known Gaps / Unwired Code
 
 These are things that exist in the repository but do not currently affect the running theme. Each
 was verified by grepping for references — not assumed.
 
-- **`common/homepage.html` and `common/sidebar.html`** contain full static markup for a homepage
-  dashboard and command sidebar, but `homepage.html` and `sidebar.html` are not filenames Discourse's
-  theme compiler recognizes (the recognized `common/*.html` targets are `head_tag`, `header`,
-  `after_header`, `body_tag`, and `footer`, plus embedded variants). Neither file is ever rendered.
-  `docs/ddi-command-network-interface.md` planned real connectors for this
-  (`connectors/above-main-container/ddi-homepage-dashboard.hbs` and `ddi-sidebar-panel.hbs`) that
-  were never built. See `docs/ddi-intelligence-archive-dashboard.md` for the current roadmap to
-  actually implement the homepage dashboard the right way.
-- **`common/footer.html` is empty.** `ddi_footer_enabled` exists as a setting but there's no footer
-  content or connector for it to gate.
-- **6 of the 7 original settings in `settings.yml` are still unread.** They remain reserved names,
-  not live toggles. `ddi_debug_mode_enabled` (added for Debug Mode, see below) is the first setting
-  in this repo actually wired to behavior.
+- **`common/homepage.html` and `common/sidebar.html` (RC cleanup: removed).** They contained full
+  static markup for a homepage dashboard and command sidebar, but `homepage.html` and `sidebar.html`
+  were never filenames Discourse's theme compiler recognizes (the recognized `common/*.html` targets
+  are `head_tag`, `header`, `after_header`, `body_tag`, and `footer`, plus embedded variants) — neither
+  file was ever rendered. `docs/ddi-command-network-interface.md` planned real connectors for this
+  (`connectors/above-main-container/ddi-homepage-dashboard.hbs` and `ddi-sidebar-panel.hbs`) that were
+  never built. The design intent isn't lost — `docs/ddi-intelligence-archive-dashboard.md` is the
+  current, accurate roadmap for implementing the homepage dashboard correctly, and doesn't depend on
+  the deleted files.
+- **`common/footer.html` is empty, and was deliberately kept, not removed**, unlike the two files
+  above — it's a real, Discourse-recognized template target (unlike `homepage.html`/`sidebar.html`,
+  which were never valid filenames at all), so there's nothing broken about it; it's just unpopulated.
+  Deleting a valid-but-empty file provides no runtime benefit, since present-and-empty and
+  absent-entirely compile identically.
+- **`settings.yml` — as of RC cleanup, 6 settings remain (down from 8).** `ddi_header_enabled` and
+  `ddi_interface_mode_enabled` were removed: neither has ever had any documented design describing
+  what conditional behavior they'd control, and the behavior they name (the header shell, "v0.2.0
+  interface overrides") is unconditionally active today with no described "off" state anywhere in
+  this repo's history. Of the remaining 6:
+  - `ddi_debug_mode_enabled` is wired (Debug Mode).
+  - `ddi_compact_density` and `ddi_red_glow_strength` are kept — `docs/ddi-intelligence-archive-dashboard.md`'s
+    Phase 6 explicitly names both for the dashboard's "new section styling," a concrete, specific tie
+    to planned work, not a vague aspiration.
+  - `ddi_homepage_dashboard_enabled` is kept — it's the exact gate `docs/ddi-intelligence-archive-dashboard.md`
+    already specifies the dashboard connector should check.
+  - `ddi_sidebar_command_panel_enabled` is kept, on weaker footing than the above: the sidebar rebuild
+    is acknowledged intent (`docs/ddi-roadmap.md`'s "Excluded / Not Yet Ready") but has no design past
+    that acknowledgment. Kept because the intent is real, not because a plan exists yet.
+  - `ddi_footer_enabled` is kept, paired with the still-present `common/footer.html` above, for the
+    same reasoning: real (if under-specified) intent, valid mechanism, zero cost to leave in place.
 - **`assets/ddi-logo.png` is never referenced** by any template, stylesheet, or `about.json` asset
-  entry.
+  entry. Out of scope for this cleanup pass (not in the RC cleanup task list) — noted for a future
+  pass.
 - **`javascripts/discourse.js`'s comment is stale.** It states "No runtime DOM injection is used for
   homepage/sidebar/footer assembly," which was true when written, but
   `api-initializers/ddi-dossier-refresh.js` does now use runtime DOM injection (`querySelector` +
   `replaceChildren`) — for the topic page, not the homepage, so the comment isn't wrong about its
   original scope, but it reads as broader than it is.
-- **Dossier Header computes two properties nothing renders.** `ddi-dossier-header.js` computes
-  `documentId` and `issuedDate` and sets them as component properties, but `ddi-dossier-header.hbs`
-  never references `{{this.documentId}}` or `{{this.issuedDate}}` — those elements are actually
-  populated by `api-initializers/ddi-dossier-refresh.js`, which independently re-fetches the topic
-  and re-derives the same values (using `lib/formatDocumentId`, correctly, unlike the dead
-  connector-side computation which is missing the `DDI-` prefix). Net effect: the connector-computed
-  values are dead code, and the date-formatting logic runs twice for the same result. If you're
-  touching document ID or issued-date rendering, the initializer is the code that actually matters.
+- **Dossier Header's dead `documentId`/`issuedDate` computation (RC cleanup: resolved).**
+  `ddi-dossier-header.js` used to compute these and set them as component properties despite
+  `ddi-dossier-header.hbs` never referencing them — the visible values were always actually produced
+  by `api-initializers/ddi-dossier-refresh.js`. The dead computation was removed from the connector;
+  the initializer is unchanged and remains the sole source of both values. This was the oldest
+  unresolved finding in the project's history before this cleanup pass.
 
 ## Document Archive Information Architecture
 

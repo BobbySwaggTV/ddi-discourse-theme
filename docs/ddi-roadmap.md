@@ -250,8 +250,11 @@ Real gaps, deliberately left out of the top 10 because they aren't at "ready to 
 - **Revision comparison/diff view** — explicitly deferred as a "future extensibility" seam in the
   Revision History design (#8), not a currently-designed feature. Natural candidate for the next
   roadmap pass once #8 ships.
-- **Wiring the remaining inert `settings.yml` toggles** (`ddi_header_enabled`, `ddi_compact_density`,
-  `ddi_red_glow_strength`, `ddi_interface_mode_enabled`) to real behavior, and retiring
-  `common/homepage.html`/`sidebar.html`/`variables.scss` — legitimate cleanup work, but lower user
-  value than anything in the top 10, better suited to the Dashboard's own already-planned Phase 6
-  (Retirement & Polish) than a standalone roadmap slot.
+- **Wiring the remaining reserved `settings.yml` toggles** (`ddi_compact_density`,
+  `ddi_red_glow_strength`, `ddi_homepage_dashboard_enabled`, `ddi_sidebar_command_panel_enabled`,
+  `ddi_footer_enabled`) to real behavior — legitimate work, but lower user value than anything in the
+  top 10, better suited to the Dashboard's own already-planned Phase 6 (Retirement & Polish) than a
+  standalone roadmap slot. (An RC cleanup pass since this roadmap was written removed
+  `ddi_header_enabled`/`ddi_interface_mode_enabled`, which had no documented plan behind them, and
+  deleted the already-dead `common/homepage.html`/`sidebar.html`/`variables.scss` — see
+  `ARCHITECTURE.md`.)
