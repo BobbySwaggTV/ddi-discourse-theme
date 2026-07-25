@@ -1,5 +1,4 @@
 import Service, { service } from "@ember/service";
-import { ajax } from "discourse/lib/ajax";
 import {
   findAdjacentDocuments,
   selectRecentDocuments,
@@ -9,13 +8,14 @@ const MAX_RECENT = 5;
 
 export default class DdiArchiveNavigationService extends Service {
   @service ddiDocumentMetadata;
-  @service ddiCitationPreview;
+  @service ddiIntelligenceIndex;
 
   async getNavigation(topic) {
     const category = topic?.category;
+    const metadata = this.ddiDocumentMetadata.getMetadata(topic);
 
     const department = {
-      name: this.ddiDocumentMetadata.getMetadata(topic)?.departmentDisplay,
+      name: metadata?.departmentDisplay,
       url: category ? `/c/${category.slug}/${category.id}` : null,
     };
 
@@ -23,36 +23,16 @@ export default class DdiArchiveNavigationService extends Service {
       return { department, previous: null, next: null, recent: [] };
     }
 
-    const departmentTopics = await this._fetchDepartmentTopics(category);
+    const departmentDocuments = await this.ddiIntelligenceIndex.getIndex({
+      department: metadata.departmentDisplay,
+    });
 
     const { previous, next } = findAdjacentDocuments(
-      departmentTopics,
+      departmentDocuments,
       topic.id
     );
-    const recentCandidates = selectRecentDocuments(
-      departmentTopics,
-      topic.id,
-      MAX_RECENT
-    );
+    const recent = selectRecentDocuments(departmentDocuments, topic.id, MAX_RECENT);
 
-    const [previousDoc, nextDoc, recentDocs] = await Promise.all([
-      previous ? this.ddiCitationPreview.getCitation(previous) : null,
-      next ? this.ddiCitationPreview.getCitation(next) : null,
-      Promise.all(
-        recentCandidates.map((candidate) =>
-          this.ddiCitationPreview.getCitation(candidate)
-        )
-      ),
-    ]);
-
-    return { department, previous: previousDoc, next: nextDoc, recent: recentDocs };
-  }
-
-  async _fetchDepartmentTopics(category) {
-    const response = await ajax(
-      `/c/${category.slug}/${category.id}.json`
-    ).catch(() => null);
-
-    return response?.topic_list?.topics || [];
+    return { department, previous, next, recent };
   }
 }

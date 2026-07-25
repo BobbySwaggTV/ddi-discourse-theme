@@ -8,6 +8,36 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Document Navigation: reworked Archive Navigation's ordering and data source
+
+- A "Document Navigation" task was requested with a spec that substantially overlapped the existing
+  Archive Navigation component (same three links, plus an unrequested "Recent Documents" section) but
+  differed in two concrete ways: ordering by Document Number instead of creation date, and reusing the
+  Intelligence Index service instead of a direct category fetch. Rather than ship a second, competing
+  navigation widget on the same page, the user chose to rework Archive Navigation in place.
+- `lib/ddi-document-order.js`'s `findAdjacentDocuments()`/`selectRecentDocuments()` now sort by
+  `parseDocumentId(doc.documentId)` (reusing the existing parser in `lib/ddi-document-id.js`) instead
+  of `created_at`, and operate on Citation-Preview-shaped documents instead of raw topics.
+- `services/ddi-archive-navigation.js` now calls `ddi-intelligence-index.js`'s
+  `getIndex({ department: metadata.departmentDisplay })` — the department filter
+  `lib/ddi-document-index.js` already supported end-to-end but had no caller — instead of its own
+  `/c/{slug}/{id}.json` fetch. Because `getIndex()` already shapes every result through Citation
+  Preview, the service no longer needs its own `ddiCitationPreview` injection or a second shaping
+  pass; the now-unused `ajax` import was also removed.
+- `connectors/topic-below-post-stream/ddi-navigation.*` renamed to `ddi-document-navigation.*` so its
+  filename sorts between `ddi-document-footer` and `ddi-document-relationships` — using this outlet's
+  already-established, deliberately-engineered filename-ordering mechanism (see `ARCHITECTURE.md`) to
+  render the card directly beneath Document Footer, per the new spec. The service class/file
+  (`ddi-archive-navigation.js`) and card title (`ARCHIVE NAVIGATION`) were left unchanged; only the
+  connector's outlet position changed.
+- Missing Previous/Next now hide entirely instead of rendering a disabled "No earlier/later document"
+  placeholder, matching the new spec's explicit fallback behavior. The now-dead
+  `.ddi-nav-link-disabled` CSS rule was removed. Added `←`/`→`/`↑` glyphs to the existing labels.
+- Verified adjacency/recency ordering against an out-of-order document list (unsorted input sorts
+  correctly by Document Number) and edge cases: first document (no previous), last document (no
+  next), current document missing from the list, a single-document list, and an empty/null list — all
+  fall back to `null`/`[]` gracefully.
+
 ## 2026-07-25 — Document Breadcrumb component
 
 - Added a Document Breadcrumb — `DDC Intelligence Archive → Department → Document Type → (current

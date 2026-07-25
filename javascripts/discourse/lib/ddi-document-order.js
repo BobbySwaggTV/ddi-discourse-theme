@@ -1,10 +1,12 @@
-function byCreatedAtAscending(a, b) {
-  return new Date(a.created_at) - new Date(b.created_at);
+import { parseDocumentId } from "./ddi-document-id";
+
+function byDocumentNumberAscending(a, b) {
+  return parseDocumentId(a.documentId) - parseDocumentId(b.documentId);
 }
 
-export function findAdjacentDocuments(topics, currentTopicId) {
-  const sorted = [...(topics || [])].sort(byCreatedAtAscending);
-  const index = sorted.findIndex((topic) => topic.id === currentTopicId);
+export function findAdjacentDocuments(documents, currentDocumentId) {
+  const sorted = [...(documents || [])].sort(byDocumentNumberAscending);
+  const index = sorted.findIndex((doc) => doc.id === currentDocumentId);
 
   if (index === -1) {
     return { previous: null, next: null };
@@ -16,9 +18,9 @@ export function findAdjacentDocuments(topics, currentTopicId) {
   };
 }
 
-export function selectRecentDocuments(topics, currentTopicId, limit) {
-  return [...(topics || [])]
-    .filter((topic) => topic.id !== currentTopicId)
-    .sort((a, b) => byCreatedAtAscending(b, a))
+export function selectRecentDocuments(documents, currentDocumentId, limit) {
+  return [...(documents || [])]
+    .filter((doc) => doc.id !== currentDocumentId)
+    .sort((a, b) => byDocumentNumberAscending(b, a))
     .slice(0, limit);
 }

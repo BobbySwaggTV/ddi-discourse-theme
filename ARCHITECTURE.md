@@ -139,20 +139,27 @@ All topic-page components follow the pattern above. In render order:
    re-verified the same way) so the document's own closing metadata appears before the secondary
    "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
    ordering requirement was ever set for it, so there's nothing to verify there.
-11. **Document Relationships** (`connectors/topic-below-post-stream/ddi-document-relationships.*` +
+11. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-document-navigation.*` +
+    `services/ddi-archive-navigation.js`) — Previous Document, Next Document, Department Home, and
+    up to 5 Recent Documents in Department. Previous/Next/Recent are ordered by Document Number
+    (`lib/ddi-document-order.js`, parsed via `lib/ddi-document-id.js`'s existing `parseDocumentId()` —
+    reused rather than re-implemented), not creation date. The connector was renamed from
+    `ddi-navigation` to `ddi-document-navigation` specifically so its filename sorts between
+    `ddi-document-footer` and `ddi-document-relationships`, placing it directly beneath Document
+    Footer using the same deliberate filename-ordering mechanism described above — the service class
+    and its file (`ddi-archive-navigation.js`) were kept as-is since only the connector's outlet
+    position needed to change. See **Archive Navigation** below.
+12. **Document Relationships** (`connectors/topic-below-post-stream/ddi-document-relationships.*` +
     `services/ddi-relationship.js`) — up to N declared relationships (References, Supersedes,
     Superseded By, Related Intelligence, Required Reading, Supporting Documentation) to other
-    documents, parsed from the current document's own body text. Sorts immediately after Document
-    Footer in the same outlet. See **Document Relationships** below.
-12. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
+    documents, parsed from the current document's own body text. Sorts immediately after Archive
+    Navigation in the same outlet (previously immediately after Document Footer, before Archive
+    Navigation's connector was relocated here — see previous item). See **Document Relationships**
+    below.
+13. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
     `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
     (+100), same classification (+50, see caveat below), and +25 per shared tag. See
     `docs/ddi-intelligence-network.md` for the full design rationale.
-13. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-navigation.*` +
-    `services/ddi-archive-navigation.js`) — Previous Document, Next Document, Department Home, and
-    up to 5 Recent Documents in Department. Filename (`ddi-navigation`) deliberately sorts after
-    `ddi-intelligence-network` so it renders last among this outlet's existing cards without
-    disturbing their current order. See **Archive Navigation** below.
 14. **Cross References** (`api-initializers/ddi-cross-references.js` +
     `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
     and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
@@ -168,8 +175,8 @@ All topic-page components follow the pattern above. In render order:
     + `lib/ddi-integrity.js`) — five PASS/WARN checks (Classification, Department, Document Type,
     Lifecycle, Metadata) against the current document's already-resolved metadata. Gated by the same
     `ddi_debug_mode_enabled` setting as Debug Mode, not a new one. Filename (`ddi-verification-panel`)
-    deliberately sorts after `ddi-navigation`, the same "append without reordering" technique Archive
-    Navigation established. See **Document Integrity Verification** below.
+    deliberately sorts after `ddi-document-navigation`, the same "append without reordering"
+    technique Archive Navigation established. See **Document Integrity Verification** below.
 
 ## Archive-Wide Components
 
@@ -461,8 +468,14 @@ the topic itself, the same "no extra guard code" precedent Dossier Header alread
 
 A topic-page card offering four ways to keep moving through the archive without going back to a
 list view: **Previous Document** and **Next Document** (the adjacent documents in the same
-department, ordered by filing date), **Department Home** (a link to the document's own category),
-and **Recent Documents in Department** (up to 5 other documents most recently filed there).
+department, ordered by Document Number), **Department Home** (a link to the document's own
+category), and **Recent Documents in Department** (up to 5 other documents with the highest Document
+Numbers there, excluding the current one).
+
+**Reworked to order by Document Number and reuse the Intelligence Index service**, replacing an
+earlier version that ordered by creation date and fetched the category's topics directly. The
+Metadata Engine reuse, category-URL derivation, and template all carried over unchanged (see below);
+only the data source and sort key changed.
 
 **Reuses the Metadata Engine for department identity, not a second resolution.**
 `services/ddi-archive-navigation.js` injects `ddi-document-metadata.js` and reads
@@ -472,37 +485,42 @@ metadata engine — rather than re-deriving `topic.category?.name` and its fallb
 Only the category's `slug`/`id` (native Discourse fields, not a classification/business concept the
 metadata engine owns) are read directly off `topic.category` to build the Department Home URL.
 
-**Fetches one topic list, derives three of the four things from it.** `_fetchDepartmentTopics()`
-calls the exact same `/c/{slug}/{id}.json` endpoint `ddi-related-intelligence.js`'s
-`_fetchCategoryTopics()` already established as this codebase's way of listing a category's topics
-— not a new endpoint assumption. `lib/ddi-document-order.js`'s two pure functions,
-`findAdjacentDocuments()` and `selectRecentDocuments()`, both work off that single fetched array:
-the former sorts by `created_at` ascending and returns the immediate neighbors of the current
-topic's index; the latter excludes the current topic and returns the `created_at`-descending top 5.
-Sorting is done client-side deliberately, rather than trusting the endpoint's own default order (its
-exact sort — latest activity vs. creation date — isn't confirmed against a live instance, the same
-class of caveat already flagged for other endpoints in this document) — this sidesteps the question
-entirely instead of assuming an answer.
+**Reuses the Intelligence Index service instead of its own fetch.** `getNavigation()` calls
+`ddi-intelligence-index.js`'s `getIndex({ department: metadata.departmentDisplay })` — the same
+department filter `lib/ddi-document-index.js`'s `filterDocuments()` already supported end-to-end
+since the Intelligence Index was built, previously unused by any caller. This replaced a direct
+`/c/{slug}/{id}.json` fetch. One subtlety worth recording: the filter's `department` value must be
+the category's *display name* (what `ddi-citation-preview.js`'s `getCitation()` puts in its
+`department` field), not the Metadata Engine's validated department *slug* — the two are different
+fields on `metadata` (`departmentDisplay` vs `department`) that happen to describe the same category
+under different representations, and passing the slug here would silently match nothing.
 
-**Presentation reuses Citation Preview, not a new "topic to display fields" mapping.** Previous,
-Next, and each Recent Documents row are all passed through `ddi-citation-preview.js`'s
-`getCitation()` — the same service `ddi-related-intelligence.js` already uses to shape its related-
-document rows from this identical raw-AJAX-topic shape. Because `getCitation()` caches by document
-ID, a document that appears in both Intelligence Network and Archive Navigation on the same page
-view is only fully resolved once.
+**Previous/Next/Recent are all already Citation-Preview-shaped, with no second shaping step.**
+Because `getIndex()` already runs every result through `getCitation()`, `lib/ddi-document-order.js`'s
+`findAdjacentDocuments()` and `selectRecentDocuments()` operate directly on citation objects — sorted
+by `parseDocumentId(doc.documentId)` (reusing `lib/ddi-document-id.js`'s existing parser, not a new
+one) rather than `created_at`. This removed the service's own `ddiCitationPreview` injection and the
+extra `Promise.all(...).map(getCitation)` pass the earlier version needed after computing adjacency
+from raw topics — a genuine simplification, not just a data-source swap.
 
-**One page each is enough; no new pagination system.** `_fetchDepartmentTopics()` fetches a single
-page (Discourse's default topic-list page size) and does not follow further pages. For a department
-with more topics than that, Previous/Next/Recent could be inaccurate at the boundary — an honest
-limitation, not a silent one, matching the same eager-vs-bounded trade-off already reasoned through
-(and left as a flagged simplification rather than solved) in `docs/ddi-revision-history.md`.
+**Missing Previous/Next now hide rather than showing a disabled placeholder.** The template
+previously rendered a greyed-out "No earlier/later document in department" row when one side was
+absent; it now omits that link entirely (`{{#if this.previous}}` / `{{#if this.next}}` with no
+`{{else}}`), matching the explicit fallback spec this rework was built against. The now-unreferenced
+`.ddi-nav-link-disabled` CSS rule was removed.
+
+**One page is enough; no new pagination system.** `getIndex()` inherits the Intelligence Index's own
+single-page-of-`/latest.json` limitation (see **Intelligence Index** below) — for an archive with
+more topics than one page, Previous/Next/Recent could be inaccurate at the boundary, the same honest,
+flagged-not-silent limitation the earlier category-scoped fetch already had.
 
 **Template reuses existing rows, not a new list pattern.** The Department Home link and each Recent
 Documents row reuse `.ddi-toc-item` / `.ddi-toc-title` / `.ddi-dossier-grid` exactly as Intelligence
-Network already does. Only the Previous/Next two-up row (`.ddi-nav-links`/`.ddi-nav-link`) is new
-markup, since no existing component in this theme is a two-column button pair — everything else
-(color tokens, hover treatment, uppercase label convention) is drawn from the existing `:root` token
-set, not new literals.
+Network already does. Only the Previous/Next two-up row (`.ddi-nav-links`/`.ddi-nav-link`) is
+bespoke markup, since no existing component in this theme is a two-column button pair — everything
+else (color tokens, hover treatment, uppercase label convention) is drawn from the existing `:root`
+token set, not new literals. Directional glyphs (`←`/`→`/`↑`) were added to the existing labels to
+match the new spec; no other markup changed.
 
 ## Intelligence Index
 
@@ -532,11 +550,12 @@ new fields to that shape.
 
 **One new endpoint, and why it's different from the others already in this codebase.**
 `_fetchArchiveTopics()` calls Discourse's `/latest.json` — the standard "every topic, newest first"
-listing endpoint, distinct from `ddi-related-intelligence.js`'s and `ddi-archive-navigation.js`'s
-`/c/{slug}/{id}.json` (both category-scoped) because this feature is explicitly archive-wide, not
-scoped to one document's category. Same single-page-is-enough limitation as Archive Navigation's
-department fetch, and the same reason: fetched newest-first order is not used for anything — the
-result is always re-sorted by title, so the endpoint's own ordering is irrelevant either way.
+listing endpoint, distinct from `ddi-related-intelligence.js`'s `/c/{slug}/{id}.json`
+(category-scoped) because this feature is explicitly archive-wide, not scoped to one document's
+category. Archive Navigation now calls this same service (see above) rather than its own endpoint.
+Single-page-is-enough limitation applies here too, and for the same reason: fetched newest-first
+order is not used for anything by this feature — the result is always re-sorted by title, so the
+endpoint's own ordering is irrelevant either way.
 
 **Sorting and filtering are pure `lib/` functions, not service-embedded logic.**
 `lib/ddi-document-index.js` exports `sortDocumentsAlphabetically()` (title, locale-aware) and
