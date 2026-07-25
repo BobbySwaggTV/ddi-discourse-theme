@@ -191,15 +191,18 @@ family.
    that hides it on document (`topic.*`) and `admin` routes. Moved from `above-main-container` to
    `below-main-container` as part of the post-RC homepage hierarchy pass — see **Intelligence
    Index** below for why.
-2. **Intelligence Dashboard** (`connectors/above-main-container/ddi-intelligence-dashboard.*` +
+2. **Intelligence Dashboard** (`connectors/discovery-list-container-top/ddi-intelligence-dashboard.*` +
    `lib/ddi-archive-statistics.js`) — live archive statistics: Total Documents, a Departments
    breakdown, a Document Types breakdown, a Classification Levels breakdown, and up to 5 Recently
    Updated Documents. Gated by `ddi_homepage_dashboard_enabled` (already defined in `settings.yml`,
    previously unused by anything — this is its first real consumer) and the same route-guard
-   `isExcludedRoute()` Intelligence Index uses, now shared from `lib/ddi-route-guard.js` rather than
-   duplicated a second time. See **Intelligence Dashboard** below for the full design, including why
-   it renders on `above-main-container` rather than literally between the Search Banner and Topic
-   List as requested.
+   `isExcludedRoute()` Intelligence Index uses, shared from `lib/ddi-route-guard.js` rather than
+   duplicated a second time. Originally shipped on `above-main-container` (which renders before the
+   entire routed template, so before the Search Banner too, not "between" it and the Topic List as
+   requested), then relocated to `discovery-list-container-top` — a real Discourse outlet scoped to
+   the discovery/topic-list template specifically, which is the outlet family the native Search
+   Banner and Topic List both render within. See **Intelligence Dashboard** below for the full
+   reasoning and its confidence caveat.
 
 ## Backend-Only Services
 
@@ -621,9 +624,10 @@ time this was built, `ddi_homepage_dashboard_enabled` and `docs/ddi-intelligence
 dashboard.md`'s default-furniture-suppression technique were both untouched, and this feature only
 added a card below existing homepage/category-page content rather than hiding or replacing any of
 it. A scoped version of the dashboard was built later — see **Intelligence Dashboard** below — and
-the two still don't conflict: Intelligence Dashboard renders on `above-main-container` (before the
-routed template), this renders on `below-main-container` (after it), so they bound the same content
-from opposite sides without overlapping.
+the two still don't conflict: Intelligence Dashboard renders on `discovery-list-container-top`
+(inside the discovery/topic-list template, above the topic list), this renders on
+`below-main-container` (after the entire routed template), so they don't compete for the same
+space.
 
 ## Intelligence Dashboard
 
@@ -688,21 +692,45 @@ in its own connector. Since this feature needed the identical guard, it was extr
 computation, it belongs in `lib/`" rule stated at the top of this document, applied here for the
 first time to connector-guard logic rather than data logic.
 
-**Placement: `above-main-container`, not literally "between the Search Banner and the Topic
-List."** This project has exactly two "renders on every route" outlets in active use —
-`above-main-container` (before the routed template, i.e. before the Search Banner and Topic List
-both) and `below-main-container` (after both, where Intelligence Index lives). Neither achieves
-literal between-placement; no finer-grained Discourse outlet has been verified against a live
-instance in this project (there was none available this session either — the same limitation already
-flagged for connector render order elsewhere in this document), and guessing an unverified outlet
-name risks the feature silently not rendering at all, a worse failure than an honest positioning gap.
-`above-main-container` was chosen because it's the exact outlet `docs/ddi-intelligence-archive-
-dashboard.md` itself specifies for this feature, and it's already proven in this codebase (Intelligence
-Index shipped on it before its post-RC move). Net effect: the dashboard renders above the Search
-Banner, not between it and the Topic List. If literal between-placement is required, it needs a more
-specific outlet (a reasonable candidate, going purely on general Discourse knowledge rather than
-anything confirmed in this project, is `discovery-list-container-top`) verified live before switching
-to it.
+**Placement: relocated from `above-main-container` to `discovery-list-container-top`, resolving
+the earlier "not literally between" gap.** The dashboard originally shipped on `above-main-container`
+because it was the only outlet already proven in this codebase — but that outlet renders before the
+*entire* routed template, so before the Search Banner too, not between it and the Topic List as
+requested. `above-main-container`/`below-main-container` are theme-wide "renders on every route"
+outlets; neither is scoped to the discovery page's internal layout at all, which is why neither could
+ever have achieved true between-placement no matter how they were combined.
+
+`discovery-list-container-top` is different in kind, not just position: it's an outlet Discourse core
+defines *inside* the discovery/topic-list template itself, specifically for content that should
+appear above the topic list on a listing page — the same template region the native Search Banner
+and `.custom-search-banner-wrap` styling (see **Intelligence Index** above) already render within.
+Moving the connector there (a pure `git mv` — the `.js`/`.hbs` contents, `shouldRender()` setting
+gate, and `isExcludedRoute()` guard are all byte-for-byte unchanged) is what makes "immediately after
+the Search Banner, before the Topic List" achievable at all, rather than a second attempt at the same
+theme-wide-outlet compromise.
+
+**Confidence caveat, stated plainly, same as before.** This project has no history of using
+`discovery-list-container-top` — Intelligence Index and the dashboard's first attempt both stuck to
+`above-main-container`/`below-main-container` specifically because those were already proven here.
+`discovery-list-container-top` is used based on general knowledge of Discourse core's outlet catalog,
+not verified against a live instance of this theme (none was available this session, the same
+limitation already flagged for connector render order elsewhere in this document). The failure mode
+if the outlet name is wrong is safe, not silent breakage: Discourse's plugin-outlet system simply
+never mounts a connector registered for an outlet name that doesn't exist at that template location —
+the dashboard would just not render, exactly as if `ddi_homepage_dashboard_enabled` were `false`,
+with no error and no effect on the rest of the page. Recommended verification: load the homepage on a
+real instance and confirm the card appears; if it doesn't, `above-main-container` is the documented,
+proven fallback (one-line outlet-folder revert, same as this move itself), at the cost of
+re-introducing the "above the Search Banner" gap this change was meant to close.
+
+**The existing route guard was kept, not removed, despite the new outlet already being
+discovery-scoped.** `isExcludedRoute()` (hide on `topic.*`/`admin`) was written for
+`above-main-container`, which renders on literally every route. `discovery-list-container-top`
+likely makes that guard redundant in practice — but "likely," not confirmed, and the guard costs
+nothing to keep. Removing a real (if possibly now-redundant) safety check on the strength of an
+unverified assumption about a newly-adopted, unverified outlet would be trading a small, harmless
+redundancy for a real regression risk if that assumption turns out wrong. Left in place deliberately,
+not as an oversight.
 
 **Fails gracefully by construction, not via a separate error path.** `getIndex()` already resolves to
 `[]` on a fetch failure rather than rejecting (see **Intelligence Index** above), so
@@ -927,7 +955,7 @@ was verified by grepping for references — not assumed.
   file was ever rendered. `docs/ddi-command-network-interface.md` planned real connectors for this
   (`connectors/above-main-container/ddi-homepage-dashboard.hbs` and `ddi-sidebar-panel.hbs`) that were
   never built at the time. **Partially addressed since**: a scoped version now exists at
-  `connectors/above-main-container/ddi-intelligence-dashboard.*` — see **Intelligence Dashboard**
+  `connectors/discovery-list-container-top/ddi-intelligence-dashboard.*` — see **Intelligence Dashboard**
   above — covering 5 of the design doc's statistics-oriented sections. The sidebar half, and the
   dashboard's remaining sections (Search Intelligence, Operational Divisions, Recent Intelligence,
   Recent Revisions), are still unbuilt; `docs/ddi-intelligence-archive-dashboard.md` remains the

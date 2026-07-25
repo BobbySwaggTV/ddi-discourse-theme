@@ -8,6 +8,32 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Intelligence Dashboard relocated to achieve true between-placement
+
+- Moved `connectors/above-main-container/ddi-intelligence-dashboard.*` to
+  `connectors/discovery-list-container-top/ddi-intelligence-dashboard.*` — a pure outlet-folder
+  rename via `git mv`, zero changes to the connector's `.js`/`.hbs` contents, the
+  `ddi_homepage_dashboard_enabled` setting gate, or the `isExcludedRoute()` route guard. Component
+  logic is outlet-agnostic, the same precedent already established when Intelligence Index moved
+  from `above-main-container` to `below-main-container`.
+- This resolves the previous session's explicitly-flagged placement gap: `above-main-container`
+  renders before the *entire* routed template (before the Search Banner too), so it could never
+  achieve "directly beneath the Search Banner, before the Topic List" no matter how it was combined
+  with `below-main-container`. `discovery-list-container-top` is a different kind of outlet — one
+  Discourse core defines *inside* the discovery/topic-list template, specifically above the topic
+  list, in the same template region the native Search Banner renders in.
+- **Confidence caveat, unchanged in kind from before:** this outlet has no prior use in this project
+  and is not verified against a live instance (none available this session). The failure mode if the
+  name is wrong is safe — Discourse's plugin-outlet system silently doesn't mount a connector for a
+  nonexistent outlet, so worst case the card just doesn't appear, with no error and no effect on the
+  rest of the page. `above-main-container` remains the documented, proven fallback if live testing
+  shows the new outlet doesn't render.
+- Route guard deliberately left in place rather than removed, even though the new outlet is likely
+  already discovery-scoped on its own: "likely" isn't "confirmed," and the guard costs nothing to
+  keep. See `ARCHITECTURE.md`'s **Intelligence Dashboard** section for the full reasoning.
+- No second dashboard created, no logic duplicated, no styling changed — verified via `git status`
+  that only the two files' paths changed.
+
 ## 2026-07-25 — Intelligence Dashboard: live archive statistics on the homepage
 
 - Added a new homepage card — Total Documents, a Departments breakdown, a Document Types breakdown,
