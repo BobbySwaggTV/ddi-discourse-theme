@@ -37,8 +37,11 @@ for any new work:
   input. Example: `formatDocumentId(id)`, `formatDocumentDate(date)`. If two pieces of code need the
   same computation, it belongs here, imported by both — not reimplemented in each place.
 - **`services/`** — Ember `Service` classes, used when logic needs to do async work (network
-  requests) or would benefit from being injectable/reusable across multiple connectors. Currently
-  one example: `ddi-related-intelligence.js`.
+  requests) or would benefit from being injectable/reusable across multiple connectors.
+  `ddi-related-intelligence.js` injects `ddi-citation-preview.js` rather than shaping its own result
+  objects — a service depending on another service for a shared concern (turning a topic into
+  display-ready fields) is the same pattern as any other reuse rule here, just at the service layer
+  instead of `lib/`.
 - **`connectors/<outlet-name>/<name>.js` + `.hbs`** — the classic Discourse plugin-outlet-connector
   shape: a `{ setupComponent(args, component) { ... } }` export paired with a template that reads
   `{{this.someProperty}}`. Connectors should contain wiring only — look up data, call into `lib/`
@@ -131,9 +134,15 @@ body and have it become clickable without any manual linking.
 **Scoped to the first post only** (`post.post_number !== 1` skips everything else), consistent with
 every other component in this list treating the first post as "the document."
 
-**Future hover preview:** each generated link carries a `ddi-cross-reference` class and a
-`data-ddi-document-id` attribute — the hook a future preview feature needs — but no hover behavior
-is implemented. Building that now wasn't necessary to satisfy the current requirement.
+**Citation preview service:** `services/ddi-citation-preview.js` provides `getCitationById(documentId)`
+— given the exact ID a cross-reference link's `data-ddi-document-id` attribute already carries, it
+returns `{ documentId, title, classification, classificationClass, department, revision, url }` for
+that document, fetching and caching by ID (so repeated hovers over the same reference don't
+re-fetch). No hover-triggered popup/card UI exists yet — this is deliberately the data layer only,
+ready for a future component to inject this service and call it on `mouseenter`. This same service
+is also injected by `ddi-related-intelligence.js` (via `getCitation(topic)`, the non-ID entry point)
+to shape its related-document rows — the "turn a topic into these 7 fields" logic exists in exactly
+one place, not duplicated between the two features that both need it.
 
 **Unverified against a live instance**, consistent with other Discourse API usage flagged elsewhere
 in this document: `decorateCookedElement`'s `{ onlyStream: true }` option and `helper.getModel()`

@@ -1,8 +1,6 @@
 import Service, { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { getClassification } from "../lib/ddi-classification";
-import { formatDocumentId } from "../lib/ddi-document-id";
-import { formatRevision } from "../lib/ddi-revision";
 
 const CATEGORY_MATCH_SCORE = 100;
 const CLASSIFICATION_MATCH_SCORE = 50;
@@ -10,7 +8,7 @@ const SHARED_TAG_SCORE = 25;
 const MAX_RESULTS = 5;
 
 export default class DdiRelatedIntelligenceService extends Service {
-  @service site;
+  @service ddiCitationPreview;
 
   async findRelated(topic) {
     if (!topic) {
@@ -104,35 +102,7 @@ export default class DdiRelatedIntelligenceService extends Service {
     return score;
   }
 
-  async _present(candidate) {
-    const { classification, className: classificationClass } =
-      getClassification(candidate);
-
-    const department =
-      this.site.categories?.findBy("id", candidate.category_id)?.name ||
-      "Uncategorized";
-
-    const revision = await this._fetchRevisionNumber(candidate);
-
-    return {
-      id: candidate.id,
-      title: candidate.title,
-      url: `/t/${candidate.slug}/${candidate.id}`,
-      documentId: formatDocumentId(candidate.id),
-      classification,
-      classificationClass,
-      department,
-      revision,
-    };
-  }
-
-  async _fetchRevisionNumber(candidate) {
-    const response = await ajax(
-      `/t/${candidate.slug}/${candidate.id}.json`
-    ).catch(() => null);
-
-    const version = response?.post_stream?.posts?.[0]?.version;
-
-    return version ? formatRevision(version) : "—";
+  _present(candidate) {
+    return this.ddiCitationPreview.getCitation(candidate);
   }
 }

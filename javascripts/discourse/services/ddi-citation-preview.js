@@ -1,0 +1,71 @@
+import Service, { service } from "@ember/service";
+import { ajax } from "discourse/lib/ajax";
+import { getClassification } from "../lib/ddi-classification";
+import { formatDocumentId } from "../lib/ddi-document-id";
+import { formatRevision } from "../lib/ddi-revision";
+
+export default class DdiCitationPreviewService extends Service {
+  @service site;
+
+  _cache = new Map();
+
+  async getCitationById(documentId) {
+    if (!documentId) {
+      return null;
+    }
+
+    if (!this._cache.has(documentId)) {
+      this._cache.set(documentId, this._loadCitationById(documentId));
+    }
+
+    return this._cache.get(documentId);
+  }
+
+  async _loadCitationById(documentId) {
+    const topic = await ajax(`/t/${documentId}.json`).catch(() => null);
+
+    if (!topic) {
+      this._cache.delete(documentId);
+      return null;
+    }
+
+    return this.getCitation(topic);
+  }
+
+  async getCitation(topic) {
+    if (!topic) {
+      return null;
+    }
+
+    const { classification, className: classificationClass } =
+      getClassification(topic);
+
+    const department =
+      this.site.categories?.findBy("id", topic.category_id)?.name ||
+      "Uncategorized";
+
+    const revision = await this._resolveRevision(topic);
+
+    return {
+      id: topic.id,
+      documentId: formatDocumentId(topic.id),
+      title: topic.title,
+      classification,
+      classificationClass,
+      department,
+      revision,
+      url: topic.slug ? `/t/${topic.slug}/${topic.id}` : `/t/${topic.id}`,
+    };
+  }
+
+  async _resolveRevision(topic) {
+    let version = topic.post_stream?.posts?.[0]?.version;
+
+    if (version == null) {
+      const response = await ajax(`/t/${topic.id}.json`).catch(() => null);
+      version = response?.post_stream?.posts?.[0]?.version;
+    }
+
+    return version ? formatRevision(version) : "—";
+  }
+}
