@@ -1,17 +1,15 @@
-import { getClassification } from "../../lib/ddi-classification";
+import { getOwner } from "@ember/owner";
 
 export default {
   setupComponent(args, component) {
-    const {
-      classification,
-      className: classificationClass,
-      message,
-    } = getClassification(args.model);
+    const metadata = getOwner(component)
+      .lookup("service:ddi-document-metadata")
+      .getMetadata(args.model);
 
     component.setProperties({
-      classification,
-      classificationClass,
-      message,
+      classification: metadata.classification,
+      classificationClass: metadata.classificationClass,
+      message: metadata.classificationMessage,
     });
   },
 };

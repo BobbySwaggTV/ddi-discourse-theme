@@ -1,5 +1,4 @@
-import { getClassification } from "../../lib/ddi-classification";
-import { formatDocumentAuthor } from "../../lib/ddi-author";
+import { getOwner } from "@ember/owner";
 
 export default {
   setupComponent(args, component) {
@@ -8,22 +7,15 @@ export default {
         return;
       }
 
-      const author = formatDocumentAuthor(
-        args.model.postStream?.posts?.[0]?.username
-      );
-
-      const status = topic.closed ? "LOCKED" : "ACTIVE";
-
-      const {
-        classification,
-        className: classificationClass,
-      } = getClassification(topic);
+      const metadata = getOwner(component)
+        .lookup("service:ddi-document-metadata")
+        .getMetadata(topic);
 
       component.setProperties({
-        author,
-        status,
-        classification,
-        classificationClass,
+        author: metadata.author,
+        status: metadata.status,
+        classification: metadata.classification,
+        classificationClass: metadata.classificationClass,
       });
     }
 

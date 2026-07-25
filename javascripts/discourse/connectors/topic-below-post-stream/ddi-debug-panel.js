@@ -1,4 +1,4 @@
-import { buildDebugSnapshot } from "../../lib/ddi-debug";
+import { getOwner } from "@ember/owner";
 
 export default {
   shouldRender() {
@@ -6,23 +6,27 @@ export default {
   },
 
   setupComponent(args, component) {
-    const snapshot = buildDebugSnapshot(args.model);
+    const topic = args.model;
 
-    if (!snapshot) {
+    const metadata = getOwner(component)
+      .lookup("service:ddi-document-metadata")
+      .getMetadata(topic);
+
+    if (!metadata) {
       return;
     }
 
     component.setProperties({
-      documentId: snapshot.documentId,
-      topicId: snapshot.topicId,
-      category: snapshot.category,
-      classification: snapshot.classification,
-      detectedTags: snapshot.tags.length
-        ? snapshot.tags.join(", ")
+      documentId: metadata.documentNumber,
+      topicId: topic.id,
+      category: metadata.category,
+      classification: metadata.classification,
+      detectedTags: metadata.tags.length
+        ? metadata.tags.join(", ")
         : "None detected",
-      revision: snapshot.revision,
-      wordCount: snapshot.wordCount,
-      readingTime: snapshot.readingTime,
+      revision: metadata.revision,
+      wordCount: metadata.wordCount,
+      readingTime: metadata.readingTime,
     });
   },
 };

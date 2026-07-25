@@ -1,26 +1,21 @@
-import { getClassification } from "../../lib/ddi-classification";
-import { formatDocumentId } from "../../lib/ddi-document-id";
-import { formatDocumentDate } from "../../lib/ddi-format-date";
-import { formatRevision } from "../../lib/ddi-revision";
-import { formatDocumentAuthor } from "../../lib/ddi-author";
-import { UNCATEGORIZED_LABEL } from "../../lib/ddi-category";
+import { getOwner } from "@ember/owner";
 
 export default {
   setupComponent(args, component) {
     const topic = args.model;
-    const post = topic.postStream?.posts?.[0];
 
-    const { classification, className: classificationClass } =
-      getClassification(topic);
+    const metadata = getOwner(component)
+      .lookup("service:ddi-document-metadata")
+      .getMetadata(topic);
 
     component.setProperties({
-      documentId: formatDocumentId(topic.id),
-      classification,
-      classificationClass,
-      revision: formatRevision(post?.version),
-      department: topic.category?.name ?? UNCATEGORIZED_LABEL,
-      lastUpdated: formatDocumentDate(post?.updated_at || post?.created_at),
-      author: formatDocumentAuthor(post?.username),
+      documentId: metadata.documentNumber,
+      classification: metadata.classification,
+      classificationClass: metadata.classificationClass,
+      revision: metadata.revision,
+      department: metadata.departmentDisplay,
+      lastUpdated: metadata.updatedDate,
+      author: metadata.author,
     });
   },
 };
