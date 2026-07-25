@@ -1,6 +1,9 @@
 import { getOwner } from "@ember/owner";
 import { isExcludedRoute } from "../../lib/ddi-route-guard";
-import { parseCookedHtml } from "../../lib/ddi-cooked-parser";
+import {
+  getShortDescription,
+  getFullDescriptionText,
+} from "../../lib/ddi-division-summary";
 import { buildArchiveStatistics } from "../../lib/ddi-archive-statistics";
 
 const FALLBACK_MISSION_STATEMENT = "No mission statement available.";
@@ -25,16 +28,14 @@ export default {
       return;
     }
 
-    const doc = parseCookedHtml(category.description);
-    const paragraphs = [...doc.querySelectorAll("p")];
-    const bodyText = doc.body?.textContent?.trim() || "";
-
     component.setProperties({
       isVisible: true,
       isLoading: true,
       divisionName: category.name,
-      divisionDescription: paragraphs[0]?.textContent.trim() || null,
-      missionStatement: bodyText || FALLBACK_MISSION_STATEMENT,
+      divisionDescription: getShortDescription(category.description),
+      missionStatement:
+        getFullDescriptionText(category.description) ||
+        FALLBACK_MISSION_STATEMENT,
       statistics: null,
       lastUpdated: "—",
     });

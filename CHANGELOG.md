@@ -8,6 +8,42 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-25 — Division Command Center, Phase 4: Division Cards
+
+- Replaced the stock `.category-list` grid on `/categories` with DDI-styled Division Cards —
+  `connectors/discovery-list-container-top/ddi-division-cards.*` — one per division, showing
+  Division Name, Short Description, Total Documents, Last Updated, Primary Classification, and a
+  View Division button. Renders only on the `discovery.categories` route.
+- Divisions are enumerated from `site.categories` (already-loaded Discourse data, the same source
+  Citation Preview already reads) filtered through `lib/ddi-department.js`'s `isValidDepartment()` —
+  no new fetch for the category list itself, and non-division categories never get a card.
+- Per-division stats are the exact same `getIndex({ department })` + `buildArchiveStatistics()`
+  calls Phase 1/3 already make, run once per division in parallel. Primary Classification is
+  `statistics.classifications[0]?.name` — the existing sorted breakdown's first entry, not a new
+  computation. A division with zero documents shows `"—"`/`"—"`/`0`, gracefully, by the same
+  construction as every other statistics consumer here.
+- Extracted Division Header's inline paragraph-extraction into a new, shared
+  `lib/ddi-division-summary.js` (`getShortDescription()`/`getFullDescriptionText()`), and refactored
+  Division Header to use it — avoids duplicating that logic now that Division Cards needs it too.
+  Zero behavior change for Division Header.
+- View Division links to `/c/{slug}/{id}` — the identical URL expression
+  `ddi-archive-navigation.js` already uses for Department Home. No routing changes.
+- `.category-list { display: none; }` added to `common.scss`, hiding the stock grid unconditionally
+  (a documented trade-off: the only realistic way both the stock grid and Division Cards end up
+  hidden is if `site.categories` has none of the six recognized division slugs at all — a
+  site-configuration issue, not a transient failure).
+- **Dead-code cleanup, direct consequence of hiding `.category-list`:** removed `.category-box` from
+  the shared topic/category card-treatment rule (added in Phase 2, no longer reachable), removed
+  `.category-list-item` from the shared border-color rule, and removed every
+  `.category-list`/`.category-box`/`.categories-list` selector from `desktop.scss`/`mobile.scss`'s
+  responsive rules — `.topic-list-item`/`.latest-topic-list-item` entries in those same shared rules
+  were kept, since they remain genuinely live.
+- Verified: `isValidDepartment` correctly filters out a non-division category in a simulated
+  `site.categories` list; per-division stats correctly reflect only that division's documents
+  (confirmed against a multi-department test set, including correct "most common classification"
+  selection and correct newest-first date picking); a zero-document division degrades gracefully;
+  View Division URLs build correctly for every card.
+
 ## 2026-07-25 — Division Command Center, Phase 3: Division Header
 
 - Added a new card at the top of every individual category page —

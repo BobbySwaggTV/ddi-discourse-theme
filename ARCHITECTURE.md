@@ -937,6 +937,65 @@ not this one. If live testing shows Dashboard rendering above the Division Heade
 it, this is the one thing in this phase that would need adjusting, and it's a naming/outlet concern
 only — no data or logic would need to change.
 
+## Division Cards (Division Command Center, Phase 4)
+
+Replaces the stock `.category-list` grid on the `/categories` index page with DDI-styled Division
+Cards — `connectors/discovery-list-container-top/ddi-division-cards.*` — one per division, each
+showing Division Name, a Short Description, Total Documents, Last Updated, Primary Classification,
+and a View Division button. Only renders on `discovery.categories` exactly (not the homepage, not an
+individual category page, not tag pages) — a real, moderately-confident Discourse route name, more
+confident than the outlet-name guesses elsewhere in this document since discovery route names have
+been stable across Discourse versions for a long time.
+
+**Enumerates divisions from `site.categories`, the same already-loaded data source Citation Preview
+already reads — no new fetch for the category list itself.** `lib/ddi-department.js`'s
+`isValidDepartment()` filters `site.categories` down to exactly the six recognized divisions, so a
+non-division category (e.g. a `Staff` or `Meta` category, if one exists) never gets a card. This is
+what "reuse the existing category context" meant in practice here: not `ddi-category-context.js`
+directly (that service answers "which single category is being viewed," a different question from
+"list every division"), but the same `site.categories` technique this codebase already established.
+
+**Per-division statistics are `getIndex({ department })` + `buildArchiveStatistics()`, called once
+per division, in parallel — the exact same calls Phase 1/3 already make, just for more than one
+department at a time.** No new statistics logic exists anywhere in this phase. Primary Classification
+is `statistics.classifications[0]?.name` — the *existing*, already-sorted-by-count breakdown array's
+first entry — not a new "most common" computation. A division with zero documents gets `"—"` for
+Last Updated and Primary Classification and `0` for Total Documents, the same graceful-by-construction
+fallback as every other statistics consumer in this codebase (`getIndex()` never rejects).
+
+**Short Description reuses the same extraction Division Header uses, now shared.** The
+paragraph-extraction logic Division Header (Phase 3) had inline was extracted into a new
+`lib/ddi-division-summary.js` (`getShortDescription()`/`getFullDescriptionText()`, both built on the
+existing `parseCookedHtml()`), and Division Header was refactored to import from it instead of
+duplicating the logic a second time now that Division Cards needs the identical short-description
+extraction. Zero behavior change for Division Header — verified by re-reading its output against the
+same test cases used when it was first built.
+
+**"Preserve existing navigation behavior," concretely: the View Division button is
+`/c/{slug}/{id}`** — the identical URL-building expression `services/ddi-archive-navigation.js`
+already uses for its own Department Home link. No new routing, no client-side navigation override;
+this is a plain anchor tag Discourse's own router already knows how to handle.
+
+**The stock category grid is hidden unconditionally, not conditionally — a deliberate, documented
+trade-off, not an oversight.** `.category-list { display: none; }` in `common/common.scss` applies
+regardless of whether Division Cards actually has data to show. In the realistic failure mode
+(`getIndex()` degrading to `[]` per division), cards still render, just with zero-valued stats — this
+doesn't trigger the hidden-grid problem. The only way the page would show neither the stock grid nor
+Division Cards is if `site.categories` contains none of the six recognized department slugs at all —
+a genuine site-configuration issue, not a transient failure, and not worth the added complexity of a
+body-class toggle or DOM-mutation approach to fully cover. Flagged here rather than silently accepted.
+
+**Dead code removed as a direct consequence of hiding `.category-list`, not left behind.** Once the
+stock grid is hidden, everything that only ever rendered inside it has no visible effect either:
+`.category-box` (added to the shared topic/category card-treatment rule in Phase 2, now removed from
+it — that rule's section comment was updated to explain why), `.category-list-item`'s border-color
+(removed from the shared rule it was part of, `.topic-list-item` kept), and in
+`desktop/desktop.scss`/`mobile/mobile.scss`, every `.category-list`/`.category-box`/`.categories-list`
+selector in the responsive breakpoint rules (min-height, padding, `clip-path`, grid layout) — all
+removed, `.topic-list-item`/`.latest-topic-list-item`'s entries in those same shared rules kept, since
+those remain genuinely live. `.category-list` itself was also dropped from the earlier "Discourse
+Surface Panels" background/border rule for the same reason.
+
 ## Document Integrity Verification
 
 Five PASS/WARN checks — Classification, Department, Document Type, Lifecycle, Metadata — against

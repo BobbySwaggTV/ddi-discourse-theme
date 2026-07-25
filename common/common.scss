@@ -135,7 +135,6 @@ body::before {
 
 .panel,
 .topic-list,
-.category-list,
 .latest-topic-list,
 .list-controls,
 .search-menu {
@@ -175,11 +174,29 @@ body::before {
 }
 
 /* ============================================================
+   DDI DIVISION CARDS
+   (Phase 4: replaces the stock Category list — hidden below —
+   with DDI-styled Division Cards rendered by a new connector on
+   discovery-list-container-top)
+   ============================================================ */
+
+.category-list {
+  display: none;
+}
+
+.ddi-division-cards-grid {
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+
+  gap: 16px;
+}
+
+/* ============================================================
    GLOBAL BORDERS
    ============================================================ */
 
-.topic-list-item,
-.category-list-item {
+.topic-list-item {
   border-color:
     var(--ddi-border);
 }
@@ -228,14 +245,15 @@ a:hover {
 
 /* ============================================================
    DDI TOPIC / CATEGORY CARD TREATMENT
-   (topic rows, category boxes, and the categories page's "latest"
-   rows all share one card treatment — see Division Command Center,
-   Phase 2, for why .category-box / .latest-topic-list-item were
-   added to this existing rule rather than duplicating it)
+   (topic rows and the categories page's "latest" rows share one
+   card treatment — see Division Command Center, Phase 2, for why
+   .latest-topic-list-item was added to this existing rule rather
+   than duplicating it. .category-box was added in Phase 2 too, then
+   removed in Phase 4 once .category-list was hidden entirely in
+   favor of DDI Division Cards — it had no other rendering context)
    ============================================================ */
 
 .topic-list .topic-list-item,
-.category-box,
 .latest-topic-list-item {
 
   margin-bottom: 12px;
@@ -266,7 +284,6 @@ a:hover {
 
 
 .topic-list .topic-list-item:hover,
-.category-box:hover,
 .latest-topic-list-item:hover {
 
   transform:

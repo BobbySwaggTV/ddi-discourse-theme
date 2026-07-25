@@ -3,22 +3,6 @@
 		max-width: 1700px;
 	}
 
-	.category-list {
-		gap: 1rem;
-	}
-
-	.categories-and-latest .categories-list,
-	.category-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-		gap: 1rem;
-	}
-
-	.category-box {
-		min-height: 180px;
-		padding: 1rem 1.1rem;
-	}
-
 	.topic-list-item,
 	.latest-topic-list-item {
 		min-height: 74px;

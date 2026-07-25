@@ -1,0 +1,57 @@
+{{#if this.isVisible}}
+  <div class="ddi-card">
+
+    <div class="ddi-card-title">
+      Division Navigation
+    </div>
+
+    {{#if this.isLoading}}
+      <div class="ddi-card-body">
+        LOADING DIVISION CARDS…
+      </div>
+    {{else}}
+      <div class="ddi-division-cards-grid">
+        {{#each this.cards as |card|}}
+          <div class="ddi-card">
+
+            <div class="ddi-card-title">
+              {{card.name}}
+            </div>
+
+            {{#if card.description}}
+              <div class="ddi-card-body">
+                {{card.description}}
+              </div>
+            {{/if}}
+
+            <div class="ddi-stat-grid">
+
+              <div class="ddi-stat-tile ddi-stat-tile-total">
+                <span>Total Documents</span>
+                <strong>{{card.totalDocuments}}</strong>
+              </div>
+
+              <div class="ddi-stat-tile">
+                <span>Last Updated</span>
+                <strong>{{card.lastUpdated}}</strong>
+              </div>
+
+              <div class="ddi-stat-tile">
+                <span>Primary Classification</span>
+                <strong>{{card.primaryClassification}}</strong>
+              </div>
+
+            </div>
+
+            <a class="ddi-nav-link" href="{{card.url}}">
+              <span>View Division</span>
+              <strong>{{card.name}}</strong>
+            </a>
+
+          </div>
+        {{/each}}
+      </div>
+    {{/if}}
+
+  </div>
+{{/if}}
