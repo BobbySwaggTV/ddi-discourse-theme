@@ -70,6 +70,16 @@ follow, not as a heavily battle-tested convention with lots of prior art.
   clear naming carries the weight. If you're explaining *what* code does, rename instead.
 - **Optional chaining and nullish coalescing** (`topic?.tags`, `post?.version ?? 1`) are used
   freely for Discourse model access throughout — prefer them over manual `&&` guards.
+- **No Ember Native Array Extensions** (`findBy`, `filterBy`, `mapBy`, `sortBy`, `rejectBy`, `isAny`,
+  `isEvery`, `any`, `everyBy`, `firstObject`, `lastObject`) — deprecated by Discourse
+  (`discourse.native-array-extensions.*`) and trigger an admin warning. Use native `Array.prototype`
+  methods instead: `array.find((item) => item.key === value)` for `findBy`, `array.filter(...)` for
+  `filterBy`/`rejectBy` (negate the predicate for the latter), `array.map(...)` for `mapBy`,
+  `[...array].sort(...)` for `sortBy` (spread first — native `.sort()` mutates in place, `sortBy`
+  doesn't), `array.some(...)`/`array.every(...)` for `isAny`/`isEvery`, and `array.at(0)`/
+  `array.at(-1)` (or `array[0]`/`array[array.length - 1]`) for `firstObject`/`lastObject`. Verified
+  clean as of the 2026-07-26 audit — a repo-wide grep for all eleven names found and fixed the one
+  remaining case (`ddi-citation-preview.js`'s `categories.findBy(...)`).
 
 ## SCSS Organization
 

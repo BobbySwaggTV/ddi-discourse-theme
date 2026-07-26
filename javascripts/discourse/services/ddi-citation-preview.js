@@ -47,8 +47,9 @@ export default class DdiCitationPreviewService extends Service {
       getClassification(topic);
 
     const department =
-      this.site.categories?.findBy("id", topic.category_id)?.name ||
-      UNCATEGORIZED_LABEL;
+      this.site.categories?.find(
+        (category) => category.id === topic.category_id
+      )?.name || UNCATEGORIZED_LABEL;
 
     const documentType =
       (topic.tags || []).find((tag) => isValidDocumentType(tag)) || null;

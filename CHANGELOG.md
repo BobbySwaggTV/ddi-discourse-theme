@@ -8,6 +8,24 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Deprecated Ember Native Array Extensions audit and fix
+
+- Discourse admin was warning: `Theme "DDI Internal Command Network" contains code which needs
+  updating. (id: discourse.native-array-extensions.findBy)`.
+- Audited the entire repository (`grep -rn` across all `.js`/`.hbs` files) for all eleven deprecated
+  Ember Native Array Extension names (`findBy`, `filterBy`, `mapBy`, `sortBy`, `rejectBy`, `isAny`,
+  `isEvery`, `any`, `everyBy`, `firstObject`, `lastObject`). Found exactly one occurrence:
+  `services/ddi-citation-preview.js:50`, `this.site.categories?.findBy("id", topic.category_id)`.
+- Replaced with the native equivalent: `this.site.categories?.find((category) => category.id ===
+  topic.category_id)`. Verified behaviorally identical (matching id, no match, and
+  undefined-array short-circuit via `?.` all produce the same result as before) before and after.
+  No other line in the file, or anywhere else in the repo, changed.
+- Re-ran the same repo-wide audit after the fix: zero remaining occurrences of any of the eleven
+  names.
+- Added a rule to `CODING_STANDARDS.md`'s JavaScript Style section recording this as a standing
+  constraint (with the native replacement for each of the eleven names), so it doesn't reappear
+  unnoticed in future work.
+
 ## 2026-07-25 — Command Palette: Ctrl+K / Cmd+K archive navigation
 
 - Added `api-initializers/ddi-command-palette.js` — a floating palette opened via `Ctrl+K`/`Cmd+K`
