@@ -8,6 +8,38 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — DDI System Status Dashboard: staff-only archive health summary
+
+- New staff/admin-only, read-only summary card dashboard: Total Documents, Documents Missing
+  Metadata, Broken Cross References, Broken Related Documents, Duplicate Document Numbers, Draft
+  Documents, Archived Documents, Public/Internal/Restricted/Top Secret Documents. The four
+  issue-derived cards open the Document Integrity Dashboard directly.
+- New `services/ddi-system-status.js` derives every figure from two existing sources, adding no new
+  archive scanning or validation of its own: `ddiIntelligenceIndex.getIndex()` +
+  `lib/ddi-archive-statistics.js#buildArchiveStatistics()` for totals and classification counts (same
+  call Homepage Dashboard already makes); `ddiIntegrityDashboard.getSummary()` for everything else.
+- Extended `services/ddi-integrity-dashboard.js` with `getSummary()` (returns `{ issues,
+  lifecycleCounts }` from a single scan) rather than having the new service duplicate its
+  scan-and-adapt-to-Metadata-Engine logic to reach lifecycle data. `getIssues()`'s own behavior and
+  return shape are unchanged — both methods now share one internal `_buildIssues()`.
+- Also moved the Integrity Dashboard's `isOpen`/`isLoading`/`issues` state from local
+  connector-component state onto the service itself (`@tracked` fields, `open()`/`close()` methods) —
+  needed so System Status's cards can open that same dialog via a plain service call. The Integrity
+  Dashboard connector's own visible behavior is unchanged; only where its state lives moved.
+- "Documents Missing Metadata" and "Duplicate Document Numbers" count unique documents (a document
+  with two missing fields, or a duplicate-number pair, counts once); "Broken Cross References" and
+  "Broken Related Documents" count issue rows directly (two broken references in one document are two
+  problems, not one) — verified with a mock scenario covering both collapsing behaviors plus an
+  empty-archive case (all-zero, no throw).
+- New `ddi_system_status_enabled` setting (default on); gated the same way as the Integrity
+  Dashboard — connector `shouldRender()` staff check plus a second `currentUser?.staff` check inside
+  the service.
+- Reuses `.ddi-stat-grid`/`.ddi-stat-tile`/`.ddi-stat-tile-total` (Homepage Dashboard/Division
+  Header/Division Cards' own stat-card styling) and `.ddi-integrity-trigger`/`.ddi-command-palette-
+  backdrop` verbatim; only a `.ddi-stat-tile-link` clickable-card modifier and a
+  `.ddi-system-status-trigger` position modifier (so the two staff corner buttons stack instead of
+  overlapping) are new CSS.
+
 ## 2026-07-26 — Document Integrity Dashboard: staff-only archive-wide audit table
 
 - New staff/admin-only, read-only dashboard: one table row per detected issue across the whole

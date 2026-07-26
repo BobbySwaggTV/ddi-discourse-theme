@@ -1624,6 +1624,98 @@ already written against; `service:current-user` and `.staff` are standard, long-
 conventions. Untested against a live Discourse instance — if either assumption is wrong, the safe
 failure mode is the trigger button simply not appearing or not opening, not a broken page.
 
+## DDI System Status Dashboard
+
+A staff-only, read-only archive health summary — simple stat cards (Total Documents, Documents
+Missing Metadata, Broken Cross References, Broken Related Documents, Duplicate Document Numbers,
+Draft/Archived Documents, Public/Internal/Restricted/Top Secret Documents), with the four
+issue-derived cards linking into the Document Integrity Dashboard. Built entirely on top of two
+already-existing things rather than re-deriving any of their data.
+
+**Reuses `lib/ddi-archive-statistics.js` for totals and classification counts, exactly as an existing
+consumer would.** `services/ddi-system-status.js` fetches the archive's citation-shaped documents via
+`ddiIntelligenceIndex.getIndex()` (the same call Homepage Dashboard already makes) and runs them
+through the same `buildArchiveStatistics()` Homepage Dashboard and Division Header already use.
+`totalDocuments` and the four classification counts (Public/Internal/Restricted/Top Secret — looked up
+by name from `statistics.classifications`) come from this call alone; nothing about archive statistics
+was reimplemented.
+
+**Reuses the Integrity Dashboard's own scan for everything else, rather than scanning the archive a
+second time.** The four remaining counts — Documents Missing Metadata, Broken Cross References,
+Broken Related Documents, Duplicate Document Numbers — plus Draft/Archived Documents, all come from a
+single call to `ddiIntegrityDashboard.getSummary()` (see **Document Integrity Dashboard** above),
+which was extended (not duplicated) specifically to serve this need: it already scans every document
+and runs every check to build the issue table, so this dashboard just asks for that same result
+shaped two ways — the issue list (for counts) and a lifecycle tally (for Draft/Archived, which the
+Integrity Dashboard's own issue table has no reason to expose otherwise).
+
+**"Documents Missing Metadata" counts documents, not issue rows — the other three count issue rows.**
+A document missing both its classification and department tags produces two separate rows in the
+Integrity Dashboard's table (one issue per missing field), but should only count once as "a document
+with a metadata gap" here — `getStatus()` de-duplicates by `documentNumber` across the four
+missing-metadata issue types for that one figure. Broken Cross References and Broken Related Documents
+intentionally do *not* de-duplicate this way: a document with two separate broken cross-references is
+two real problems to go fix, not one, so those counts reflect issue rows directly. Duplicate Document
+Numbers de-duplicates by document number for the same reason as Missing Metadata — the group, not
+each row `_duplicateIssues()` emits per member of the group, is the countable thing.
+
+**Draft/Archived counts, and only those two, needed a small new capability in the Integrity Dashboard
+service — not a new scan.** Citation-shaped documents (`buildArchiveStatistics`'s input) have no
+`lifecycle` field at all; the Metadata Engine's output does, but only the Integrity Dashboard's scan
+already resolves every document through the Metadata Engine. Rather than have this new service
+duplicate that scan-and-adapt logic to reach the same `metadata.lifecycle` values, `getSummary()`
+was added to `ddi-integrity-dashboard.js` to return `{ issues, lifecycleCounts }` from one scan;
+`getIssues()` itself is unchanged — both public methods now share one internal `_buildIssues()`.
+
+**No per-issue-type filtering on drill-down — clicking any of the four issue-derived cards just opens
+the full Integrity Dashboard.** A more surgical "jump straight to just the broken cross-references"
+view would need new filtering support added to the Integrity Dashboard itself, which wasn't asked for
+here and would have grown that already-shipped feature's scope. Opening the same dialog with every
+issue visible still satisfies "links into the Integrity Dashboard where applicable" without it.
+
+**The Integrity Dashboard's dialog state moved from the connector into the service to make this
+possible cleanly.** Before this feature, `isOpen`/`isLoading`/`issues` lived as local component state
+on `connectors/above-main-container/ddi-integrity-dashboard.js`, set via `setupComponent`/actions —
+fine when only that one connector ever needed to open its own dialog. `ddi-system-status.js`'s summary
+cards need to open that *same* dialog from a *different* connector, which local component state can't
+do without new cross-component plumbing. Moving `isOpen`/`isLoading`/`issues` onto the service itself
+(as `@tracked` fields, with `open()`/`close()` methods) makes the service the single source of truth;
+the Integrity Dashboard connector was updated to read/act through `this.ddiIntegrityDashboard` instead
+of local state, with no change to its own visible behavior, and `ddi-system-status.js` simply injects
+the same service and calls `.open()` — no event bus, no new shared state container, no DOM-querying
+across connector boundaries.
+
+**Two full-screen dialogs never stack.** The System Status panel's "open Integrity Dashboard" action
+closes itself first, then opens the Integrity Dashboard — both dialogs reuse the same
+`.ddi-command-palette-backdrop`/`z-index: 2000` shell, so showing both at once would just be two
+identical full-screen overlays on top of each other with no visible way to tell them apart.
+
+**Two independent archive scans still happen per open, and that's an accepted, stated cost, not an
+oversight.** `ddiIntelligenceIndex.getIndex()` (for totals/classifications) and
+`ddiIntegrityDashboard.getSummary()` (for issues/lifecycle) each independently fetch `/latest.json`
+and then per-topic data in their own separate ways — the former via Citation Preview's caching, the
+latter via its own raw `/t/{id}.json` fetches. Unifying them into one shared fetch layer would be a
+deeper refactor than this feature's "reuse existing services, don't touch their internals beyond what's
+needed" mandate calls for; both are staff-only, on-demand (only run when a trigger button is clicked),
+never on a normal page load.
+
+**Staff-only, gated twice, matching the Integrity Dashboard's own pattern exactly.**
+`connectors/above-main-container/ddi-system-status.js`'s `shouldRender()` checks `service:current-user`
+`.staff` before the connector even mounts; `getStatus()` checks `currentUser?.staff` again and returns
+`null` if false. A new `ddi_system_status_enabled` setting (default on) gates the connector the same
+way `ddi_integrity_dashboard_enabled` does, without replacing the staff check.
+
+**Fully read-only.** The only actions are "open Integrity Dashboard" (navigates to another read-only
+view) and "Close." No document is modified, tagged, or otherwise changed.
+
+**Template reuses `.ddi-stat-grid`/`.ddi-stat-tile`/`.ddi-stat-tile-total` verbatim** — the exact same
+stat-card shell Homepage Dashboard, Division Header, and Division Cards already use — plus a new
+`.ddi-stat-tile-link` modifier (a `<button>` styled to match `.ddi-stat-tile` with a hover state,
+`font: inherit`/`text-align: left`/`width: 100%` resetting the element's own UA button defaults) for
+the four clickable cards. The trigger button reuses `.ddi-integrity-trigger` verbatim plus a
+`.ddi-system-status-trigger` modifier that only changes `bottom` so the two fixed corner buttons stack
+instead of overlapping.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
