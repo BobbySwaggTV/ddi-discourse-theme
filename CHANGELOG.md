@@ -8,6 +8,43 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Reading Lists: reusable, shareable document reading lists
+
+- New member-facing feature (own trigger button, bottom-left, distinct from the staff-only triggers):
+  create named reading lists, add/remove documents by number or link, view Documents, Estimated
+  Reading Time, and Completion Progress per list, Open All Documents, and Share.
+- Stores only document references — `{ id, name, description, documentIds: [] }` — in `localStorage`,
+  the only persistence mechanism available to a theme with no backend of its own. Every displayed
+  field is re-resolved from that id list on each open; nothing about a document's content or metadata
+  is duplicated into storage.
+- Reuses `ddiCitationPreview.getCitationById()` for Document Number, Title, Classification, Document
+  Type, Revision, and the Open link — the same cached call Favorites/Command Palette/Document Preview
+  already make.
+- Reuses the Metadata Engine for Estimated Reading Time (the one field Citation Preview doesn't
+  carry), via the same raw-topic-to-Metadata-Engine-shape adapter technique the Integrity Dashboard
+  and System Status services already established.
+- Completion Progress reuses the *existing* "recently viewed" tracking rather than inventing a new
+  read/unread toggle — the task's own required actions have no "mark as read" step, so a document
+  counts complete once its id appears in the existing recently-viewed history. Extracted
+  `lib/ddi-recently-viewed.js` out of `api-initializers/ddi-command-palette.js` (previously the sole,
+  private consumer) so both features share the one implementation.
+- Add Document reuses `parseTopicIdFromUrl()`/`parseDocumentId()` (both pre-existing) rather than a
+  new document picker UI; Open/hover reuse real `<a href>` navigation and the existing Document
+  Preview hover listener, same as the Knowledge Graph Viewer.
+- Share encodes `{ name, description, documentIds }` into a URL (base64, Unicode-safe) since there's
+  no backend to publish a shareable list to; copies via the clipboard API with a visible-URL fallback
+  if that's denied. Importing a shared list always creates a new list named `"{name} (Shared)"` — it
+  never overwrites an existing one.
+- No delete-list action — not in the task's required action list, so not added; documented as a
+  known, stated gap rather than silently left unaddressed or silently added unasked-for.
+- Fails gracefully throughout: `localStorage` unavailable/corrupt, an unresolvable document
+  number/link, or a tampered share payload all degrade to an empty/unchanged state, never a thrown
+  error.
+- Verified the full lifecycle directly: create → persist → reload → add (both input forms) → remove →
+  Completion Progress recomputing as the list changes → share/decode (including a Unicode name) →
+  import as an independent new list, plus corrupt/non-array storage fallback cases.
+- New `ddi_reading_lists_enabled` setting (default on).
+
 ## 2026-07-26 — Knowledge Graph Viewer: interactive per-document relationship graph
 
 - New topic-page connector (`topic-below-post-stream`): current document at the center, with Parent

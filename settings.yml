@@ -56,3 +56,8 @@ ddi_knowledge_graph_viewer_enabled:
   type: bool
   default: true
   description: "Show the interactive Knowledge Graph Viewer (parent/child/cross-reference/related documents, pan and zoom) below the first post on a document page"
+
+ddi_reading_lists_enabled:
+  type: bool
+  default: true
+  description: "Show the Reading Lists trigger (create reusable, shareable document reading lists stored locally in the browser)"

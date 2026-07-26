@@ -1882,6 +1882,116 @@ the four clickable cards. The trigger button reuses `.ddi-integrity-trigger` ver
 `.ddi-system-status-trigger` modifier that only changes `bottom` so the two fixed corner buttons stack
 instead of overlapping.
 
+## Reading Lists
+
+Member-facing, browser-local reading lists — create a named list, add/remove documents by number or
+link, and see its Documents, Estimated Reading Time, and Completion Progress. Unlike every other
+"panel" feature in this theme, this one's data has no native Discourse counterpart at all (bookmarks
+for Favorites, categories for Division Cards) — there is no server-side reading-list concept to
+delegate to, so this feature owns real, if small, persisted state for the first time.
+
+**Stores only document references, in `localStorage`, by necessity — not a design preference.** A
+theme has no database and no server-side storage of its own; `localStorage` (already precedented by
+Command Palette's own "recently viewed" list) is the only mechanism available at all. What's stored
+per list is exactly `{ id, name, description, documentIds: [], createdAt }` — an array of topic ids,
+nothing else. Every displayable field (title, classification, document type, revision, reading time)
+is re-resolved from that id list every time a list is opened; none of it is cached into
+`localStorage` alongside the reference. This is what "do not duplicate document storage / store only
+references" means in a theme with no backend of its own: the browser-local list of *ids* is the
+only thing this feature persists.
+
+**Reuses Citation Preview for every displayed document field except reading time.**
+`services/ddi-reading-lists.js#_loadDocumentDetail(documentId)` calls the existing
+`ddiCitationPreview.getCitationById()` — the same cached call Favorites, Document Quick Preview, and
+the Command Palette already make — for Document Number, Title, Classification, Document Type,
+Revision, and the Open link. No new "topic to display fields" mapping was written for any of those.
+
+**Reuses the Metadata Engine specifically for Estimated Reading Time — the one field Citation
+Preview doesn't carry.** Citation Preview's shape has no `readingTime` field; `ddi-document-metadata.js`
+does (`analyzeReadingTime()`, already used for the per-topic reading-time display). Since Reading
+Lists has no live Ember Topic model for documents that aren't the currently-open topic, `_resolveReadingTime()`
+fetches the raw `/t/{id}.json` payload and adapts it into the shape `getMetadata()` expects — the
+same `_adaptTopic()` shape-translation technique the Integrity Dashboard and System Status services
+already established (see **Document Integrity Dashboard** above) for exactly this "need the Metadata
+Engine's output, but there's no live Topic model" situation. A list's Estimated Reading Time is the
+sum of each of its documents' `readingTime`, computed fresh on every open — no caching, matching this
+feature's "keep implementation lightweight" mandate.
+
+**Completion Progress reuses the *existing* "recently viewed" tracking — this feature adds no new
+tracking of its own, deliberately.** The task's required actions ("Create... Add... Remove... Open
+all... Share") notably don't include any "mark as read" action, so there was no obvious signal for
+Completion Progress to come from. Rather than invent a new read/unread toggle unasked-for, this
+feature treats "has the user actually opened this document" (already recorded via
+`recordVisit()`/`ddi-recently-viewed` in `localStorage` on every topic-page visit, previously private
+to Command Palette) as that signal — a document counts as complete for a given reading list once its
+id appears in that same recently-viewed history. **Extracted `lib/ddi-recently-viewed.js` out of
+`api-initializers/ddi-command-palette.js`** (which previously defined `RECENT_STORAGE_KEY`,
+`readRecentlyViewed()`, `recordVisit()` inline as the sole consumer) so both features import the same
+unchanged logic rather than a second copy of it; Command Palette's own behavior is unaffected — same
+storage key, same cap, same fallback-on-failure.
+
+**Add Document reuses existing parsing, not a new document picker.** The input accepts either a
+document number or a pasted document URL, resolved via the existing `parseTopicIdFromUrl()` (tried
+first, so `/t/{slug}/{id}` and `/t/{id}` links both work) falling back to `parseDocumentId()` (a bare
+`DDI-XXXXXX` or plain number) — both already in `lib/ddi-document-id.js`, reused unchanged. Building a
+real document search/browser UI for this was deliberately not attempted: it would have been a
+materially larger, separate feature, and every other document-lookup surface in this theme (Command
+Palette, Timeline) already exists for finding a document number to paste in here.
+
+**Click and hover reuse the same free mechanisms Knowledge Graph Viewer already established.** Every
+document row's "Open" control is a real `<a href="{{doc.url}}">`, so it uses Discourse's own routing
+for clicks and is picked up by `ddi-document-preview.js`'s existing global hover listener for free —
+no new preview or navigation code.
+
+**Open All Documents is a real, known browser limitation, stated plainly rather than hidden.**
+`openAllDocuments()` calls `window.open()` once per document; most browsers block more than one or
+two popups triggered synchronously from a single click, depending on the user's own settings. Each
+call is independently guarded so one blocked popup doesn't prevent the rest from being attempted, but
+there is no workaround for the underlying browser behavior — a "fails gracefully, not a broken
+feature" limitation, not a bug in this code.
+
+**Share has no server to publish to, so the reading list itself is encoded into the URL.** There is
+no backend endpoint a theme could POST a shareable list to, and `localStorage` is inherently
+per-browser — the only way to hand a reading list to someone else at all is to put the data (still
+just `{ name, description, documentIds }`, never document content) directly into a URL. `lib/
+ddi-reading-list.js#encodeShareableList()`/`decodeShareableList()` base64-encode/decode that payload
+(wrapped in `encodeURIComponent`/`decodeURIComponent` for a safe Unicode round trip); `shareList()`
+copies the resulting URL via `navigator.clipboard.writeText()`, and — since clipboard access can fail
+or be denied — falls back to displaying the raw URL as plain, selectable text rather than claiming a
+false success or referencing browser history the URL was never actually added to.
+
+**Importing a shared list always creates a new list, named `"{name} (Shared)"` — it never overwrites
+anything.** `_checkForSharedList()` runs once, in the service's constructor, reading the
+`?ddi-shared-list=` query param if present; a valid payload opens the dialog automatically to an
+import/dismiss prompt rather than requiring the recipient to already know to look for it. Confirming
+import calls `importSharedList()`, which builds a brand-new list via the same `createReadingList()`
+used everywhere else — the sender's own list (if they have one client-side) and the recipient's copy
+are two entirely independent objects from that point on, consistent with there being no shared
+backend record for either side to point at.
+
+**No delete-list action — a stated scope boundary, not an oversight.** The task's required action
+list is Create, Add, Remove (documents), Open All, Share; deleting an entire list isn't among them.
+Skipping it here rather than adding it unasked-for follows this theme's established "implement
+exactly what's asked" convention, but it is a real, user-facing gap worth naming directly: today,
+the only way to get rid of an unwanted list is clearing browser storage entirely (which also clears
+Recently Viewed and the Favorites panel isn't affected, since that's server-side bookmarks — only
+Reading Lists and Recently Viewed live in `localStorage`).
+
+**Fails gracefully throughout.** `localStorage` unavailable or throwing (private browsing, quota,
+disabled): reads return `[]`, writes are silently no-ops — the panel still works for the rest of that
+page life, just doesn't persist. A document number/link that doesn't resolve to a real document:
+`addDocumentError` is set to a plain message, nothing is added, no exception surfaces. Corrupt or
+non-array data already in `localStorage` (from a future format change, manual tampering, or another
+site sharing the origin): treated as an empty list, not a crash. An invalid or tampered
+`?ddi-shared-list=` value: silently ignored, no import prompt shown.
+
+**Verified directly.** The full lifecycle — create, persist, reload, add (both a bare document number
+and a `/t/{slug}/{id}/{post}` URL), remove, recompute Completion Progress as the list changes, encode/
+decode a shareable payload (including a Unicode name) and import it as a distinct new list without
+touching the original — was exercised end to end against the real pure `lib/ddi-reading-list.js`
+functions plus an in-memory `localStorage` standing in for the browser's, alongside corrupt-data and
+non-array-data fallback cases.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`

@@ -1,0 +1,214 @@
+<button type="button" class="ddi-integrity-trigger ddi-reading-lists-trigger" {{action "open"}}>
+  Reading Lists
+</button>
+
+<div class="ddi-command-palette-backdrop ddi-integrity-dashboard ddi-reading-lists-dashboard {{if this.ddiReadingLists.isOpen "ddi-command-palette-open"}}">
+  <div class="ddi-card ddi-integrity-dashboard-panel ddi-reading-lists-panel">
+
+    <div class="ddi-card-title">
+      READING LISTS
+    </div>
+
+    {{#if this.ddiReadingLists.sharedListPreview}}
+      <div class="ddi-card ddi-restricted ddi-reading-list-shared-banner">
+        <div class="ddi-card-title">SHARED READING LIST</div>
+        <div class="ddi-card-body">
+          "{{this.ddiReadingLists.sharedListPreview.name}}" —
+          {{this.ddiReadingLists.sharedListPreview.documentIds.length}} document(s)
+        </div>
+        <div class="ddi-favorites-actions">
+          <button type="button" class="ddi-nav-link" {{action "importSharedList"}}>Import</button>
+          <button type="button" class="ddi-nav-link" {{action "dismissSharedList"}}>Dismiss</button>
+        </div>
+      </div>
+    {{/if}}
+
+    {{#if this.ddiReadingLists.activeListId}}
+
+      <button type="button" class="ddi-nav-link ddi-reading-list-back" {{action "closeList"}}>
+        &larr; All Reading Lists
+      </button>
+
+      {{#if this.ddiReadingLists.isLoadingDetails}}
+        <div class="ddi-card-body">
+          LOADING READING LIST…
+        </div>
+      {{else if this.ddiReadingLists.activeListDetails}}
+        <div class="ddi-card-title">
+          {{this.ddiReadingLists.activeListDetails.list.name}}
+        </div>
+
+        {{#if this.ddiReadingLists.activeListDetails.list.description}}
+          <div class="ddi-card-body">
+            {{this.ddiReadingLists.activeListDetails.list.description}}
+          </div>
+        {{/if}}
+
+        <div class="ddi-stat-grid">
+          <div class="ddi-stat-tile">
+            <span>Documents</span>
+            <strong>{{this.ddiReadingLists.activeListDetails.documents.length}}</strong>
+          </div>
+
+          <div class="ddi-stat-tile">
+            <span>Estimated Reading Time</span>
+            <strong>{{this.ddiReadingLists.activeListDetails.totalReadingTime}} min</strong>
+          </div>
+
+          <div class="ddi-stat-tile">
+            <span>Completion Progress</span>
+            <strong>
+              {{this.ddiReadingLists.activeListDetails.progress.completed}} /
+              {{this.ddiReadingLists.activeListDetails.progress.total}}
+            </strong>
+          </div>
+        </div>
+
+        {{#if this.ddiReadingLists.activeListDetails.documents.length}}
+          <div class="ddi-card-body">
+            {{#each this.ddiReadingLists.activeListDetails.documents as |doc|}}
+              <div class="ddi-toc-item {{doc.classificationClass}} ddi-reading-list-document">
+                <div>
+                  <span class="ddi-toc-title">
+                    {{doc.title}}
+                  </span>
+
+                  <div class="ddi-dossier-grid ddi-favorites-grid">
+                    <div>
+                      <span>Document Number</span>
+                      <strong>{{doc.documentId}}</strong>
+                    </div>
+
+                    <div>
+                      <span>Document Type</span>
+                      <strong>{{doc.documentTypeLabel}}</strong>
+                    </div>
+
+                    <div>
+                      <span>Classification</span>
+                      <strong>{{doc.classification}}</strong>
+                    </div>
+
+                    <div>
+                      <span>Revision</span>
+                      <strong>{{doc.revision}}</strong>
+                    </div>
+
+                    <div>
+                      <span>Reading Time</span>
+                      <strong>{{doc.readingTime}} min</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ddi-reading-list-document-actions">
+                  <a class="ddi-nav-link" href="{{doc.url}}">Open</a>
+                  <button
+                    type="button"
+                    class="ddi-nav-link ddi-favorites-remove"
+                    {{action "removeDocument" this.ddiReadingLists.activeListId doc.id}}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="ddi-card-body">
+            NO DOCUMENTS IN THIS READING LIST YET
+          </div>
+        {{/if}}
+
+        {{#if this.ddiReadingLists.addDocumentError}}
+          <div class="ddi-card-body ddi-reading-list-error">
+            {{this.ddiReadingLists.addDocumentError}}
+          </div>
+        {{/if}}
+
+        <div class="ddi-reading-list-add-row">
+          <input
+            type="text"
+            class="ddi-command-palette-input ddi-reading-list-add-input"
+            placeholder="DOCUMENT NUMBER OR LINK (E.G. DDI-000042)"
+          />
+          <button type="button" class="ddi-nav-link" {{action "addDocument"}}>Add Document</button>
+        </div>
+
+        {{#if this.shareStatus}}
+          <div class="ddi-card-body ddi-reading-list-share-status">
+            {{this.shareStatus}}
+          </div>
+        {{/if}}
+
+        <div class="ddi-favorites-actions">
+          <button
+            type="button"
+            class="ddi-nav-link"
+            {{action "openAll" this.ddiReadingLists.activeListId}}
+          >
+            Open All Documents
+          </button>
+          <button
+            type="button"
+            class="ddi-nav-link"
+            {{action "share" this.ddiReadingLists.activeListId}}
+          >
+            Share
+          </button>
+        </div>
+      {{/if}}
+
+    {{else}}
+
+      <div class="ddi-reading-list-create-form">
+        <input
+          type="text"
+          class="ddi-command-palette-input ddi-reading-list-name-input"
+          placeholder="NEW READING LIST NAME"
+        />
+        <input
+          type="text"
+          class="ddi-command-palette-input ddi-reading-list-description-input"
+          placeholder="DESCRIPTION (OPTIONAL)"
+        />
+        <button type="button" class="ddi-nav-link" {{action "createList"}}>
+          Create Reading List
+        </button>
+      </div>
+
+      {{#if this.ddiReadingLists.lists.length}}
+        <div class="ddi-division-cards-grid">
+          {{#each this.ddiReadingLists.lists as |list|}}
+            <button
+              type="button"
+              class="ddi-card ddi-reading-list-card"
+              {{action "openList" list.id}}
+            >
+              <div class="ddi-card-title">{{list.name}}</div>
+
+              {{#if list.description}}
+                <div class="ddi-card-body">{{list.description}}</div>
+              {{/if}}
+
+              <div class="ddi-stat-tile">
+                <span>Documents</span>
+                <strong>{{list.documentIds.length}}</strong>
+              </div>
+            </button>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="ddi-card-body">
+          NO READING LISTS YET
+        </div>
+      {{/if}}
+
+    {{/if}}
+
+    <div class="ddi-favorites-actions">
+      <button type="button" class="ddi-nav-link" {{action "close"}}>Close</button>
+    </div>
+
+  </div>
+</div>

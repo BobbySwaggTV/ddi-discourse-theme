@@ -5,38 +5,7 @@ import {
   filterDocumentsByQuery,
   filterDepartmentsByQuery,
 } from "../lib/ddi-command-palette";
-
-const RECENT_STORAGE_KEY = "ddi-recently-viewed";
-const MAX_RECENT = 8;
-
-function readRecentlyViewed() {
-  try {
-    return JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
-
-function recordVisit(topic) {
-  if (!topic?.id || !topic?.title) {
-    return;
-  }
-
-  try {
-    const existing = readRecentlyViewed().filter(
-      (entry) => entry.id !== topic.id
-    );
-    const updated = [{ id: topic.id, title: topic.title }, ...existing].slice(
-      0,
-      MAX_RECENT
-    );
-
-    localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(updated));
-  } catch {
-    // localStorage unavailable (privacy mode, quota, disabled) — no tracking,
-    // not a crash.
-  }
-}
+import { readRecentlyViewed, recordVisit } from "../lib/ddi-recently-viewed";
 
 export default apiInitializer("1.0", (api) => {
   let backdrop;
