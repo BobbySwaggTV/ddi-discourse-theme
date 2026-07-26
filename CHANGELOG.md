@@ -8,6 +8,38 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Favorites Panel: API verification pass, two real bugs fixed
+
+- Verified `services/ddi-favorites.js`'s Discourse bookmark API integration against Discourse's
+  actual source (`discourse/discourse` on GitHub — `bookmarks_controller.rb`, `routes.rb`,
+  `users_controller.rb`, `user_bookmark_list_serializer.rb`, `user_bookmark_base_serializer.rb`),
+  not general knowledge. Found and fixed two genuine defects; confirmed one thing was already right.
+- **List endpoint was wrong**: `/bookmarks.json` doesn't exist as a listing route. The real route
+  is `GET /u/:username/bookmarks`, a per-user resource. Now builds
+  `/u/${currentUser.username}/bookmarks.json` and skips the request entirely if there's no
+  `currentUser` (confirmed via `requires_login`), rather than firing a doomed anonymous request.
+- **Topic-id resolution was wrong, and would have silently dropped post-level bookmarks.** The
+  `topic_id` field it relied on doesn't exist on a bookmark item at all; the fallback
+  (`bookmarkable_type === "Topic"`) only handled topic-level bookmarks, meaning any document
+  bookmarked via a specific *post* (a common, real case) would never have appeared in Favorites.
+  Fixed by reusing `bookmarkable_url` — a real, confirmed field — through the existing
+  `parseTopicIdFromUrl()`, which already handles every `/t/...` URL shape. Resolves both topic- and
+  post-level bookmarks uniformly, no branching on `bookmarkable_type` needed.
+- **Pagination was entirely missing.** Confirmed 20 bookmarks per page, with `more_bookmarks_url`
+  signaling another page. A user with more than 20 bookmarks would have silently seen only the most
+  recent 20. `_fetchAllBookmarks()` now follows `more_bookmarks_url` until absent, capped at
+  `MAX_PAGES = 10` as a runaway-loop safety bound, not a new feature — no caching added.
+- **Confirmed already correct:** the deletion endpoint, `DELETE /bookmarks/:id`
+  (`BookmarksController#destroy`), matched the real implementation exactly — no change needed.
+- `ddi-command-palette.js` needed zero changes — the service's public interface
+  (`getFavorites()`/`removeFavorite()`) is unchanged, so the correction is fully contained.
+- Verified the corrected logic directly: topic-level bookmarks, post-level bookmarks (including
+  dedup when both point at the same topic), a non-topic bookmarkable gracefully skipped, and a
+  simulated 3-page/45-bookmark pagination sequence terminating correctly, plus the `MAX_PAGES` cap
+  under a simulated runaway-pagination response.
+- `ARCHITECTURE.md`'s **Favorites Panel** section corrected in place (not left as a superseded
+  note) to describe the verified, current implementation.
+
 ## 2026-07-26 — Favorites Panel: quick access to native bookmarks
 
 - Added `services/ddi-favorites.js` and extended `api-initializers/ddi-command-palette.js` with a

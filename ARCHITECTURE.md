@@ -1462,32 +1462,51 @@ unlike the document/department lists the Command Palette caches for its own sess
 list can change from *any* page via Discourse's native bookmark button, so this one deliberately
 isn't cached, to stay synchronized rather than risk showing a stale list), and removing calls
 Discourse's own bookmark-delete endpoint directly. A bookmark removed here is genuinely gone from
-Discourse's own bookmark system — visiting Discourse's native `/my/activity/bookmarks` afterward
-would not show it either, since both paths ultimately hit the same backend resource.
+Discourse's own bookmark system — visiting Discourse's own bookmarks page afterward would not show
+it either, since both paths ultimately hit the same backend resource.
 
-**Confidence caveat, more significant than most in this document, stated plainly rather than
-hedged.** This project has no prior history of touching Discourse's bookmark API at all — unlike
-`decorateCookedElement`/`onPageChange`/`addKeyboardShortcut`, which at least have in-theme
-precedent by now, the bookmark-list endpoint (`/bookmarks.json`) and the response envelope shape
-(tried as `response.user_bookmark_list.bookmarks`, falling back to `response.bookmarks`, then `[]`)
-are based on general knowledge of Discourse's bookmark system, not confirmed against a live
-instance. The removal endpoint (`DELETE /bookmarks/{id}`) is a more standard, higher-confidence
-REST convention. If the list endpoint's actual shape differs from both guesses tried, the panel
-fails gracefully to "NO FAVORITES YET" rather than erroring — indistinguishable from a user who
-genuinely has none, which is an honest limitation to flag, not silently accept as equivalent:
-**this is the one part of this feature most in need of live verification before relying on it.**
+**Verified against Discourse's actual source (`discourse/discourse` on GitHub, `main` branch) in a
+follow-up pass, not left as an unconfirmed guess.** The first version of this feature was built on
+general knowledge of Discourse's bookmark API and flagged, honestly, as the least-verified part of
+the theme. A dedicated verification pass fetched the real controllers/routes/serializers and found
+two genuine defects, both since fixed:
 
-**Every bookmark is resolved to its topic, deduplicated, and reuses Citation Preview completely
-for display data — no duplicate metadata logic.** A bookmark can point at a topic or at a specific
-post within one (`bookmarkable_type`); either way, the *document* is the topic, so
-`_uniqueTopicBookmarks()` resolves each bookmark to a topic id (`topic_id` if present, else
-`bookmarkable_id` when `bookmarkable_type === "Topic"`) and keeps only the first bookmark seen per
-topic — a user who bookmarked three posts in the same document sees that document once, with one
-"Remove Bookmark" action removing the bookmark that was found first, not all three. Each unique
-topic id then goes through `ddi-citation-preview.js`'s existing `getCitationById()` unchanged —
-the exact same call Document Quick Preview and Recently Viewed already make, already cached by
-document id, so a document already resolved once this session (via any feature) costs nothing to
-resolve again here.
+- **List endpoint was wrong.** Confirmed route (`config/routes.rb`): `GET /u/:username/bookmarks`
+  (`UsersController#bookmarks`), not `/bookmarks.json` — a user-scoped resource, not a global one.
+  `_fetchAllBookmarks()` now builds `/u/${currentUser.username}/bookmarks.json` and skips the
+  request entirely (returns `[]`) if there's no `currentUser` — confirmed via the controller's
+  `requires_login` filter that an anonymous request would only fail anyway.
+- **Response shape was wrong, and so was the topic-id field this relied on.** Confirmed
+  (`UserBookmarkListSerializer`): the response is `{ bookmarks: [...], more_bookmarks_url, ... }`
+  at the top level — the `user_bookmark_list.bookmarks` shape tried first (with `response.bookmarks`
+  only as a fallback) never existed. Worse, confirmed (`UserBookmarkBaseSerializer`'s actual
+  attribute list): **individual bookmarks have no `topic_id` field at all** — the original
+  `_uniqueTopicBookmarks()` relied on one that was never real, silently falling through to a second
+  guess (`bookmarkable_type === "Topic"`) that only handled topic-level bookmarks and *dropped
+  post-level bookmarks entirely* (a real, common case — bookmarking a specific reply, not the
+  topic itself, then never seeing that document in Favorites at all). Fixed by reusing
+  `bookmarkable_url` (a real, confirmed field — a direct link to the bookmarked topic or post)
+  through the *existing* `parseTopicIdFromUrl()` (`lib/ddi-document-id.js`, already handles every
+  `/t/...` shape including a trailing post number), which resolves both topic- and post-level
+  bookmarks to the same topic id uniformly, with no branching on `bookmarkable_type` needed at all.
+- **Pagination was missing entirely, not just unconfirmed.** Confirmed (`UsersController#bookmarks`):
+  20 bookmarks per page (`BOOKMARKS_LIMIT`), with `more_bookmarks_url` present on the response
+  whenever there's another page. A user with more than 20 bookmarks would have silently seen only
+  their most recent 20. `_fetchAllBookmarks()` now follows `more_bookmarks_url` until it's absent,
+  capped at `MAX_PAGES = 10` (200 bookmarks) as a safety bound against a runaway loop — not a new
+  feature, just the existing "list all my bookmarks" operation actually completing correctly.
+- **What was already correct, confirmed rather than re-guessed:** the deletion endpoint,
+  `DELETE /bookmarks/:id` (`BookmarksController#destroy`, confirmed via both `routes.rb` and the
+  controller itself), matches what was already implemented exactly — no change needed there.
+
+**Every bookmark is resolved to its topic via `bookmarkable_url`, deduplicated, and reuses Citation
+Preview completely for display data — no duplicate metadata logic.** `_uniqueTopicBookmarks()`
+keeps only the first bookmark seen per topic id — a user who bookmarked three posts in the same
+document sees that document once, with one "Remove Bookmark" action removing whichever bookmark was
+found first, not all three (unchanged from the original design; still a deliberate, stated
+simplification, not something the verification pass needed to touch). Each unique topic id then
+goes through `ddi-citation-preview.js`'s existing `getCitationById()` unchanged — the exact same
+call Document Quick Preview and Recently Viewed already make, already cached by document id.
 
 **Reuses the Command Palette's own modal machinery rather than building a second one.** The
 favorites panel is a second dialog/backdrop pair inside the same `ddi-command-palette.js`
