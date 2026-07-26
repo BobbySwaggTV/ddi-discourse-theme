@@ -8,6 +8,47 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Favorites Panel: quick access to native bookmarks
+
+- Added `services/ddi-favorites.js` and extended `api-initializers/ddi-command-palette.js` with a
+  new "Open Favorites" action, opening a panel of the current user's bookmarked documents (Document
+  Number, Title, Classification, Department, Document Type, Last Updated, plus Open Document and
+  Remove Bookmark per row).
+- **No favorites database.** Reading always calls Discourse's own bookmark-list endpoint fresh (not
+  cached across opens, unlike the Command Palette's own document/department lists — bookmarks can
+  change from any page via Discourse's native bookmark button, so staying synchronized mattered
+  more than caching here); removing calls Discourse's own bookmark-delete endpoint directly. A
+  removal here is a genuine Discourse bookmark removal, visible (as gone) from Discourse's own
+  native bookmarks page too.
+- **Confidence caveat, more significant than most:** no prior use of Discourse's bookmark API in
+  this theme. The list endpoint (`/bookmarks.json`) and response shape are based on general
+  Discourse knowledge, not confirmed live — tried against two plausible envelope shapes, falling
+  back to an empty list (indistinguishable from "no bookmarks") if neither matches. Flagged as the
+  one part of this feature most needing live verification. The removal endpoint
+  (`DELETE /bookmarks/{id}`) is a more standard, higher-confidence REST convention.
+- Each bookmark resolves to its topic (handles both topic- and post-level bookmarks), deduplicated
+  per topic, then goes through `ddi-citation-preview.js`'s existing `getCitationById()` unchanged —
+  the same call Document Quick Preview and Recently Viewed already make, already cached by document
+  id. No duplicate metadata logic anywhere in this feature.
+- The favorites panel is a second dialog inside the same command-palette initializer (not a
+  separate file), sharing the palette's existing backdrop styling and letting `activate()` trigger
+  it directly without a cross-initializer communication mechanism. It uses a simpler Tab-trap than
+  the search palette's combobox pattern, since it's a plain list of independently-focusable buttons,
+  not a single-input virtual-cursor list.
+- New `.ddi-favorites-grid` modifier overrides just `grid-template-columns` (5 cells via
+  `auto-fit`, vs `.ddi-dossier-grid`'s existing 4-column default) while still inheriting its
+  label/value typography — the many other existing consumers of the 4-column layout are untouched.
+- Fixed one thing caught in self-review: entries with no real URL (the new "Open Favorites" action)
+  would have rendered `href="null"` on their row otherwise — falls back to `"#"` now, since the
+  activation logic is handled in JS regardless, but a literal `href="null"` would still have been
+  wrong for middle-click/right-click.
+- Stated, not silently accepted: two narrow focus-management rough edges (Shift+Tab in the instant
+  before the list finishes loading; focus resets to the document body after removing a bookmark
+  rather than a nearby control) — judged disproportionate to fully solve for a quick-access panel.
+- Verified the pure topic-resolution/dedup logic directly: `topic_id` present, `bookmarkable_type
+  === "Topic"` fallback, post-level bookmarks with neither field gracefully skipped, and two
+  bookmarks in the same topic correctly collapsing to one entry.
+
 ## 2026-07-26 — Deprecated Ember Native Array Extensions audit and fix
 
 - Discourse admin was warning: `Theme "DDI Internal Command Network" contains code which needs

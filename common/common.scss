@@ -2448,3 +2448,40 @@ a:hover {
 
   border: 0;
 }
+
+/* ============================================================
+   DDI FAVORITES PANEL
+   (opened from the Command Palette's "Open Favorites" action —
+   see api-initializers/ddi-command-palette.js. Reuses .ddi-card,
+   .ddi-command-palette-backdrop, .ddi-dossier-grid, and .ddi-nav-link
+   verbatim; only the wider dialog, the 5-column grid variant, and
+   the action row are new)
+   ============================================================ */
+
+.ddi-favorites-panel {
+  max-width: 720px;
+}
+
+.ddi-favorites-grid {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.ddi-favorites-actions {
+  display: flex;
+
+  gap: 12px;
+
+  margin-top: 16px;
+}
+
+.ddi-favorites-actions .ddi-nav-link {
+  flex: 1;
+
+  text-align: center;
+}
+
+.ddi-favorites-remove {
+  border-color: var(--ddi-red-65);
+
+  color: var(--ddi-red);
+}

@@ -1448,6 +1448,79 @@ shadow), `.ddi-toc-item`/`.ddi-toc-title` (result rows, identical to every other
 this theme), and `.ddi-nav-section-label` (section headers) are all reused verbatim; only the
 backdrop, positioning, input styling, and active-row highlight are new.
 
+## Favorites Panel
+
+A quick-access panel — Document Number, Title, Classification, Department, Document Type, Last
+Updated per favorite, plus Open Document and Remove Bookmark — for the current user's bookmarked
+documents, reached via a new "Open Favorites" entry in the Command Palette rather than a separate
+trigger.
+
+**No favorites database — this is a read/write view directly over Discourse's own native bookmarks,
+not a parallel store.** `services/ddi-favorites.js` has no local persistence of its own: reading
+calls Discourse's bookmark-list endpoint fresh on every panel open (no caching of the list itself,
+unlike the document/department lists the Command Palette caches for its own session — a favorite
+list can change from *any* page via Discourse's native bookmark button, so this one deliberately
+isn't cached, to stay synchronized rather than risk showing a stale list), and removing calls
+Discourse's own bookmark-delete endpoint directly. A bookmark removed here is genuinely gone from
+Discourse's own bookmark system — visiting Discourse's native `/my/activity/bookmarks` afterward
+would not show it either, since both paths ultimately hit the same backend resource.
+
+**Confidence caveat, more significant than most in this document, stated plainly rather than
+hedged.** This project has no prior history of touching Discourse's bookmark API at all — unlike
+`decorateCookedElement`/`onPageChange`/`addKeyboardShortcut`, which at least have in-theme
+precedent by now, the bookmark-list endpoint (`/bookmarks.json`) and the response envelope shape
+(tried as `response.user_bookmark_list.bookmarks`, falling back to `response.bookmarks`, then `[]`)
+are based on general knowledge of Discourse's bookmark system, not confirmed against a live
+instance. The removal endpoint (`DELETE /bookmarks/{id}`) is a more standard, higher-confidence
+REST convention. If the list endpoint's actual shape differs from both guesses tried, the panel
+fails gracefully to "NO FAVORITES YET" rather than erroring — indistinguishable from a user who
+genuinely has none, which is an honest limitation to flag, not silently accept as equivalent:
+**this is the one part of this feature most in need of live verification before relying on it.**
+
+**Every bookmark is resolved to its topic, deduplicated, and reuses Citation Preview completely
+for display data — no duplicate metadata logic.** A bookmark can point at a topic or at a specific
+post within one (`bookmarkable_type`); either way, the *document* is the topic, so
+`_uniqueTopicBookmarks()` resolves each bookmark to a topic id (`topic_id` if present, else
+`bookmarkable_id` when `bookmarkable_type === "Topic"`) and keeps only the first bookmark seen per
+topic — a user who bookmarked three posts in the same document sees that document once, with one
+"Remove Bookmark" action removing the bookmark that was found first, not all three. Each unique
+topic id then goes through `ddi-citation-preview.js`'s existing `getCitationById()` unchanged —
+the exact same call Document Quick Preview and Recently Viewed already make, already cached by
+document id, so a document already resolved once this session (via any feature) costs nothing to
+resolve again here.
+
+**Reuses the Command Palette's own modal machinery rather than building a second one.** The
+favorites panel is a second dialog/backdrop pair inside the same `ddi-command-palette.js`
+initializer (not a separate file) specifically so it can share the palette's existing
+`.ddi-command-palette-backdrop` styling and be triggered directly from `activate()` without
+inventing a cross-initializer communication mechanism. It does *not* reuse the palette's
+combobox/`aria-activedescendant` pattern, though — there's no search input here, just a scrollable
+list of real, independently-focusable controls (each row's two buttons), which is a genuinely
+different interaction shape and gets its own, simpler Tab-trap (cycle between the first and last
+focusable element) rather than forcing the search palette's virtual-cursor pattern onto content it
+doesn't fit.
+
+**Reuses `.ddi-dossier-grid`'s cell typography without touching its existing 4-column layout.**
+Favorites needs 5 grid cells (Document Number, Classification, Department, Document Type, Last
+Updated), one more than `.ddi-dossier-grid`'s established `repeat(4, 1fr)`, which many other
+existing features already depend on unchanged. A `.ddi-favorites-grid` modifier class, applied
+alongside `.ddi-dossier-grid` on the same element, overrides just `grid-template-columns` to
+`repeat(auto-fit, minmax(110px, 1fr))` — the container still gets `.ddi-dossier-grid`'s label/value
+typography for free, and the 4-column rule everywhere else is untouched.
+
+**Metadata Engine reuse doesn't apply directly, same finding as Division Header and Document Quick
+Preview's.** Favorited documents are, by definition, not necessarily the currently-loaded topic —
+Citation Preview (built on the same underlying `lib/` helpers the Metadata Engine also uses) is the
+established mechanism for exactly this "some other document" case throughout this theme.
+
+**Known, stated UX limitations, not silently accepted.** Opening the panel focuses the dialog
+container itself rather than a specific row (the list is still loading — "LOADING FAVORITES…" — at
+the moment focus is set, so there's nothing to focus into yet); Tab correctly proceeds into the
+first row once loaded, but a Shift+Tab pressed *before* any Tab press could move focus outside the
+dialog in that one narrow window. Removing a bookmark re-renders the list, which resets focus to
+the document body rather than a nearby remaining control. Both are real, narrow rough edges judged
+disproportionate to fix for a "quick-access panel," not code the review missed.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
