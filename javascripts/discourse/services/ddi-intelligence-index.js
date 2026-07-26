@@ -1,5 +1,4 @@
 import Service, { service } from "@ember/service";
-import { ajax } from "discourse/lib/ajax";
 import {
   sortDocumentsAlphabetically,
   filterDocuments,
@@ -7,19 +6,15 @@ import {
 
 export default class DdiIntelligenceIndexService extends Service {
   @service ddiCitationPreview;
+  @service ddiArchive;
 
   async getIndex(filters = {}) {
-    const topics = await this._fetchArchiveTopics();
+    const topics = await this.ddiArchive.getTopics();
 
     const documents = await Promise.all(
       topics.map((topic) => this.ddiCitationPreview.getCitation(topic))
     );
 
     return filterDocuments(sortDocumentsAlphabetically(documents), filters);
-  }
-
-  async _fetchArchiveTopics() {
-    const response = await ajax("/latest.json").catch(() => null);
-    return response?.topic_list?.topics || [];
   }
 }

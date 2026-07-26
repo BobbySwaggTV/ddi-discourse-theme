@@ -522,10 +522,11 @@ absent; it now omits that link entirely (`{{#if this.previous}}` / `{{#if this.n
 `{{else}}`), matching the explicit fallback spec this rework was built against. The now-unreferenced
 `.ddi-nav-link-disabled` CSS rule was removed.
 
-**One page is enough; no new pagination system.** `getIndex()` inherits the Intelligence Index's own
-single-page-of-`/latest.json` limitation (see **Intelligence Index** below) — for an archive with
-more topics than one page, Previous/Next/Recent could be inaccurate at the boundary, the same honest,
-flagged-not-silent limitation the earlier category-scoped fetch already had.
+**No pagination logic of its own — inherits whatever Intelligence Index provides.** `getIndex()`
+originally carried the single-page-of-`/latest.json` limitation documented here at the time this was
+written; since the Archive Pagination refactor (see **Archive Pagination** below), Intelligence Index
+now sees the complete, paginated archive, so Previous/Next/Recent do too, automatically, with zero
+change to this file.
 
 **Template reuses existing rows, not a new list pattern.** The Department Home link and each Recent
 Documents row reuse `.ddi-toc-item` / `.ddi-toc-title` / `.ddi-dossier-grid` exactly as Intelligence
@@ -561,14 +562,15 @@ Navigation already make. Its output — `{ documentId, title, classification, cl
 department, revision, url }` — already covers all 5 required columns exactly; this feature adds zero
 new fields to that shape.
 
-**One new endpoint, and why it's different from the others already in this codebase.**
-`_fetchArchiveTopics()` calls Discourse's `/latest.json` — the standard "every topic, newest first"
+**One new endpoint, and why it's different from the others already in this codebase.** This service
+originally called Discourse's `/latest.json` directly — the standard "every topic, newest first"
 listing endpoint, distinct from `ddi-related-intelligence.js`'s `/c/{slug}/{id}.json`
 (category-scoped) because this feature is explicitly archive-wide, not scoped to one document's
-category. Archive Navigation now calls this same service (see above) rather than its own endpoint.
-Single-page-is-enough limitation applies here too, and for the same reason: fetched newest-first
-order is not used for anything by this feature — the result is always re-sorted by title, so the
-endpoint's own ordering is irrelevant either way.
+category. Since the Archive Pagination refactor (see **Archive Pagination** below), that fetch (now
+paginated) lives in `ddi-archive.js` instead, and this service just asks it for the topic list.
+Archive Navigation calls this same service (see above) rather than its own endpoint. Fetched
+newest-first order was never used for anything by this feature either way — the result is always
+re-sorted by title, so the endpoint's own ordering is irrelevant.
 
 **Sorting and filtering are pure `lib/` functions, not service-embedded logic.**
 `lib/ddi-document-index.js` exports `sortDocumentsAlphabetically()` (title, locale-aware) and
@@ -691,10 +693,11 @@ into a wrong or "Unknown" bucket. No documents at all: `NO DOCUMENTS FOUND`, mat
 Index's own empty state text and placement exactly. A year with its `isExpanded` toggled off just
 hides its own document list — no other year's state is affected.
 
-**Same known limitation as Intelligence Index, inherited, not introduced.** `getIndex()`'s own
-single-`/latest.json`-page scope (see **Intelligence Index** above) applies here unchanged — this
-feature groups whatever Intelligence Index already returns, so it shares that limitation rather than
-adding a new one.
+**Inherits whatever Intelligence Index provides, with no pagination logic of its own.** This section
+originally documented a shared single-`/latest.json`-page limitation inherited from Intelligence
+Index; since the Archive Pagination refactor (see **Archive Pagination** below), `getIndex()` returns
+the complete archive, so every year the archive actually has documents in is grouped and shown —
+with zero change to this file.
 
 ## Intelligence Dashboard
 
@@ -808,11 +811,11 @@ the codebase doesn't already consider necessary. The template shows "NO ARCHIVE 
 AVAILABLE" / "NO RECENTLY UPDATED DOCUMENTS" for the empty case, the same empty-state convention
 Intelligence Index and Archive Navigation already use.
 
-**One page is enough; inherits Intelligence Index's own limitation.** Because this reuses `getIndex()`
-directly, Total Documents and every breakdown reflect only the single page of `/latest.json`
-Intelligence Index fetches — for an archive larger than that page, these are undercounts, not exact
-totals. Same honest, already-documented limitation as Intelligence Index itself and, before it,
-Archive Navigation's original category fetch — not a new one introduced here.
+**Inherits Intelligence Index's data completely, whatever it is.** Because this reuses `getIndex()`
+directly, Total Documents and every breakdown are exactly as complete as Intelligence Index's own
+result — originally an undercount limited to one `/latest.json` page, and now, since the Archive
+Pagination refactor (see **Archive Pagination** below), the true archive total, with zero change to
+this file.
 
 **New CSS is additive and reuses existing tokens; no existing rule changed.** `.ddi-card` /
 `.ddi-card-title` / `.ddi-card-body` (the shell) and `.ddi-toc-item` / `.ddi-toc-title` /
@@ -1249,10 +1252,11 @@ still exist, one per signal that found it (this is a multigraph, not a simplifie
 
 1. **Archive-wide graph assembly.** The natural next capability: union many `getDocumentGraph()`
    calls (or a lower-level batch variant) into one archive-spanning graph. Not attempted here because
-   it requires a real traversal/crawl strategy (breadth-first from a seed set? every document via
-   `/latest.json` pagination, extending `ddi-intelligence-index.js`'s existing single-page-fetch
-   pattern to multiple pages?) and a termination bound — exactly the kind of "genuinely new territory"
-   this codebase's own convention is to design deliberately (see the Homepage Dashboard's phased
+   it requires a real traversal/crawl strategy (breadth-first from a seed set? every document, via
+   `ddi-archive.js`'s now-paginated, session-cached topic list — see **Archive Pagination** below,
+   which removes what used to be this item's biggest open question) and a termination bound —
+   exactly the kind of "genuinely new territory" this codebase's own convention is to design
+   deliberately (see the Homepage Dashboard's phased
    design in `docs/ddi-intelligence-archive-dashboard.md`) rather than build speculatively inside an
    unrelated task.
 2. **A visualization connector.** ~~Explicitly out of scope for this task.~~ Built later — see
@@ -1755,14 +1759,16 @@ archive-wide scan has no such model for each document — only the raw JSON from
 `ddi-citation-preview.js`'s `getCitation()` already uses) before handing it to the real
 `getMetadata()`. None of `getMetadata()`'s own resolution logic is duplicated or reimplemented.
 
-**Scans `/latest.json`, the same single-page definition of "the archive" already used everywhere
-else in this theme.** Intelligence Index and Archive Navigation both treat `/latest.json`'s topic
-list as the whole archive, with no real pagination anywhere in this codebase; this dashboard follows
-that same established (if limited) convention rather than introducing new pagination logic
-unilaterally. **Known limitation, stated plainly:** an archive with more topics than a single
-`/latest.json` page would only be partially scanned — documents beyond that page are invisible to the
-dashboard entirely, not merely under-checked. Fixing this properly needs real pagination support, which
-doesn't exist anywhere in this theme yet and is out of scope here.
+**Scans the complete, paginated archive via `ddi-archive.js` — no longer a single `/latest.json`
+page.** This section originally documented a known, stated limitation here: this dashboard, like
+Intelligence Index and Archive Navigation, only ever saw `/latest.json`'s first page, with documents
+beyond it silently invisible rather than merely under-checked. The Archive Pagination refactor (see
+**Archive Pagination** below) replaced the direct `ajax("/latest.json")` call this dashboard's
+`_scanArchive()` used to make with `this.ddiArchive.getTopics()` — the shared, paginated,
+session-cached topic list every archive-wide feature now uses. `_scanArchive()` itself is otherwise
+unchanged: it still fetches each topic's full `/t/{id}.json` afterward (a different, still-necessary
+concern this shared service doesn't replace), and every check downstream of that runs exactly as
+before.
 
 **Staff-only, gated twice.** `connectors/above-main-container/ddi-integrity-dashboard.js`'s
 `shouldRender()` looks up `service:current-user` and checks `.staff`, so the trigger button and its
@@ -1856,14 +1862,17 @@ closes itself first, then opens the Integrity Dashboard — both dialogs reuse t
 `.ddi-command-palette-backdrop`/`z-index: 2000` shell, so showing both at once would just be two
 identical full-screen overlays on top of each other with no visible way to tell them apart.
 
-**Two independent archive scans still happen per open, and that's an accepted, stated cost, not an
-oversight.** `ddiIntelligenceIndex.getIndex()` (for totals/classifications) and
-`ddiIntegrityDashboard.getSummary()` (for issues/lifecycle) each independently fetch `/latest.json`
-and then per-topic data in their own separate ways — the former via Citation Preview's caching, the
-latter via its own raw `/t/{id}.json` fetches. Unifying them into one shared fetch layer would be a
-deeper refactor than this feature's "reuse existing services, don't touch their internals beyond what's
-needed" mandate calls for; both are staff-only, on-demand (only run when a trigger button is clicked),
-never on a normal page load.
+**The `/latest.json` half of this is no longer duplicated — the Archive Pagination refactor fixed
+exactly this.** This section originally described `ddiIntelligenceIndex.getIndex()` (for totals/
+classifications) and `ddiIntegrityDashboard.getSummary()` (for issues/lifecycle) as each
+independently fetching `/latest.json`, an accepted-but-real cost. Since both now go through
+`ddi-archive.js`'s shared, session-cached `getTopics()` (see **Archive Pagination** below), whichever
+of the two runs first performs the actual paginated fetch and the other reuses that same cached
+result — one archive listing per session, not two per dialog open. What's still legitimately separate
+is each side's own *per-topic* follow-up work: Citation Preview's shaping (for totals/classifications)
+versus raw `/t/{id}.json` plus Metadata Engine adaptation (for issues/lifecycle) are different data
+needs neither side can substitute for the other, and remain two independent costs — just no longer
+stacked on top of two independent archive listings as well.
 
 **Staff-only, gated twice, matching the Integrity Dashboard's own pattern exactly.**
 `connectors/above-main-container/ddi-system-status.js`'s `shouldRender()` checks `service:current-user`
@@ -1991,6 +2000,87 @@ decode a shareable payload (including a Unicode name) and import it as a distinc
 touching the original — was exercised end to end against the real pure `lib/ddi-reading-list.js`
 functions plus an in-memory `localStorage` standing in for the browser's, alongside corrupt-data and
 non-array-data fallback cases.
+
+## Archive Pagination
+
+Replaces every archive-wide feature's single-`/latest.json`-page scan with one shared, paginated,
+session-cached service — `services/ddi-archive.js`. This was the single highest-leverage item flagged
+in the Version 1 architecture review: five features (Intelligence Index, Archive Navigation, Timeline,
+Integrity Dashboard, System Status) were all silently blind to any document past the first archive
+page, independently, for the same underlying reason.
+
+**One new service, one new public method, `getTopics()` — the entire surface area.**
+`ddi-archive.js` exists to answer exactly one question: "every topic currently in the archive." It
+does not shape, filter, sort, or classify anything — it returns the same raw topic-list-item objects
+`/latest.json` always returned (`id`, `title`, `tags`, `category_id`, `bumped_at`, etc.), just
+aggregated across every page rather than truncated to the first one. Shaping is still each
+consumer's own job, exactly as before.
+
+**Follows `topic_list.more_topics_url` until it's absent, the same "follow the link or stop" shape
+already confirmed for Discourse's bookmark pagination** (`more_bookmarks_url` — see **Favorites
+Panel**'s API verification pass). A `MAX_PAGES = 50` cap (roughly 1,500 topics at Discourse's default
+page size) is a safety bound against a runaway loop, not a feature — the same framing already used
+for the Favorites Panel's own `MAX_PAGES`.
+
+**Caches the in-flight `Promise`, not the resolved array — deliberately.** `getTopics()` stores
+`this._cache = this._fetchAllTopics()` on first call and returns that same stored value on every
+subsequent call, for the life of the page. Storing the *Promise* rather than awaiting it first means
+two features looking this service up in the same tick (e.g. System Status opening while something
+else is still mid-fetch) share the one in-flight pagination chain instead of each independently
+kicking off their own — the same technique `ddi-citation-preview.js`'s per-document `_cache` already
+uses, applied here to the one archive-wide fetch instead of many per-document ones. There is no
+`refresh()`/invalidation method — "cache for the session" was the requirement, and none of this
+theme's consumers have ever needed a mid-session refresh.
+
+**Fails gracefully by construction, the same way Favorites' pagination already did.** Each page fetch
+is wrapped in `.catch(() => null)`; a failure mid-pagination stops the loop and returns whatever pages
+were already collected rather than throwing, and `_fetchAllTopics()` itself therefore never rejects —
+so the cached `Promise` is never a rejected one that would poison every future caller for the rest of
+the session. A total failure on the very first page returns an empty array, matching every existing
+consumer's own established "empty archive" empty-state handling with no new code on their end.
+
+**Every consumer's public API is unchanged — this was a data-source swap, not a rewrite.**
+`ddi-intelligence-index.js`'s `getIndex(filters)` and `ddi-integrity-dashboard.js`'s `getIssues()`/
+`getSummary()`/`open()`/`close()` all keep their exact existing signatures and return shapes; only
+their *internal* fetch call changed, from a direct single-page `ajax("/latest.json")` to
+`this.ddiArchive.getTopics()`. Every downstream consumer needed zero changes at all:
+- **Intelligence Dashboard**, **Archive Navigation**, and **Timeline** all already called
+  `ddiIntelligenceIndex.getIndex()` rather than fetching anything themselves, so fixing Intelligence
+  Index fixed all three simultaneously.
+- **System Status Dashboard** already called `ddiIntelligenceIndex.getIndex()` and
+  `ddiIntegrityDashboard.getSummary()`, so fixing both of those fixed it too — and, as a side effect,
+  the two independent `/latest.json` fetches System Status used to trigger per open are now one
+  shared, cached fetch (see **DDI System Status Dashboard** above, updated in place).
+- **Reading Lists** was never an archive-wide scanner to begin with — a reading list only ever
+  resolves the specific document ids a user added, never "the whole archive" — so it's unaffected by
+  this refactor and required no changes, confirmed by there being no `/latest.json` reference in that
+  service at all.
+
+**`ddi-related-intelligence.js` was deliberately left alone — it isn't an archive-wide scan.** It
+fetches `/c/{slug}/{id}.json` (category-scoped) and `/tag/{tag}.json` (tag-scoped) to find documents
+related to one specific topic's own category and tags — a fundamentally narrower, intentionally
+different query than "list the whole archive," not another instance of the same duplicated logic this
+refactor targets. Routing it through `ddi-archive.js` would mean fetching the *entire* archive just to
+filter it back down to one category/tag's topics locally — strictly more work for the same result, not
+a simplification.
+
+**Obsolete fetch helpers removed, not left dead alongside the new service.**
+`ddi-intelligence-index.js`'s `_fetchArchiveTopics()` and `ddi-integrity-dashboard.js`'s
+`_fetchArchiveTopicList()` — the two duplicated single-page implementations this refactor replaces —
+are both deleted outright, along with the now-unused `ajax` import in `ddi-intelligence-index.js`
+(`ddi-integrity-dashboard.js` keeps its `ajax` import, still used by `_fetchFullTopic()` for each
+document's own full JSON, a different, still-necessary fetch this service doesn't replace).
+
+**Verified directly.** Pagination logic was exercised against a mocked, multi-page archive: collects
+topics across 3 simulated pages while following `more_topics_url`, a second call to `getTopics()`
+performs zero additional fetches (session cache), two concurrent callers before the first fetch
+resolves share exactly one fetch chain, a failure partway through pagination returns the pages
+already collected rather than throwing, a total first-page failure returns an empty array, a
+single-page archive (no `more_topics_url` at all) still works unchanged, and the `MAX_PAGES` cap
+correctly halts a runaway/self-referential pagination loop. Separately, `ddi-intelligence-index.js`'s
+full pipeline (fetch → shape via Citation Preview → sort → filter) was re-verified against a
+multi-topic mock archive to confirm existing sort/filter behavior is untouched by the data-source
+change.
 
 ## CSS Architecture
 

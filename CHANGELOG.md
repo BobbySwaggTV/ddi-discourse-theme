@@ -8,6 +8,42 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Archive Pagination: shared, paginated, session-cached archive service
+
+- New `services/ddi-archive.js` — the single highest-leverage item flagged in the Version 1
+  architecture review. Replaces two independent, duplicated single-page `/latest.json` scans
+  (`ddi-intelligence-index.js`'s `_fetchArchiveTopics()` and `ddi-integrity-dashboard.js`'s
+  `_fetchArchiveTopicList()`, both deleted) with one shared `getTopics()` that follows
+  `topic_list.more_topics_url` until absent, so every archive-wide feature now sees the complete
+  archive regardless of size.
+- Session-cached: stores the in-flight `Promise` (not the resolved array) so concurrent callers
+  share one fetch chain, and every later call for the rest of the page's life reuses the same
+  result — one archive listing per session, not one per feature per dialog open.
+- Fails gracefully: any page fetch failure stops pagination and returns whatever was already
+  collected rather than throwing; `getTopics()` itself never rejects, so the cache is never a
+  poisoned rejected Promise.
+- Every consumer's public API is unchanged — this was a data-source swap, not a rewrite.
+  `ddi-intelligence-index.js#getIndex()` and `ddi-integrity-dashboard.js#getIssues()`/`getSummary()`/
+  `open()`/`close()` keep their exact signatures; only their internal fetch call changed. Intelligence
+  Dashboard, Archive Navigation, and Timeline needed zero changes (they already called `getIndex()`);
+  System Status needed zero changes (it already called `getIndex()`/`getSummary()`) and, as a side
+  effect, no longer triggers two independent `/latest.json` fetches per dialog open. Reading Lists
+  was never an archive-wide scanner and is unaffected.
+- `ddi-related-intelligence.js` (category/tag-scoped related-document lookup) was deliberately left
+  unchanged — a fundamentally narrower, intentionally different query than "list the whole archive,"
+  not another instance of the duplicated logic this refactor targets.
+- Removed the now-unused `ajax` import from `ddi-intelligence-index.js`; `ddi-integrity-dashboard.js`
+  keeps its `ajax` import, still needed for each document's own full `/t/{id}.json` fetch.
+- Corrected every now-stale "single-page `/latest.json`" limitation note across ARCHITECTURE.md
+  (Archive Navigation, Intelligence Index, Timeline, Intelligence Dashboard, Integrity Dashboard,
+  System Status, and the Knowledge Graph's own Future Roadmap) rather than leaving factually
+  incorrect claims in place after the underlying limitation was fixed.
+- Verified pagination directly against a mocked multi-page archive: correct multi-page collection,
+  session caching (no re-fetch on a second call), concurrent-caller de-duplication, graceful partial
+  failure, graceful total failure, unchanged single-page-archive behavior, and the `MAX_PAGES` safety
+  cap halting a runaway pagination loop. Re-verified Intelligence Index's full fetch → shape → sort →
+  filter pipeline against a multi-topic mock to confirm existing behavior is untouched.
+
 ## 2026-07-26 — Reading Lists: reusable, shareable document reading lists
 
 - New member-facing feature (own trigger button, bottom-left, distinct from the staff-only triggers):

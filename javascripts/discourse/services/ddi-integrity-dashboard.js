@@ -28,6 +28,7 @@ export default class DdiIntegrityDashboardService extends Service {
   @service currentUser;
   @service ddiDocumentMetadata;
   @service ddiCitationPreview;
+  @service ddiArchive;
   @service site;
 
   // Owns the dashboard dialog's open/loading/issues state directly, rather
@@ -111,22 +112,18 @@ export default class DdiIntegrityDashboardService extends Service {
     return counts;
   }
 
-  // The archive is scanned via /latest.json, the same single-page
-  // definition of "the archive" already used by the Intelligence Index and
-  // Archive Navigation. A genuinely paginated archive would need real
-  // pagination to scan every document — out of scope for this dashboard.
+  // The archive's full topic list comes from the shared, paginated,
+  // session-cached ddi-archive.js service — see ARCHITECTURE.md's Archive
+  // Pagination section. Each topic still needs its own full /t/{id}.json
+  // fetch here (for cooked text + tags the list endpoint doesn't carry),
+  // which is a different, unavoidable concern from listing the archive.
   async _scanArchive() {
-    const topics = await this._fetchArchiveTopicList();
+    const topics = await this.ddiArchive.getTopics();
     const fullTopics = await Promise.all(
       topics.map((topic) => this._fetchFullTopic(topic.id))
     );
 
     return fullTopics.filter(Boolean).map((topic) => this._toDocument(topic));
-  }
-
-  async _fetchArchiveTopicList() {
-    const response = await ajax("/latest.json").catch(() => null);
-    return response?.topic_list?.topics || [];
   }
 
   async _fetchFullTopic(topicId) {
