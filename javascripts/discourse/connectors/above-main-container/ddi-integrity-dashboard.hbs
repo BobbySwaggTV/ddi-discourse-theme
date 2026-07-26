@@ -1,0 +1,60 @@
+<button type="button" class="ddi-integrity-trigger" {{action "open"}}>
+  Integrity Dashboard
+</button>
+
+<div class="ddi-command-palette-backdrop ddi-integrity-dashboard {{if this.ddiIntegrityDashboard.isOpen "ddi-command-palette-open"}}">
+  <div class="ddi-card ddi-integrity-dashboard-panel">
+
+    <div class="ddi-card-title">
+      DOCUMENT INTEGRITY DASHBOARD
+    </div>
+
+    {{#if this.ddiIntegrityDashboard.isLoading}}
+      <div class="ddi-card-body">
+        SCANNING ARCHIVE…
+      </div>
+    {{else if this.ddiIntegrityDashboard.issues.length}}
+      <div class="ddi-integrity-table-wrap">
+        <table class="ddi-integrity-table">
+          <thead>
+            <tr>
+              <th>Document Number</th>
+              <th>Title</th>
+              <th>Issue Type</th>
+              <th>Severity</th>
+              <th>Suggested Fix</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each this.ddiIntegrityDashboard.issues as |issue|}}
+              <tr>
+                <td>{{issue.documentNumber}}</td>
+                <td>{{issue.title}}</td>
+                <td>{{issue.issueType}}</td>
+                <td>
+                  <span class="ddi-integrity-severity ddi-integrity-severity-{{issue.severityClass}}">
+                    {{issue.severity}}
+                  </span>
+                </td>
+                <td>{{issue.suggestedFix}}</td>
+                <td>
+                  <a class="ddi-nav-link" href="{{issue.url}}">Open Document</a>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <div class="ddi-card-body">
+        NO INTEGRITY ISSUES DETECTED
+      </div>
+    {{/if}}
+
+    <div class="ddi-favorites-actions">
+      <button type="button" class="ddi-nav-link" {{action "close"}}>Close</button>
+    </div>
+
+  </div>
+</div>

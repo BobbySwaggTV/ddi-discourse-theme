@@ -8,6 +8,44 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Document Integrity Dashboard: staff-only archive-wide audit table
+
+- New staff/admin-only, read-only dashboard: one table row per detected issue across the whole
+  archive — Missing Document Type, Missing Classification, Missing Lifecycle, Missing Department,
+  Duplicate Document Numbers, Invalid Cross References, Broken Related Document links. Each row shows
+  Document Number, Title, Issue Type, Severity, Suggested Fix, and an Open Document link.
+- Reuses existing validation wholesale rather than duplicating it: the four "missing metadata" checks
+  run the exact same `lib/ddi-integrity.js#verifyDocumentIntegrity()` and `ddi-document-metadata.js`
+  Metadata Engine already used by the per-topic Verification Panel, just against every document in the
+  archive instead of only the current topic. The two reference checks run the exact same
+  `lib/ddi-cross-reference.js#findDocumentReferences()` and `lib/ddi-relationship.js#findDocumentRelationships()`
+  Knowledge Graph and the Relationships panel already use.
+- New `lib/ddi-integrity-issues.js` (pure) adds only what didn't already exist: a severity rating and
+  a suggested-fix string per issue type, plus severity-order sorting.
+- New `services/ddi-integrity-dashboard.js` orchestrates the scan: fetches `/latest.json` (the same
+  single-page definition of "the archive" Intelligence Index and Archive Navigation already use),
+  fetches each document's full topic JSON, adapts it into the shape the Metadata Engine expects
+  (shape translation only — no validation logic reimplemented), runs all six checks, and resolves any
+  reference/relationship pointing outside the scanned page through the existing cached
+  `ddiCitationPreview.getCitationById()` before calling it broken.
+- New connector `connectors/above-main-container/ddi-integrity-dashboard.js` renders a small, fixed
+  corner trigger button — gated twice: `shouldRender()` checks `service:current-user`'s `.staff` so it
+  never mounts for non-staff, and the service checks `currentUser?.staff` again internally. A new
+  `ddi_integrity_dashboard_enabled` setting (default on) controls visibility on top of that, not
+  instead of it.
+- Reuses `.ddi-card`, `.ddi-card-title`, `.ddi-card-body`, `.ddi-command-palette-backdrop`/`-open`,
+  `.ddi-nav-link`, and `.ddi-favorites-actions` verbatim for the dialog shell; only the corner trigger
+  button, the data table, and the severity badges are new CSS.
+- Verified all seven checks with direct logic simulation: clean document (no issues), each of the
+  four missing-metadata cases individually, cross-reference extraction and dedup, relationship
+  declaration extraction, broken-vs-resolvable-outside-page reference resolution, duplicate document
+  number detection (including a forced-collision scenario, since the real ID scheme can't produce one
+  naturally), and severity-order sorting.
+- Known, stated limitation: only scans the single `/latest.json` page — an archive with more
+  documents than that page holds is only partially scanned. This matches the same limitation already
+  present in Intelligence Index and Archive Navigation; fixing it needs real pagination, which exists
+  nowhere in this theme yet.
+
 ## 2026-07-26 — Favorites Panel: API verification pass, two real bugs fixed
 
 - Verified `services/ddi-favorites.js`'s Discourse bookmark API integration against Discourse's

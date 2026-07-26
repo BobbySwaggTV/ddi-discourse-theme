@@ -1540,6 +1540,90 @@ dialog in that one narrow window. Removing a bookmark re-renders the list, which
 the document body rather than a nearby remaining control. Both are real, narrow rough edges judged
 disproportionate to fix for a "quick-access panel," not code the review missed.
 
+## Document Integrity Dashboard
+
+A staff-only, read-only audit table: one row per detected issue across the whole archive — Missing
+Document Type / Classification / Lifecycle / Department, Duplicate Document Numbers, Invalid Cross
+References, Broken Related Document links. Not a second validation system: it runs the exact same
+checks already used elsewhere and reshapes their output into a table.
+
+**Reuses `lib/ddi-integrity.js` for the four "missing metadata" checks — does not reimplement
+them.** `services/ddi-integrity-dashboard.js` calls the same `verifyDocumentIntegrity(metadata)`
+already used by the per-topic Verification Panel (see **Document Integrity Verification** above), on
+`metadata` produced by the same `ddi-document-metadata.js` Metadata Engine service, for every document
+in the archive rather than just the current topic. A `FIELD_TO_ISSUE_TYPE` map translates the check's
+`field` (`"Classification"`, `"Department"`, `"Document Type"`, `"Lifecycle"`) into this dashboard's
+issue vocabulary; the fifth check (`"Metadata"` — title/author/date resolution) is deliberately
+excluded, since it isn't one of the issue types this dashboard was asked to surface, and doing so
+would have meant the dashboard silently growing scope beyond what was requested.
+
+**Reuses `lib/ddi-cross-reference.js` and `lib/ddi-relationship.js` for the other two checks, not new
+regex logic.** "Invalid Cross References" runs `findDocumentReferences()` (the same inline
+`DDI-######` mention scanner Knowledge Graph and the Verification/Relationships panels already use)
+against each document's cooked text; "Broken Related Document links" runs `findDocumentRelationships()`
+(the same `Type: DDI-######` declaration parser `ddi-relationship.js`'s service already uses) the same
+way. Both existing libraries already parse the text — this dashboard's only new work is asking "does
+the referenced document actually exist?"
+
+**Existence is checked against the scanned set first, Citation Preview second — not assumed broken on
+a miss.** Every document scanned this pass has a known topic id; a reference or declared relationship
+pointing to one of those ids is trivially valid with no extra request. A reference pointing *outside*
+that set falls back to `ddiCitationPreview.getCitationById()` (the same cached lookup Document Quick
+Preview and Favorites already use) before being called broken — this matters because the dashboard
+only scans one page's worth of documents (see limitation below), so a reference to an older document
+that's still real, just not on that page, is not a false positive.
+
+**Duplicate Document Numbers is a defensive check against a condition the current ID scheme can't
+actually produce.** `documentNumber` is `formatDocumentId(topic.id)` — derived 1:1 from each topic's
+unique id (`lib/ddi-document-id.js`), so two documents colliding on the same number is not reachable
+through normal use. The check still runs (group scanned documents by `documentNumber`, flag any group
+of 2+) so that if the ID scheme is ever changed to something not inherently unique, this dashboard
+starts catching it immediately rather than needing a companion change.
+
+**A raw `/t/{id}.json` payload isn't shaped like the Metadata Engine's input, so a small adapter
+translates it — this is shape translation, not new validation logic.** `ddi-document-metadata.js`
+expects a live Ember `Topic` model (camelCase `postStream`, a resolved `category` object). A
+archive-wide scan has no such model for each document — only the raw JSON from `ajax()` — so
+`_adaptTopic()` builds a minimal plain object (`postStream: { posts: topic.post_stream?.posts || [] }`,
+`category` looked up from `this.site.categories` by `category_id`, the same lookup
+`ddi-citation-preview.js`'s `getCitation()` already uses) before handing it to the real
+`getMetadata()`. None of `getMetadata()`'s own resolution logic is duplicated or reimplemented.
+
+**Scans `/latest.json`, the same single-page definition of "the archive" already used everywhere
+else in this theme.** Intelligence Index and Archive Navigation both treat `/latest.json`'s topic
+list as the whole archive, with no real pagination anywhere in this codebase; this dashboard follows
+that same established (if limited) convention rather than introducing new pagination logic
+unilaterally. **Known limitation, stated plainly:** an archive with more topics than a single
+`/latest.json` page would only be partially scanned — documents beyond that page are invisible to the
+dashboard entirely, not merely under-checked. Fixing this properly needs real pagination support, which
+doesn't exist anywhere in this theme yet and is out of scope here.
+
+**Staff-only, gated twice.** `connectors/above-main-container/ddi-integrity-dashboard.js`'s
+`shouldRender()` looks up `service:current-user` and checks `.staff`, so the trigger button and its
+dialog never mount at all for a regular member — this is the primary gate. `getIssues()` in the
+service checks `this.currentUser?.staff` again and returns `[]` immediately if false, the same
+defense-in-depth pattern `ddi-favorites.js` already uses for its own `currentUser` guard, in case the
+service is ever called from anywhere else. A new `ddi_integrity_dashboard_enabled` setting (default
+on) gates the connector's rendering the same way `ddi_intelligence_index_enabled` and
+`ddi_homepage_dashboard_enabled` already do, but does not replace the staff check — turning the
+setting on never exposes the dashboard to non-staff.
+
+**Fully read-only — no write path exists.** The dashboard has no action beyond "Open Document" (a
+plain link to the topic) and "Close." No document is modified, tagged, or otherwise changed by this
+feature; it only reports what it finds.
+
+**A fixed corner trigger button, not a new outlet on an existing page.** `above-main-container` was
+previously unused in this theme (only `below-main-container` hosts the Intelligence Index), so adding
+the trigger there doesn't compete with or displace anything already rendered. It's `position: fixed`
+specifically so it adds zero layout height to any page for the staff members who do see it, and is
+invisible (not merely hidden) to everyone else via `shouldRender()`.
+
+**Confidence caveat.** The classic connector `actions: {}` hash + `{{action "open"}}`/`{{action
+"close"}}` in the template is the same pattern this theme's `setupComponent`-style connectors are
+already written against; `service:current-user` and `.staff` are standard, long-stable Discourse DI
+conventions. Untested against a live Discourse instance — if either assumption is wrong, the safe
+failure mode is the trigger button simply not appearing or not opening, not a broken page.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`

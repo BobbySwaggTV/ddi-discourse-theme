@@ -2485,3 +2485,158 @@ a:hover {
 
   color: var(--ddi-red);
 }
+
+/* ============================================================
+   DDI DOCUMENT INTEGRITY DASHBOARD
+   (staff-only, read-only audit table — see
+   connectors/above-main-container/ddi-integrity-dashboard.js.
+   Reuses .ddi-card, .ddi-card-title, .ddi-card-body,
+   .ddi-command-palette-backdrop/-open, .ddi-nav-link, and
+   .ddi-favorites-actions verbatim; only the corner trigger button,
+   the table, and the severity badges are new)
+   ============================================================ */
+
+.ddi-integrity-trigger {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+
+  z-index: 900;
+
+  padding: 8px 14px;
+
+  background: var(--ddi-bg-panel);
+
+  border: 1px solid var(--ddi-red-65);
+  border-radius: 3px;
+
+  color: var(--ddi-red);
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+}
+
+.ddi-integrity-trigger:hover {
+  background: var(--ddi-red-12);
+}
+
+.ddi-integrity-dashboard {
+  align-items: center;
+  padding-top: 6vh;
+}
+
+.ddi-integrity-dashboard-panel {
+  width: 100%;
+  max-width: 900px;
+  max-height: 82vh;
+
+  overflow-y: auto;
+}
+
+.ddi-integrity-table-wrap {
+  overflow-x: auto;
+}
+
+.ddi-integrity-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.ddi-integrity-table th,
+.ddi-integrity-table td {
+  padding: 10px 12px;
+
+  border-bottom: 1px solid var(--ddi-border);
+
+  text-align: left;
+  vertical-align: top;
+}
+
+.ddi-integrity-table th {
+  color: var(--ddi-text-muted);
+
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.ddi-integrity-table td {
+  color: var(--ddi-text-primary);
+
+  font-size: .84rem;
+}
+
+.ddi-integrity-severity {
+  display: inline-block;
+
+  padding: 2px 8px;
+
+  border-radius: 3px;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.ddi-integrity-severity-critical,
+.ddi-integrity-severity-high {
+  border: 1px solid var(--ddi-red-65);
+
+  color: var(--ddi-red);
+
+  background: var(--ddi-red-12);
+}
+
+.ddi-integrity-severity-medium,
+.ddi-integrity-severity-low {
+  border: 1px solid var(--ddi-border);
+
+  color: var(--ddi-text-muted);
+}
+
+/* ============================================================
+   DDI SYSTEM STATUS DASHBOARD
+   (staff-only archive health summary — see
+   connectors/above-main-container/ddi-system-status.js. Reuses
+   .ddi-integrity-trigger, .ddi-command-palette-backdrop/-open,
+   .ddi-card, .ddi-stat-grid/.ddi-stat-tile/.ddi-stat-tile-total,
+   and .ddi-favorites-actions verbatim; only the stacked trigger
+   position, the panel width, and the clickable-tile variant are new)
+   ============================================================ */
+
+.ddi-system-status-trigger {
+  bottom: 64px;
+}
+
+.ddi-system-status-panel {
+  max-width: 760px;
+}
+
+.ddi-stat-tile-link {
+  width: 100%;
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.ddi-stat-tile-link:hover {
+  border-color: var(--ddi-red-65);
+}
+
+.ddi-stat-tile-link:hover > span,
+.ddi-stat-tile-link:hover strong {
+  color: var(--ddi-red);
+}

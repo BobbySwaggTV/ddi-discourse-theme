@@ -36,3 +36,13 @@ ddi_intelligence_index_enabled:
   type: bool
   default: true
   description: "Show the alphabetical Intelligence Index of every archived document above the page content (hidden on document and admin pages) — disable if it doesn't suit a given route configuration"
+
+ddi_integrity_dashboard_enabled:
+  type: bool
+  default: true
+  description: "Show the staff-only Document Integrity Dashboard trigger (metadata gaps, duplicate document numbers, invalid cross references, broken related-document links) — staff/admin only regardless of this setting"
+
+ddi_system_status_enabled:
+  type: bool
+  default: true
+  description: "Show the staff-only DDI System Status trigger (archive health summary cards, linking into the Integrity Dashboard where applicable) — staff/admin only regardless of this setting"
