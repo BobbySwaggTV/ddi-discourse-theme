@@ -8,6 +8,43 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Knowledge Graph Viewer: interactive per-document relationship graph
+
+- New topic-page connector (`topic-below-post-stream`): current document at the center, with Parent
+  Documents, Child Documents, Cross References, and Related Documents arranged around it in four
+  fixed sectors. Click a node to open it, hover to trigger the existing Document Preview, pan/zoom
+  the canvas, Reset View.
+- Zero fetches of its own: calls `service:ddi-knowledge-graph`'s existing `getDocumentGraph(topic)`
+  exactly once and renders what comes back. That service (built in an earlier session, previously
+  unconsumed — see **Knowledge Graph** in ARCHITECTURE.md) already composes Relationships, Cross
+  References, and Related Documents internally; none of that was touched or duplicated.
+- New `lib/ddi-knowledge-graph-view.js` (pure): `buildGraphView()` sorts the graph's edges into the
+  4 requested display buckets — a stated judgment call, not a discovered fact, since the graph's 6
+  underlying relationship-type labels don't map 1:1 onto 4 buckets (documented in full in
+  ARCHITECTURE.md). `layoutGraphView()` places nodes via a fixed 4-sector radial layout (no
+  force-directed simulation, no runtime graphing dependency) in a normalized 0–100 space.
+- Click and hover needed no new code: nodes are real `<a href>` elements, so Discourse's own routing
+  handles clicks and the existing `ddi-document-preview.js` global hover listener (matches any
+  `a[href*='/t/']` anywhere in the document) handles hover, unmodified.
+- Pan/zoom implemented as plain DOM event listeners updating a CSS transform directly (not routed
+  through Ember state, deliberately, for per-pixel-drag performance) via `{{did-insert}}`/
+  `{{will-destroy}}` from `@ember/render-modifiers` — genuinely new to this codebase; flagged as an
+  unverified-against-a-live-instance assumption, safe-failure-mode being "doesn't pan/zoom," not a
+  broken page.
+- Node color reuses the existing classification-driven `--ddi-accent` pattern (same as Document
+  Relationships, Intelligence Network, Intelligence Index, Timeline) rather than inventing a new
+  relationship-type color palette; category is instead conveyed by sector position, quadrant labels,
+  and edge line style (solid/dashed/dotted).
+- Fails gracefully: no topic loaded, no relationships at all, or the graph service rejecting all
+  result in no broken canvas — a plain "no relationships" message or nothing rendered at all.
+- Verified categorization (all 6 relationship-type labels routing correctly, edges not sourced from
+  center ignored, dangling edge targets skipped, missing center handled) and layout (deterministic
+  finite positions, single-node sectors centering exactly, empty views producing no edges/labels
+  while keeping the fixed center) directly against mock graph data.
+- New `ddi_knowledge_graph_viewer_enabled` setting (default on).
+- Corrected the **Knowledge Graph** section's "no visualization is built here" note in
+  ARCHITECTURE.md, since that's no longer true, and closed out that section's Future Roadmap item 2.
+
 ## 2026-07-26 — Intelligence Timeline: chronological, year-grouped browse view
 
 - New member-facing view, rendered alongside Intelligence Index on `below-main-container`: every

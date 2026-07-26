@@ -1148,10 +1148,12 @@ single-purpose fetch: Intelligence Network for taxonomy relevance, Archive Navig
 department sequence, Document Relationships for declared references, Cross References for inline
 mentions. `services/ddi-knowledge-graph.js` doesn't replace any of them — it's a fifth service that
 calls the other four and assembles their results into one typed graph (nodes = documents, edges =
-the relationship between two documents), the reusable shape a future visualization would actually
-need instead of four separately-shaped API surfaces. **No visualization is built here** — this is
-the data model and the service that produces it, nothing else. No connector, no template, no CSS,
-no settings.yml entry: nothing renders as a result of this file existing.
+the relationship between two documents), the reusable shape a visualization would actually need
+instead of four separately-shaped API surfaces. **No visualization was built in this pass** — this
+section describes the data model and the service that produces it, nothing else; at the time this
+was written, no connector, template, CSS, or settings.yml entry consumed it. A visualization was
+built later — see **Knowledge Graph Viewer** below — as a plain consumer of `getDocumentGraph()`,
+exactly as anticipated in the Future Roadmap's item 2 at the time.
 
 ### Data Model
 
@@ -1253,10 +1255,11 @@ still exist, one per signal that found it (this is a multigraph, not a simplifie
    this codebase's own convention is to design deliberately (see the Homepage Dashboard's phased
    design in `docs/ddi-intelligence-archive-dashboard.md`) rather than build speculatively inside an
    unrelated task.
-2. **A visualization connector.** Explicitly out of scope for this task. Once built, it should be a
-   plain `connectors/*/ddi-*.js` consumer of `getDocumentGraph()` — no graph-shaping logic belongs in
-   that connector; it should only call this service and render what comes back, the same "connectors
-   are wiring only" rule already governing every other connector in this codebase.
+2. **A visualization connector.** ~~Explicitly out of scope for this task.~~ Built later — see
+   **Knowledge Graph Viewer** below. As anticipated here, it's a plain `connectors/*/ddi-*.js`
+   consumer of `getDocumentGraph()`; the one piece of new shaping logic it needed (categorizing edges
+   into 4 display buckets, and laying them out spatially) went into its own new `lib/` file rather
+   than into the connector or into this service, keeping this rule intact.
 3. **Expose Intelligence Network's underlying score.** Would let `"related"` edges carry a real
    weight instead of an ordinal `rank` — a small, additive change to `ddi-related-intelligence.js`
    (e.g., a second return shape or a `findRelatedWithScores()` sibling method), not a rewrite.
@@ -1267,6 +1270,103 @@ still exist, one per signal that found it (this is a multigraph, not a simplifie
    depth parameter and cycle detection (the underlying data can and will contain cycles — two
    documents can mutually declare `References` on each other) — worth designing deliberately rather
    than defaulting to an arbitrary depth.
+
+## Knowledge Graph Viewer
+
+An interactive, per-document relationship graph on the topic page — the current document at the
+center, Parent Documents, Child Documents, Cross References, and Related Documents arranged around it
+in four fixed sectors, with click-to-open, hover-to-preview, pan, zoom, and Reset View. Renders on
+`topic-below-post-stream`, alongside Document Relationships and Intelligence Network — a visual,
+spatial complement to those existing list-based views, not a replacement for either.
+
+**Reuses `getDocumentGraph()` as its only data source — zero fetches of its own.**
+`connectors/topic-below-post-stream/ddi-knowledge-graph.js` calls
+`service:ddi-knowledge-graph`'s `getDocumentGraph(topic)` exactly once, on the topic already loaded
+by the page (`args.model`), and does nothing else network-related. Every fetch this feature's data
+depends on — relationship resolution, cross-reference resolution, related-document scoring — happens
+inside that already-existing service, composing already-existing services, none of it touched or
+duplicated here (see **Knowledge Graph** above).
+
+**The graph's 6 relationship types don't map 1:1 onto the 4 requested display buckets — the mapping
+is a stated judgment call, not a discovered fact.** New `lib/ddi-knowledge-graph-view.js`'s
+`buildGraphView(graph, centerId)` categorizes every edge sourced from the center:
+- `"cross-reference"`-type edges, plus declared-relationship edges labeled **"References"** →
+  Cross References.
+- `"related"`-type edges, plus declared-relationship edges labeled **"Related Intelligence"** →
+  Related Documents.
+- Declared-relationship edges labeled **"Superseded By"** or **"Required Reading"** → Parent
+  Documents (a newer authoritative version, or a prerequisite — both sit "above" this document in its
+  own lineage).
+- Declared-relationship edges labeled **"Supersedes"** or **"Supporting Documentation"** → Child
+  Documents (an older version this one replaces, or subordinate supporting material).
+
+This reads two of the six declared relationship types (References, Related Intelligence) as
+duplicating what Cross References/Related Documents already mean by other means, and splits the
+remaining four into Parent vs. Child by "which side of this document's lineage it sits on" — a
+defensible reading, not the only possible one, and not something `ddi-relationship.js` itself asserts.
+
+**Layout is a fixed 4-sector radial diagram, computed in pure functions, not a force-directed
+layout.** `layoutGraphView(view)` places the center at a fixed point and spreads each category's
+nodes evenly across its own 80°-wide sector (Cross References right, Child Documents below, Related
+Documents left, Parent Documents above — "above/below" reading as lineage, "left/right" as lateral
+connections), all in a normalized 0–100 coordinate space matching a `viewBox="0 0 100 100"` SVG. No
+force simulation, no collision resolution, no external graphing library — a real force-directed layout
+would need iterative physics and a runtime dependency this theme has no build step to vendor;
+sector-based placement is deterministic, trivially testable, and never produces an unstable or
+overlapping-at-first-render layout, at the cost of nodes in a crowded sector sitting closer together
+rather than spreading further out.
+
+**Node color reuses the classification-driven `--ddi-accent` pattern, not a new relationship-type
+palette.** Every other list of documents in this theme (Document Relationships, Intelligence Network,
+Intelligence Index, Timeline) colors each row by the *target document's own classification*
+(`classificationClass`, setting `--ddi-accent` via the existing `.ddi-restricted`/`.ddi-confidential`/
+etc. classes), not by why that document showed up in the list. This viewer follows that same
+precedent rather than inventing 4 new category colors that would clash with this theme's
+deliberately narrow red/neutral palette — category is instead conveyed by sector position, the
+quadrant label, edge line style (solid for Parent/Child, dashed for Cross References, dotted for
+Related), and each node's own caption (its declared relationship label, or "Cross Reference"/
+"Related").
+
+**Click and hover are free — both features already exist and only needed a real `<a href>`.** Every
+non-center node renders as `<a href="{{node.url}}">`, so clicking it uses Discourse's own existing
+link-interception/routing, no new navigation code. Hovering it is picked up by
+`api-initializers/ddi-document-preview.js`'s existing global `mouseover`/`mouseout` listener, which
+matches any `a[href*='/t/']` in the entire document regardless of where it renders — this feature adds
+no preview code of its own at all. The center node is deliberately *not* a link (it's the document
+already being viewed; a link to itself would be a confusing no-op).
+
+**Pan/zoom is plain DOM state, deliberately outside Ember's reactivity — and deliberately not
+relying on `this` inside the modifier callback either.** `setupGraphCanvas(element)`/
+`teardownGraphCanvas(element)` are free functions, not component methods: `{{did-insert}}`/
+`{{will-destroy}}` (from `@ember/render-modifiers` — a standard Ember addon, but genuinely new to
+this codebase, so unverified against a live instance; failure mode is the canvas simply not panning/
+zooming, not a broken page) guarantee the element as their first argument, but not that `this` inside
+the callback is the component — so neither function uses `this` at all. `setupComponent` stores them
+as plain properties (`component.setProperties({ setupGraph: setupGraphCanvas, ... })`), which the
+template reads via `this.setupGraph` as an ordinary property lookup, not an action. The
+`resetView`/teardown handles that closure creates are stashed directly on the DOM element itself
+(`element._ddiResetGraphView`), so the `resetView` action (a real `{{action}}`, which does reliably
+bind `this`) can find them again later via `this.element` without any shared component state at all.
+Listeners attach `wheel`/`pointerdown`/`pointermove`/`pointerup` and update a CSS `transform` on
+`.ddi-graph-canvas-inner` directly — routing every drag/scroll event through `set()`-based component
+state would mean a re-render per pixel of mouse movement, which this theme's existing patterns (e.g.
+Command Palette's own direct DOM manipulation) already treat as the wrong tool for high-frequency
+interaction. Reset View just resets the closure's own `scale`/`translateX`/`translateY` to their
+defaults and reapplies the transform — no
+component state involved on either path.
+
+**Fails gracefully at both ends.** No topic loaded (`args.model` missing): stops immediately, renders
+nothing broken. `getDocumentGraph()` rejecting entirely: caught, same as "no relationships" below. No
+relationships of any kind (all 4 buckets empty): `NO DOCUMENT RELATIONSHIPS FOUND`, no canvas
+rendered at all — a document with no discoverable relationships never shows an empty, confusing
+circle with nothing around it.
+
+**Verified directly, not just described.** Categorization (all 6 relationship-type labels routing to
+their intended bucket, edges not sourced from the center ignored, an edge pointing at a node absent
+from the graph skipped rather than crashing, a missing center resolving to `null`) and layout
+(deterministic, finite, distinct positions per node; single-node sectors centering exactly on their
+sector's angle; empty views producing zero edges/labels without losing the fixed center point) were
+both exercised with mock graphs standing in for `getDocumentGraph()`'s output.
 
 ## Search Results (Intelligence Search, Phase 1)
 

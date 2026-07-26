@@ -1,0 +1,95 @@
+<div class="ddi-card">
+
+  <div class="ddi-card-title">
+    KNOWLEDGE GRAPH
+  </div>
+
+  {{#if this.isLoading}}
+    <div class="ddi-card-body">
+      BUILDING KNOWLEDGE GRAPH…
+    </div>
+  {{else if this.hasRelationships}}
+    <div
+      class="ddi-graph-canvas"
+      {{did-insert this.setupGraph}}
+      {{will-destroy this.teardownGraph}}
+    >
+      <div class="ddi-graph-canvas-inner">
+
+        <svg class="ddi-graph-edges" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+          {{#each this.edges as |edge|}}
+            <line
+              x1={{edge.x1}} y1={{edge.y1}}
+              x2={{edge.x2}} y2={{edge.y2}}
+              class="ddi-graph-edge ddi-graph-edge-{{edge.category}}"
+            />
+          {{/each}}
+        </svg>
+
+        {{#each this.quadrantLabels as |label|}}
+          <div class="ddi-graph-quadrant-label" style="left: {{label.x}}%; top: {{label.y}}%;">
+            {{label.label}}
+          </div>
+        {{/each}}
+
+        <div class="ddi-graph-node ddi-graph-node-center" style="left: 50%; top: 50%;">
+          <span class="ddi-graph-node-title">{{this.center.documentId}}</span>
+        </div>
+
+        {{#each this.parents as |node|}}
+          <a
+            href="{{node.url}}"
+            class="ddi-graph-node ddi-graph-node-parent {{node.classificationClass}}"
+            style="left: {{node.x}}%; top: {{node.y}}%;"
+          >
+            <span class="ddi-graph-node-title">{{node.documentId}}</span>
+            <span class="ddi-graph-node-caption">{{node.relationshipLabel}}</span>
+          </a>
+        {{/each}}
+
+        {{#each this.children as |node|}}
+          <a
+            href="{{node.url}}"
+            class="ddi-graph-node ddi-graph-node-child {{node.classificationClass}}"
+            style="left: {{node.x}}%; top: {{node.y}}%;"
+          >
+            <span class="ddi-graph-node-title">{{node.documentId}}</span>
+            <span class="ddi-graph-node-caption">{{node.relationshipLabel}}</span>
+          </a>
+        {{/each}}
+
+        {{#each this.crossReferences as |node|}}
+          <a
+            href="{{node.url}}"
+            class="ddi-graph-node ddi-graph-node-cross-reference {{node.classificationClass}}"
+            style="left: {{node.x}}%; top: {{node.y}}%;"
+          >
+            <span class="ddi-graph-node-title">{{node.documentId}}</span>
+            <span class="ddi-graph-node-caption">Cross Reference</span>
+          </a>
+        {{/each}}
+
+        {{#each this.related as |node|}}
+          <a
+            href="{{node.url}}"
+            class="ddi-graph-node ddi-graph-node-related {{node.classificationClass}}"
+            style="left: {{node.x}}%; top: {{node.y}}%;"
+          >
+            <span class="ddi-graph-node-title">{{node.documentId}}</span>
+            <span class="ddi-graph-node-caption">Related</span>
+          </a>
+        {{/each}}
+
+      </div>
+    </div>
+
+    <div class="ddi-favorites-actions">
+      <button type="button" class="ddi-nav-link" {{action "resetView"}}>Reset View</button>
+    </div>
+  {{else}}
+    <div class="ddi-card-body">
+      NO DOCUMENT RELATIONSHIPS FOUND
+    </div>
+  {{/if}}
+
+</div>

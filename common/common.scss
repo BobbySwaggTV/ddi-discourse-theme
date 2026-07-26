@@ -2708,3 +2708,139 @@ a:hover {
 .ddi-timeline-year-body {
   padding-bottom: 8px;
 }
+
+/* ============================================================
+   DDI KNOWLEDGE GRAPH VIEWER
+   (interactive per-document relationship graph — see
+   connectors/topic-below-post-stream/ddi-knowledge-graph.js.
+   Reuses .ddi-card, .ddi-card-title, .ddi-card-body,
+   .ddi-favorites-actions, .ddi-nav-link, and the --ddi-accent
+   classification-color pattern (.ddi-search-badge's own) verbatim;
+   the canvas, nodes, edges, and quadrant labels are new)
+   ============================================================ */
+
+.ddi-graph-canvas {
+  position: relative;
+
+  height: 420px;
+
+  overflow: hidden;
+
+  background: var(--ddi-bg-panel);
+  border: 1px solid var(--ddi-border);
+
+  cursor: grab;
+
+  touch-action: none;
+}
+
+.ddi-graph-canvas:active {
+  cursor: grabbing;
+}
+
+.ddi-graph-canvas-inner {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  transform-origin: center center;
+}
+
+.ddi-graph-edges {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  pointer-events: none;
+}
+
+.ddi-graph-edge {
+  stroke-width: 0.4;
+  vector-effect: non-scaling-stroke;
+}
+
+.ddi-graph-edge-parents,
+.ddi-graph-edge-children {
+  stroke: var(--ddi-red-65);
+}
+
+.ddi-graph-edge-cross-references {
+  stroke: var(--ddi-text-muted);
+  stroke-dasharray: 2 2;
+}
+
+.ddi-graph-edge-related {
+  stroke: var(--ddi-text-muted);
+  stroke-dasharray: 0.5 2;
+  stroke-linecap: round;
+}
+
+.ddi-graph-quadrant-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+
+  color: var(--ddi-text-muted);
+
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ddi-graph-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 6px 10px;
+
+  background: var(--ddi-bg-panel);
+  border: 1px solid var(--ddi-accent, var(--ddi-border));
+  border-radius: 3px;
+
+  color: var(--ddi-accent, var(--ddi-text-primary));
+  text-decoration: none;
+  text-align: center;
+
+  white-space: nowrap;
+}
+
+.ddi-graph-node:hover {
+  background: var(--ddi-red-12);
+}
+
+.ddi-graph-node-title {
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.ddi-graph-node-caption {
+  margin-top: 2px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .6rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.ddi-graph-node-center {
+  border: 2px solid var(--ddi-red);
+
+  color: var(--ddi-red);
+
+  font-weight: 700;
+}
+
+.ddi-graph-node-center .ddi-graph-node-title {
+  font-size: .82rem;
+}

@@ -51,3 +51,8 @@ ddi_timeline_view_enabled:
   type: bool
   default: true
   description: "Show the Intelligence Timeline (documents grouped by year, most recent first, expand/collapse per year) above the page content — disable if it doesn't suit a given route configuration"
+
+ddi_knowledge_graph_viewer_enabled:
+  type: bool
+  default: true
+  description: "Show the interactive Knowledge Graph Viewer (parent/child/cross-reference/related documents, pan and zoom) below the first post on a document page"
