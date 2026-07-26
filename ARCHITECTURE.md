@@ -630,6 +630,72 @@ the two still don't conflict: Intelligence Dashboard renders on `discovery-list-
 `below-main-container` (after the entire routed template), so they don't compete for the same
 space.
 
+## Intelligence Timeline
+
+A chronological, year-grouped browse view — every document in the archive (or, on a category page,
+every document in that department, matching Intelligence Index's own scoping) bucketed by year, most
+recent year first, each year collapsible, showing Document Number, Title, Document Type,
+Classification, Revision, and Last Updated per document. Renders on `below-main-container` alongside
+Intelligence Index — a second, complementary way to browse the same archive, not a replacement for the
+alphabetical one.
+
+**Reuses Intelligence Index end to end — zero new fetches.** `connectors/below-main-container/
+ddi-timeline-view.js` calls `service:ddi-intelligence-index`'s existing `getIndex()`, the exact same
+call Intelligence Index's own connector makes, department-scoped the same way (via
+`ddi-category-context`'s `getCurrentDepartment()`) and route-guarded the same way (`isExcludedRoute()`
+from `lib/ddi-route-guard.js`). This feature performs no fetch of its own at all — it only groups and
+sorts the array `getIndex()` already returns.
+
+**"Existing document dates" means the citation's `updatedAt`/`updatedDate` — there is no separate
+"created date" available here, and this feature doesn't invent one.** Citation Preview's shape
+(`services/ddi-citation-preview.js`) only carries `updatedAt` (raw, for sorting) and `updatedDate`
+(pre-formatted via `lib/ddi-format-date.js#formatDocumentDate()`, for display) — `topic.bumped_at ||
+topic.created_at`, the same fallback Citation Preview already uses for every other consumer. Grouping
+by year therefore means "the year the document was last updated (or created, if never updated)," which
+is the only date this feature's data source exposes — not a design choice made independently of what's
+available.
+
+**`lib/ddi-timeline.js`'s `buildTimeline()` was considered and correctly not reused — it solves a
+different problem.** That existing function builds a single document's own event history (Created,
+Approved, Revised, Reviewed, Deprecated, Archived) from one document's metadata, for the per-topic
+Document Timeline connector. This feature groups *many* documents by year for browsing, which needed
+new grouping logic either way — reusing `buildTimeline()` here would have meant calling it once per
+document just to throw away everything except a date already sitting on the citation object, adding
+complexity for something `document.updatedAt` alone already answers.
+
+**New pure grouping logic, `lib/ddi-timeline-view.js`, kept deliberately small.**
+`groupDocumentsByYear(documents)` derives each document's year from `updatedAt` via
+`new Date(...).getFullYear()`, skips anything with a missing or unparseable date (`Number.isNaN`
+check) rather than crashing or mis-bucketing it, and returns years sorted descending with each year's
+documents sorted descending by the same date — verified directly (year ordering, within-year ordering,
+and all three "no date"/"invalid date"/"missing field entirely" cases falling out of the result set
+cleanly rather than raising).
+
+**Expand/collapse is per-year boolean state on plain objects, not a `Set`.** Each grouped year gets an
+`isExpanded` flag (`true` for the first/most-recent year on initial load, `false` for the rest);
+toggling replaces the `years` array with a new array where only the toggled year's object changed
+(`{ ...entry, isExpanded: !entry.isExpanded }`), which is both simpler to render (`{{#if
+entry.isExpanded}}` directly in the `{{#each}}`, no helper needed to query a `Set`) and the correct way
+to trigger the classic connector API's `set()`-based reactivity, which does not track in-place
+mutation of a `Set` sitting inside component state.
+
+**Template reuses `.ddi-card`, `.ddi-toc-item`/`.ddi-toc-title`, `.ddi-dossier-grid`, and
+`.ddi-favorites-grid` (its 5-column variant, introduced for the Favorites Panel) verbatim** — this
+feature needs the same 5 per-document cells Favorites does (Document Number, Document Type,
+Classification, Revision, Last Updated, vs. `.ddi-dossier-grid`'s native 4), so it reuses that existing
+modifier rather than introducing a near-identical one under a new name. Only the year toggle row itself
+(a plain button: caret, year label, document count) is new markup and new CSS.
+
+**Fails gracefully at every stage.** No date on a document: excluded from every year, never grouped
+into a wrong or "Unknown" bucket. No documents at all: `NO DOCUMENTS FOUND`, matching Intelligence
+Index's own empty state text and placement exactly. A year with its `isExpanded` toggled off just
+hides its own document list — no other year's state is affected.
+
+**Same known limitation as Intelligence Index, inherited, not introduced.** `getIndex()`'s own
+single-`/latest.json`-page scope (see **Intelligence Index** above) applies here unchanged — this
+feature groups whatever Intelligence Index already returns, so it shares that limitation rather than
+adding a new one.
+
 ## Intelligence Dashboard
 
 Live archive statistics rendered on browsing routes: **Total Documents** (a single count),

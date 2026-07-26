@@ -8,6 +8,32 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-26 — Intelligence Timeline: chronological, year-grouped browse view
+
+- New member-facing view, rendered alongside Intelligence Index on `below-main-container`: every
+  archive document (or every document in the current department, on a category page) grouped by
+  year, most recent year first, each year collapsible (most recent expanded by default). Per
+  document: Document Number, Title, Document Type, Classification, Revision, Last Updated.
+- Performs zero fetches of its own — reuses `service:ddi-intelligence-index`'s existing `getIndex()`
+  verbatim (same department scoping via `ddi-category-context`, same route guard via
+  `lib/ddi-route-guard.js#isExcludedRoute()` as Intelligence Index's own connector), and groups
+  whatever it returns.
+- New `lib/ddi-timeline-view.js#groupDocumentsByYear()` (pure): derives each document's year from the
+  citation's existing `updatedAt` field, skips documents with a missing or unparseable date rather
+  than mis-bucketing them, returns years sorted descending with each year's documents sorted
+  descending by the same date.
+- Deliberately did not reuse `lib/ddi-timeline.js#buildTimeline()` — that function builds one
+  document's own event history for the per-topic Document Timeline connector, a different problem
+  than grouping many documents by year for browsing.
+- Verified chronological ordering directly: year-descending order, within-year document-descending
+  order, and three "no date" cases (`null`, unparseable string, field absent entirely) all excluded
+  cleanly rather than crashing or producing a wrong bucket, plus empty/`null` input handled gracefully.
+- Reuses `.ddi-card`, `.ddi-toc-item`/`.ddi-toc-title`, `.ddi-dossier-grid`, and `.ddi-favorites-grid`
+  (the Favorites Panel's 5-column variant) verbatim for the per-document rows; only the year
+  toggle row (caret, label, document count) is new markup and CSS.
+- New `ddi_timeline_view_enabled` setting (default on), matching `ddi_intelligence_index_enabled`'s
+  own opt-out convention.
+
 ## 2026-07-26 — DDI System Status Dashboard: staff-only archive health summary
 
 - New staff/admin-only, read-only summary card dashboard: Total Documents, Documents Missing

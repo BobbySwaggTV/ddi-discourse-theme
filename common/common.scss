@@ -2640,3 +2640,71 @@ a:hover {
 .ddi-stat-tile-link:hover strong {
   color: var(--ddi-red);
 }
+
+/* ============================================================
+   DDI INTELLIGENCE TIMELINE
+   (chronological, year-grouped browse view — see
+   connectors/below-main-container/ddi-timeline-view.js. Reuses
+   .ddi-card, .ddi-card-title, .ddi-card-body, .ddi-toc-item,
+   .ddi-toc-title, .ddi-dossier-grid, and .ddi-favorites-grid (its
+   5-column variant) verbatim; only the year toggle row and its
+   caret/count are new)
+   ============================================================ */
+
+.ddi-timeline-year {
+  border-bottom: 1px solid var(--ddi-border);
+}
+
+.ddi-timeline-year:last-child {
+  border-bottom: none;
+}
+
+.ddi-timeline-year-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 14px 0;
+
+  background: none;
+  border: none;
+
+  color: var(--ddi-text-primary);
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.ddi-timeline-year-toggle:hover {
+  color: var(--ddi-red);
+}
+
+.ddi-timeline-year-caret {
+  width: 16px;
+
+  color: var(--ddi-red);
+
+  font-weight: 700;
+}
+
+.ddi-timeline-year-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.ddi-timeline-year-count {
+  margin-left: auto;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ddi-timeline-year-body {
+  padding-bottom: 8px;
+}

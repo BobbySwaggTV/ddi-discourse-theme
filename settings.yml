@@ -46,3 +46,8 @@ ddi_system_status_enabled:
   type: bool
   default: true
   description: "Show the staff-only DDI System Status trigger (archive health summary cards, linking into the Integrity Dashboard where applicable) — staff/admin only regardless of this setting"
+
+ddi_timeline_view_enabled:
+  type: bool
+  default: true
+  description: "Show the Intelligence Timeline (documents grouped by year, most recent first, expand/collapse per year) above the page content — disable if it doesn't suit a given route configuration"
