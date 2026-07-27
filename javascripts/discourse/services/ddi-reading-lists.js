@@ -241,10 +241,37 @@ export default class DdiReadingListsService extends Service {
     return { ...citation, readingTime: await this._resolveReadingTime(documentId) };
   }
 
+  // _loadActiveListDetails() re-resolves every document in the active list
+  // on every mutation (open, add one document, remove one document) — not
+  // just the one that changed. Without this, adding a 6th document to a
+  // 5-document list re-fetches /t/{id}.json for all 6, including the 5
+  // whose reading time was already resolved moments earlier. Reading time
+  // only changes if the document's own word count changes, which this
+  // theme already treats as stable enough to cache for the session
+  // elsewhere (Citation Preview does the same for a document's title,
+  // classification, etc.) — extending that same tradeoff to this one
+  // additional field, rather than a new one.
+  _readingTimeCache = new Map();
+
   async _resolveReadingTime(documentId) {
+    const key = String(documentId);
+
+    if (!this._readingTimeCache.has(key)) {
+      this._readingTimeCache.set(key, this._fetchReadingTime(documentId));
+    }
+
+    return this._readingTimeCache.get(key);
+  }
+
+  async _fetchReadingTime(documentId) {
     const topic = await ajax(`/t/${documentId}.json`).catch(() => null);
 
     if (!topic) {
+      // Don't let a transient fetch failure permanently cache as "0
+      // minutes" for the rest of the session — same reasoning as
+      // ddi-citation-preview.js's own cache, which evicts on failure for
+      // the same reason. The next call for this id gets a fresh attempt.
+      this._readingTimeCache.delete(String(documentId));
       return 0;
     }
 

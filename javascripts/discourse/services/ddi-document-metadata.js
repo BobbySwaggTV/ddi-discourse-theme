@@ -12,21 +12,38 @@ import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
 import { buildTimeline } from "../lib/ddi-timeline";
 
 export default class DdiDocumentMetadataService extends Service {
-  _cache = null;
+  // A single-slot cache here previously only helped two *consecutive* calls
+  // for the same topic — on a real topic page, 10+ independent connectors
+  // (Dossier Header, Executive Summary, Document Footer, Verification
+  // Panel, Debug Panel, Document Timeline, Revision History, Document
+  // Intelligence, plus the Archive Navigation/Knowledge Graph/Relationship
+  // services) each call getMetadata(topic) for the *same* current topic
+  // during one page render, and any archive-wide scan (Integrity Dashboard,
+  // System Status) that happens to interleave — even from a dialog opened
+  // on a totally different page earlier in the session — evicted the one
+  // slot between them, forcing a full re-resolve (classification, reading
+  // time via cooked-HTML parsing, timeline building) for the same document
+  // every time. A Map, keyed by topic id, keeps every distinct topic's
+  // metadata for the life of the session instead of just the last one —
+  // same "cache for the session, no invalidation" tradeoff this theme
+  // already makes in ddi-citation-preview.js and ddi-archive.js. Metadata
+  // objects are small (plain strings/numbers), so — unlike the cooked-HTML
+  // parse cache below, which holds full parsed Documents — this doesn't
+  // need a size bound to stay cheap even across a full archive scan.
+  _cache = new Map();
 
   getMetadata(topic) {
     if (!topic) {
       return null;
     }
 
-    if (this._cache && this._cache.topicId === topic.id) {
-      return this._cache.metadata;
+    const key = topic.id;
+
+    if (!this._cache.has(key)) {
+      this._cache.set(key, this._resolve(topic));
     }
 
-    const metadata = this._resolve(topic);
-    this._cache = { topicId: topic.id, metadata };
-
-    return metadata;
+    return this._cache.get(key);
   }
 
   _resolve(topic) {

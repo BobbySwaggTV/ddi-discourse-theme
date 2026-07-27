@@ -10,11 +10,31 @@ const MAX_RESULTS = 5;
 export default class DdiRelatedIntelligenceService extends Service {
   @service ddiCitationPreview;
 
+  // Intelligence Network and Knowledge Graph Viewer are both
+  // topic-below-post-stream connectors that call findRelated() for the
+  // *same* current topic on every single topic page view — without this,
+  // that's two independent category-topics fetches plus one tag-topics
+  // fetch per tag, doubled, every time. Same Promise-as-cache-value
+  // technique as ddi-citation-preview.js's per-document cache: the topic's
+  // own related set can't change within one page view, so caching it for
+  // the life of this service (a session-lived singleton) is safe.
+  _cache = new Map();
+
   async findRelated(topic) {
     if (!topic) {
       return [];
     }
 
+    const key = topic.id;
+
+    if (!this._cache.has(key)) {
+      this._cache.set(key, this._findRelated(topic));
+    }
+
+    return this._cache.get(key);
+  }
+
+  async _findRelated(topic) {
     const candidates = await this._fetchCandidates(topic);
 
     const topResults = this._rank(topic, candidates).slice(0, MAX_RESULTS);

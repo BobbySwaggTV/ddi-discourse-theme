@@ -8,6 +8,50 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-27 — Performance Audit: shared caches replace single-slot memos, eliminate duplicate fetches
+
+- Audited every `lib`/`service`/connector for duplicate service calls, duplicate metadata/cooked-HTML
+  parsing, repeated transformations, DOM query patterns, listeners, caches, and loop complexity.
+  No feature behavior changed; every fixed function keeps its exact existing public signature.
+- **`ddi-document-metadata.js`: single-slot cache → `Map` keyed by topic id.** 10+ connectors plus 3
+  services all call `getMetadata()` for the same current topic on one page view; the old single slot
+  got evicted by any interleaved archive-wide scan, forcing repeated full re-resolves (classification,
+  reading-time analysis, timeline building) of the same document. Left unbounded — small plain data.
+- **`ddi-cooked-parser.js`: single-slot memo → bounded (30-entry) LRU `Map`.** Shared by 7+ call sites
+  that don't run back-to-back, so the one slot was almost always holding a different document's HTML
+  by the next call, defeating the memo. Bounded, not session-cached like the metadata `Map`, since the
+  cached value is a full parsed DOM `Document` and an archive scan can touch hundreds of them.
+- **`ddi-related-intelligence.js#findRelated()` and `ddi-relationship.js#getRelationships()`: added
+  per-topic-id Promise caching.** Both were being called twice, independently, for the same topic on
+  every topic page view (Intelligence Network + Knowledge Graph Viewer both call `findRelated()`;
+  Document Relationships + Knowledge Graph Viewer both call `getRelationships()`) — real duplicate
+  network requests and duplicate regex/parse work, not just a theoretical risk.
+- **`ddi-reading-lists.js`: added a reading-time cache keyed by document id.** Every list mutation
+  (open, add one document, remove one document) was re-fetching `/t/{id}.json` for *every* document in
+  the list, not just the one that changed. Failed fetches evict their cache entry rather than sticking
+  a document at "0 minutes" permanently, matching Citation Preview's existing failure handling.
+- **Command Palette: search input debounced (120ms).** Previously every keystroke ran a full filter
+  pass over the cached document list plus a full result-row rebuild — cost that scales directly with
+  archive size. Enter pressed while a refresh is still pending flushes it immediately first, so it
+  always activates the result matching what's actually in the input, never a stale query's top hit.
+- **`ddi-search-results.js`: `MutationObserver` no longer re-scans the whole results container on
+  every mutation.** Each badge insertion is itself a mutation, so the old callback — a full
+  `querySelectorAll()` over the container — re-triggered on its own writes, O(n²) in result count for
+  a page streaming in results. Now processes each mutation's own `addedNodes` directly; verified by
+  simulation at 0 wasted node visits versus 1,275 across 50 results the old way.
+- **Considered and deliberately not cached: `ddi-integrity-dashboard.js#_scanArchive()`.** Reopening
+  Integrity Dashboard/System Status re-scans the whole archive every time, with no caching — looks
+  like the same class of fix as the two services above, but isn't: this dashboard's job is showing
+  *current* archive health, and the most likely reason to reopen it is confirming a just-made fix
+  worked. Caching the scan risks showing stale "still broken" results in exactly that moment — a
+  functional regression, not a win. Left unchanged on purpose; documented as a considered decision.
+- Verified via mocked-DOM/service simulations (no `jsdom` dependency in this repo) for every fix:
+  identical results on repeat calls, correct results on distinct keys, failure-doesn't-poison-cache
+  for the reading-time fix, debounce-collapses-a-typing-burst-to-one-refresh with Enter-mid-burst
+  correctness, and 0-vs-1,275-node-visits for the search-results fix. A benchmark simulating 13
+  same-topic metadata calls interleaved with a 200-document archive scan showed the metadata `Map`
+  eliminating 12 of 13 redundant re-resolves — 61% less simulated wall-clock time in that scenario.
+
 ## 2026-07-27 — Mobile & Responsive Audit: CSS-only fixes across every DDI component
 
 - Audited all 18 named DDI components at 320/375/768/1024px against `common/common.scss` (the only

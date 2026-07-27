@@ -8,6 +8,14 @@ import {
 import { readRecentlyViewed, recordVisit } from "../lib/ddi-recently-viewed";
 import { createModal } from "../lib/ddi-modal";
 
+// Un-debounced, every keystroke ran a full filter pass over the entire
+// cached document list plus a full result-row DOM rebuild — for a fast
+// typist that's one full pass per character instead of roughly one per
+// completed word, and it only gets more noticeable as the archive grows.
+// 120ms is short enough that the palette still feels instant, but long
+// enough to collapse a normal typing burst into a single pass.
+const REFRESH_DEBOUNCE_MS = 120;
+
 export default apiInitializer("1.0", (api) => {
   let backdrop;
   let dialog;
@@ -17,6 +25,7 @@ export default apiInitializer("1.0", (api) => {
   let entries = [];
   let activeIndex = -1;
   let modal;
+  let refreshDebounceTimer;
 
   let favoritesBackdrop;
   let favoritesDialog;
@@ -166,7 +175,7 @@ export default apiInitializer("1.0", (api) => {
       }
     });
 
-    input.addEventListener("input", () => refresh(input.value));
+    input.addEventListener("input", () => scheduleRefresh(input.value));
     input.addEventListener("keydown", onInputKeydown);
   }
 
@@ -274,6 +283,14 @@ export default apiInitializer("1.0", (api) => {
       : "No results";
   }
 
+  function scheduleRefresh(query) {
+    clearTimeout(refreshDebounceTimer);
+    refreshDebounceTimer = setTimeout(() => {
+      refreshDebounceTimer = null;
+      refresh(query);
+    }, REFRESH_DEBOUNCE_MS);
+  }
+
   function activate(entry) {
     if (!entry) {
       return;
@@ -307,6 +324,19 @@ export default apiInitializer("1.0", (api) => {
     if (event.key === "Enter") {
       event.preventDefault();
       event.stopPropagation();
+
+      if (refreshDebounceTimer) {
+        // A refresh for the just-typed character(s) is still pending —
+        // without this, Enter pressed quickly enough after typing would
+        // activate whatever the *previous* query's results were, not the
+        // current input value. Flush immediately instead of waiting out
+        // the debounce.
+        clearTimeout(refreshDebounceTimer);
+        refreshDebounceTimer = null;
+        refresh(input.value).then(() => activate(entries[activeIndex]));
+        return;
+      }
+
       activate(entries[activeIndex]);
     }
 
@@ -337,6 +367,9 @@ export default apiInitializer("1.0", (api) => {
     if (!isOpen()) {
       return;
     }
+
+    clearTimeout(refreshDebounceTimer);
+    refreshDebounceTimer = null;
 
     backdrop.classList.remove("ddi-command-palette-open");
     modal.deactivate();

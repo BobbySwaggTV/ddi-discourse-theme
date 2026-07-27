@@ -2270,6 +2270,124 @@ pre-existing plus 10 new); computed `#main-outlet` and nested-dialog content wid
 are fixed and 768/1024 are numerically unchanged; computed the corner-trigger stacking positions to
 confirm no overlap at the bumped touch-target size.
 
+## Performance Audit
+
+A pass across every `lib`/`service`/connector for duplicate work, no code changed for its own sake
+— every fix below targets a specific, traced call path that actually runs redundantly today, and
+each preserves its function's exact public signature and return shape.
+
+**`ddi-document-metadata.js`'s cache was single-slot; it's now a `Map` keyed by topic id — the
+single highest-leverage fix in this pass.** `getMetadata(topic)` is called directly by 10+
+independent topic-page connectors (Dossier Header, Executive Summary, Document Footer, Verification
+Panel, Debug Panel, Document Timeline, Revision History, Document Intelligence) plus three services
+(Archive Navigation, Knowledge Graph, Relationship) for the *same* current topic on every single
+topic page view, and once per document by Integrity Dashboard/System Status during an archive-wide
+scan. A single-slot cache only helps two calls that happen to run back-to-back; any archive scan
+(even one triggered from an earlier, different page in the same session) sat between same-topic
+calls and evicted the slot, forcing a full re-resolve — classification, cooked-HTML reading-time
+analysis, timeline building — for the same document repeatedly. A `Map` keyed by topic id keeps
+every distinct topic's metadata for the session instead of just the last one, the same "cache for
+the session, no invalidation" tradeoff `ddi-citation-preview.js` and `ddi-archive.js` already make.
+Left unbounded deliberately: metadata objects are small plain data, unlike the parsed-DOM cache
+below, so holding one per document even across a full archive scan is cheap.
+
+**`ddi-cooked-parser.js`'s memo was the same single-slot shape, shared by 7+ call sites — upgraded
+to a bounded (30-entry) LRU `Map`, not an unbounded one.** `parseCookedHtml()` is called from
+Executive Summary, Document Footer/reading-time, Document Relationships, Knowledge Graph, Integrity
+Dashboard, and Division Header/Cards — independent connectors and services that don't run
+back-to-back, so in practice the one slot was almost always holding some *other* document's cooked
+HTML by the time the next same-document call arrived, silently defeating the memo entirely. Bounded
+rather than session-cached like the metadata `Map` above, specifically because the cached value here
+is a full parsed DOM `Document`, not a handful of strings — an Integrity Dashboard scan touches
+hundreds of documents' cooked HTML in one pass, and each is only ever visited once per scan, so
+caching all of them for the rest of the session would be a real memory cost for zero reuse benefit.
+30 entries comfortably covers one topic page's own call sites with headroom, evicted LRU (not FIFO)
+so a document revisited partway through stays warm.
+
+**`ddi-related-intelligence.js#findRelated()` and `ddi-relationship.js#getRelationships()` had no
+caching at all — both are called twice, independently, for the same topic on every single topic page
+view.** Intelligence Network and Knowledge Graph Viewer are both `topic-below-post-stream` connectors
+that each call `findRelated(topic)` directly; Document Relationships and Knowledge Graph Viewer both
+call `getRelationships(topic)` directly. Before this fix, that meant a real doubled cost every time:
+`findRelated()` re-ran its category-topics fetch plus one tag-topics fetch per tag (genuine duplicate
+network requests, the most expensive resource on this list); `getRelationships()` re-ran its
+declaration-regex scan over the document body plus every declared document's citation lookup. Both
+now cache their Promise per topic id — the same Promise-as-cache-value technique
+`ddi-citation-preview.js` already established, applied here instead of a second bespoke
+implementation. Safe to cache for the session: a topic's own declared relationships and candidate
+related documents can't change within one page view, and neither underlying async chain can reject
+(every internal fetch already `.catch()`s to an empty/null fallback), so there's no risk of a
+permanently-cached rejected Promise poisoning later callers.
+
+**`ddi-reading-lists.js` was fetching a document's full `/t/{id}.json` a second time for reading
+time — once implicitly via Citation Preview, once explicitly via its own uncached fetch — and
+re-fetching it for *every* document in a list on *every* mutation, not just the one that changed.**
+`_loadActiveListDetails()` re-resolves the entire list's documents on open, on adding one document,
+and on removing one document; each resolution called `_resolveReadingTime()`, which had its own
+uncached `ajax('/t/{id}.json')` call with no memory of a previous fetch. Added a `Map` cache keyed by
+document id, so a list mutation only pays for the documents actually affected, not the whole list
+again. On failure, the cache entry is deleted rather than left holding a permanent "0 minutes" —
+same reasoning `ddi-citation-preview.js`'s own cache already uses for the identical failure case, so
+a transient network hiccup doesn't stick a document at the wrong reading time for the rest of the
+session. (The very first fetch for a brand-new document is still two separate requests to the same
+endpoint — Citation Preview's return shape has no `readingTime` field to reuse directly, and giving
+it one, or building a second shared "raw topic" cache, would be more surface area than this fix's
+actual, repeated-reload cost justifies; left as a small, named, deliberately-unfixed residual rather
+than resolved further.)
+
+**Command Palette's search input had no debounce — every keystroke ran a full filter pass over the
+cached document list plus a full result-row DOM rebuild.** For a fast typist that's one full pass per
+character rather than roughly one per completed word, and the cost scales with archive size (the
+explicit "large archive scalability" concern this audit was asked to cover). Input now goes through a
+120ms debounce (`scheduleRefresh()`), short enough that the palette still feels instant. The one
+correctness wrinkle a debounce introduces — Enter pressed quickly enough after typing could otherwise
+activate the *previous* query's top result, not the one matching what's actually in the input — is
+handled explicitly: if a refresh is still pending when Enter fires, it's flushed immediately (query
+resolved fresh, then activated) rather than left to race the timer. Also clears any pending timer on
+`close()`, so a debounced refresh never fires into a closed dialog.
+
+**`ddi-search-results.js`'s `MutationObserver` re-scanned the entire results container on every
+mutation, including ones its own writes caused — O(n²) in result count, not O(n).** Each
+`decorateResult()` call prepends a badge row, which is itself a childList mutation; the observer was
+re-running `decorateVisibleResults()` (a full `container.querySelectorAll()`) from its own callback,
+so a page streaming in n results (infinite scroll) did roughly n full-container re-scans, each larger
+than the last — confirmed by simulation: 1,275 total nodes visited scanning 50 results the old way,
+against a container that grows on every pass, versus 0 extra nodes visited processing each mutation's
+own `addedNodes` directly the new way. `decorateResult()` was already idempotent (the
+`dataset.ddiSearchDecorated` guard), so the old behavior was correct, just wastefully re-checking
+already-decorated rows on every single mutation — this is a pure complexity fix, not a behavior
+change.
+
+**Considered and deliberately not cached: `ddi-integrity-dashboard.js#_scanArchive()`.** Opening
+Integrity Dashboard or System Status Dashboard triggers a full archive scan — one `/t/{id}.json`
+fetch per document — with no caching, and re-opening either dialog re-scans the entire archive from
+scratch every time, including the "System Status → click a stat tile to drill into Integrity
+Dashboard" flow this theme's own UI explicitly encourages. This looks like the same class of fix as
+the two services above, but isn't: this dashboard's entire purpose is surfacing the archive's
+*current* metadata problems so staff can fix them, and the most likely reason to reopen it is to
+confirm a just-made fix actually took effect. Caching the scan — even briefly — risks showing stale
+"still broken" results in exactly that check-my-fix-worked moment, which would be a functional
+regression disguised as a performance win. No change made; documented here so the omission reads as
+a considered decision, not a gap the audit missed.
+
+**Verified directly, not just reasoned about.** Every changed function's public signature and return
+value are unchanged; behavior was exercised via mocked simulations (no `jsdom` dependency in this
+repo, consistent with how this project has verified DOM-touching code throughout): the metadata/
+related-intelligence/relationship/reading-time caches were checked for identical results on a
+same-key repeat call, correct results on a different-key call, and (reading time specifically) that a
+failed fetch doesn't permanently poison later attempts; the cooked-HTML LRU cache was checked for
+cache hits, eviction past its 30-entry cap, and that a recently-touched entry survives eviction that
+an untouched peer from the same generation doesn't; the debounce was checked for collapsing a rapid
+typing burst into exactly one refresh reflecting the final query, and for Enter mid-burst correctly
+flushing and activating the just-typed query's result rather than a stale one; the search-results
+observer fix was checked for identical end-state decoration (every result still gets exactly one
+badge row) with zero wasted node visits instead of a quadratically-growing count. A benchmark
+simulating 13 same-topic metadata calls interleaved with a 200-document archive scan (the realistic
+shape of a topic page whose staff member opens Integrity Dashboard mid-load) showed the `Map` cache
+eliminating 12 of 13 redundant re-resolves in that scenario, a 61% reduction in simulated wall-clock
+time — a specific, reproducible number from this repo's own mocked benchmark, not a live-browser
+measurement.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`

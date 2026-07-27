@@ -89,6 +89,32 @@ function decorateVisibleResults(container) {
   container.querySelectorAll(RESULT_SELECTOR).forEach(decorateResult);
 }
 
+// decorateResult() itself prepending a badge row is a childList mutation —
+// on a container-wide observer, that means every single result decorated
+// re-triggers the observer callback for the whole batch. Re-running
+// decorateVisibleResults() (a full container querySelectorAll) from that
+// callback turns what should be O(results) work into roughly O(results²)
+// on a page with many results, and it's largely wasted: decorateResult()
+// is already idempotent (see the dataset.ddiSearchDecorated guard above),
+// so nearly every one of those re-scans just re-visits already-decorated
+// rows and skips them. Working from each mutation's own addedNodes instead
+// means the callback only ever looks at what's actually new.
+function decorateAddedNodes(mutations) {
+  mutations.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return;
+      }
+
+      if (node.matches(RESULT_SELECTOR)) {
+        decorateResult(node);
+      }
+
+      node.querySelectorAll?.(RESULT_SELECTOR).forEach(decorateResult);
+    });
+  });
+}
+
 export default apiInitializer("1.0", (api) => {
   let observer;
 
@@ -103,7 +129,7 @@ export default apiInitializer("1.0", (api) => {
 
     decorateVisibleResults(container);
 
-    observer = new MutationObserver(() => decorateVisibleResults(container));
+    observer = new MutationObserver(decorateAddedNodes);
     observer.observe(container, { childList: true, subtree: true });
   });
 });
