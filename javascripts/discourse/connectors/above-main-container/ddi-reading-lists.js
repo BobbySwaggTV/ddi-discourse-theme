@@ -118,6 +118,10 @@ export default {
 
     share(listId) {
       this.ddiReadingLists.shareList(listId).then(({ url, copied }) => {
+        if (this.isDestroying || this.isDestroyed) {
+          return;
+        }
+
         if (!url) {
           this.set("shareStatus", "Could not generate a share link.");
           return;

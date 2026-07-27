@@ -306,11 +306,18 @@ simply shows the other 2; it doesn't show an error row, matching how Intelligenc
 handles individual fetch failures.
 
 **Designed for expansion, concretely:** the 6 relationship types are a single array
-(`RELATIONSHIP_TYPES`) the regex is built from — adding a 7th type is a one-line change, nothing
-else. `isValidRelationshipType()` is exported even though this feature's own parsing doesn't need to
-call it (the regex only ever matches known types), for the same reason `ddi-document-type.js`,
-`ddi-lifecycle.js`, and `ddi-department.js` each export their own `isValid*` — a future consumer
-(composer-side validation, an admin tool) gets it for free rather than having to add it later.
+(`RELATIONSHIP_TYPES`) the regex is built from — adding a 7th type is a one-line change, nothing else.
+
+**`isValidRelationshipType()` was removed in the v1.0 RC cleanup, not kept as forward-looking API
+surface.** An earlier version of this doc defended keeping it exported on the same reasoning as
+`ddi-document-type.js`/`ddi-lifecycle.js`/`ddi-department.js`'s own `isValid*` siblings — "a future
+consumer gets it for free." The difference, confirmed by checking rather than assumed: those three
+siblings each have real, current consumers (`ddi-document-metadata.js`, `ddi-search-results.js`,
+`ddi-citation-preview.js`, `ddi-division-cards.js`, `ddi-command-palette.js` between them);
+`isValidRelationshipType()` had zero, anywhere, ever — this feature's own parsing never called it
+either, since the regex only ever matches known types by construction. Speculative API surface with
+no consumer is exactly what a release cleanup pass should remove rather than carry forward on the
+strength of a hypothetical future caller.
 
 ## Metadata Validation
 
@@ -2426,23 +2433,31 @@ was verified by grepping for references — not assumed.
   which were never valid filenames at all), so there's nothing broken about it; it's just unpopulated.
   Deleting a valid-but-empty file provides no runtime benefit, since present-and-empty and
   absent-entirely compile identically.
-- **`settings.yml` — as of RC cleanup, 6 settings remain (down from 8).** `ddi_header_enabled` and
-  `ddi_interface_mode_enabled` were removed: neither has ever had any documented design describing
-  what conditional behavior they'd control, and the behavior they name (the header shell, "v0.2.0
+- **`settings.yml` — 12 settings, 8 wired, 4 reserved. (Corrected during the Version 1.0 RC audit —
+  this bullet previously described a 6-settings/1-wired snapshot from before Intelligence Index,
+  Timeline, Knowledge Graph Viewer, Reading Lists, Integrity Dashboard, and System Status existed;
+  each of those six shipped with its own settings gate, and this summary was never updated to match.
+  The per-feature sections elsewhere in this document were kept accurate as each shipped — only this
+  cross-cutting summary had drifted.)** `ddi_header_enabled` and `ddi_interface_mode_enabled` were
+  removed in the original RC cleanup: neither ever had a documented design describing what
+  conditional behavior they'd control, and the behavior they name (the header shell, "v0.2.0
   interface overrides") is unconditionally active today with no described "off" state anywhere in
-  this repo's history. Of the remaining 6:
-  - `ddi_debug_mode_enabled` is wired (Debug Mode).
-  - `ddi_compact_density` and `ddi_red_glow_strength` are kept — `docs/ddi-intelligence-archive-dashboard.md`'s
-    Phase 6 explicitly names both for the dashboard's "new section styling," a concrete, specific tie
-    to planned work, not a vague aspiration.
-  - `ddi_homepage_dashboard_enabled` is now wired (Intelligence Dashboard) — it was kept, pre-wiring,
-    specifically because it was the exact gate `docs/ddi-intelligence-archive-dashboard.md` specified
-    the dashboard connector should check, and that's exactly what it now does.
-  - `ddi_sidebar_command_panel_enabled` is kept, on weaker footing than the above: the sidebar rebuild
-    is acknowledged intent (`docs/ddi-roadmap.md`'s "Excluded / Not Yet Ready") but has no design past
-    that acknowledgment. Kept because the intent is real, not because a plan exists yet.
-  - `ddi_footer_enabled` is kept, paired with the still-present `common/footer.html` above, for the
-    same reasoning: real (if under-specified) intent, valid mechanism, zero cost to leave in place.
+  this repo's history.
+  - **Wired (8):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
+    (Intelligence Dashboard), `ddi_intelligence_index_enabled` (Intelligence Index),
+    `ddi_timeline_view_enabled` (Intelligence Timeline), `ddi_knowledge_graph_viewer_enabled`
+    (Knowledge Graph Viewer), `ddi_reading_lists_enabled` (Reading Lists),
+    `ddi_integrity_dashboard_enabled` (Document Integrity Dashboard trigger — staff/admin status is
+    still gated in code regardless of this setting, see that section), `ddi_system_status_enabled`
+    (System Status trigger, same staff/admin caveat).
+  - **Reserved, not wired (4):** `ddi_compact_density` and `ddi_red_glow_strength` —
+    `docs/ddi-intelligence-archive-dashboard.md`'s Phase 6 explicitly names both for the dashboard's
+    "new section styling," a concrete, specific tie to planned work, not a vague aspiration.
+    `ddi_sidebar_command_panel_enabled` — the sidebar rebuild is acknowledged intent
+    (`docs/ddi-roadmap.md`'s "Excluded / Not Yet Ready") but has no design past that acknowledgment;
+    kept because the intent is real, not because a plan exists yet. `ddi_footer_enabled` — paired
+    with the still-present, still-empty `common/footer.html` above, same reasoning: real (if
+    under-specified) intent, valid mechanism, zero cost to leave in place.
 - **`assets/ddi-logo.png` is never referenced** by any template, stylesheet, or `about.json` asset
   entry — reviewed in RC cleanup. The header's actual logo sizing (`#site-logo.logo-big` in
   `common.scss`) already targets Discourse's native, admin-uploaded branding image, not a

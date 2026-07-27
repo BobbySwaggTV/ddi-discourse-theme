@@ -29,10 +29,11 @@ both desktop and mobile breakpoints, before opening a PR.
 ## Before You Start
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md), especially **Known Gaps / Unwired Code**. Most settings in
-`settings.yml` are declared but not read by any code — some are intentionally reserved for planned
-work, documented as such; confirm which before assuming a setting does something. Three genuinely
-dead files (`common/homepage.html`, `common/sidebar.html`, `common/variables.scss`) were removed in
-RC cleanup — if you're reading this in an older checkout, they no longer exist on the current branch.
+`settings.yml` (8 of 12) are read by real code; the remaining 4 are intentionally reserved for
+planned work, documented as such — confirm which before assuming a given setting does something.
+Three genuinely dead files (`common/homepage.html`, `common/sidebar.html`, `common/variables.scss`)
+were removed in RC cleanup — if you're reading this in an older checkout, they no longer exist on the
+current branch.
 
 ## Code Conventions
 
@@ -44,10 +45,10 @@ only, no business logic.
 
 ## Adding a Theme Setting
 
-Add it to `settings.yml` with a `type`, `default`, and a `description`. Note that, as of this
-writing, no existing setting is actually read by any code (see ARCHITECTURE.md) — if you add a
-setting, make sure your own code actually checks `settings.your_setting_name`, so it doesn't become
-another inert toggle.
+Add it to `settings.yml` with a `type`, `default`, and a `description`. Most existing settings are
+now wired to real code (see ARCHITECTURE.md's **Known Gaps / Unwired Code** for the current count) —
+if you add a new one, make sure your own code actually checks `settings.your_setting_name`, so it
+doesn't become another inert toggle.
 
 ## Commit Messages & Branch Naming
 

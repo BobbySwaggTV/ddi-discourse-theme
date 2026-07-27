@@ -3,10 +3,52 @@
 This changelog is derived from the project's git history, grouped by development session (date).
 
 **A note on versioning:** early commit messages embed ad hoc version labels (`v0.1.0` through
-`v0.3.0`), but these were never consistently reflected in `about.json` — `about.json` currently
-declares `version`/`theme_version` `0.2.1`, and the labels don't even increase monotonically over
-time in the commit history. They should not be read as an authoritative release history. This
-changelog uses dates instead, since those are verifiable.
+`v0.3.0`), but these were never consistently reflected in `about.json` until the Version 1.0 release
+prep below, and the labels don't even increase monotonically over time in the commit history. Don't
+read the early ad hoc labels as an authoritative release history — this changelog uses dates for
+that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
+the entry below; every entry before it predates that field meaning anything.
+
+## 2026-07-27 — Version 1.0 release preparation
+
+- **`about.json` version bump: `0.2.1` → `1.0.0`.** The first time `version`/`theme_version` has
+  been touched since the project's early ad hoc-labeled commits (see the versioning note above) —
+  this is the release this changelog's dates have been building toward.
+- **Removed `lib/ddi-relationship.js`'s `isValidRelationshipType()`** — confirmed zero references
+  anywhere in the codebase (not even internally; `findDocumentRelationships()` never called it
+  either) via a repo-wide grep before removing it, not assumed. An earlier version of
+  `ARCHITECTURE.md`'s **Document Relationships** section defended keeping it exported as
+  forward-looking API surface, on the same reasoning as `ddi-document-type.js`/`ddi-lifecycle.js`/
+  `ddi-department.js`'s own `isValid*` siblings; corrected in place, since — checked, not assumed —
+  those three siblings each have real current consumers and this one never did.
+- **Re-verified, clean:** no deprecated Ember array extensions, no `console`/`debugger` statements,
+  no unused imports, and (via the same orphan-export sweep that found the item above) no other dead
+  exports anywhere in `lib/`. All 72 theme JS files re-confirmed syntactically valid; `common.scss`
+  recompiles clean.
+- **Confirmed already committed, not re-done:** the Performance Audit changes (shared caches,
+  Command Palette debounce, search-results observer fix) landed in `e82cf74`, prior to this pass —
+  verified via `git diff HEAD`, not assumed from memory.
+
+## 2026-07-27 — Version 1.0 RC audit: one connector bug fixed, three docs corrected for accuracy
+
+- **`ddi-reading-lists.js`'s `share()` action could throw on a destroyed component.** Its
+  `navigator.clipboard.writeText()` promise chain called `this.set("shareStatus", …)` with no
+  `isDestroying`/`isDestroyed` guard — the one exception among every async `.then()` +
+  `setProperties`/`.set()` call site in the codebase, all individually checked. Brought in line with
+  this project's own documented convention (`CODING_STANDARDS.md`'s Connectors section).
+- **`README.md`, `CONTRIBUTING.md`, and `ARCHITECTURE.md`'s own Known Gaps section all independently
+  claimed settings were essentially unwired** ("`ddi_debug_mode_enabled` is the one exception" /
+  "no existing setting is actually read by any code"). Verified directly against every
+  `settings.<name>` reference in the codebase: 8 of 12 declared settings are actually wired
+  (Homepage Dashboard, Intelligence Index, Timeline, Knowledge Graph Viewer, Reading Lists, Integrity
+  Dashboard, System Status, Debug Mode) — only 4 are genuinely still reserved. All three documents
+  were frozen at a snapshot from before those six features existed and never updated as each shipped
+  its own settings gate. Corrected in all three files. Also removed a second stale claim in
+  `README.md` about an "unfixed" classification bug that `ARCHITECTURE.md`'s own Classification
+  System section already documents as fixed.
+- Full audit (code quality, architecture, UX, accessibility, performance, release prep) delivered as
+  a scored report; see that session's summary for the complete findings list — this entry covers only
+  what was actually changed in the repository.
 
 ## 2026-07-27 — Performance Audit: shared caches replace single-slot memos, eliminate duplicate fetches
 

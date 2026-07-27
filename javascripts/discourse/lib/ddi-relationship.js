@@ -9,10 +9,6 @@ export const RELATIONSHIP_TYPES = Object.freeze([
   "Supporting Documentation",
 ]);
 
-export function isValidRelationshipType(type) {
-  return RELATIONSHIP_TYPES.includes(type);
-}
-
 const TYPE_ALTERNATION = RELATIONSHIP_TYPES.map((type) =>
   type.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 ).join("|");

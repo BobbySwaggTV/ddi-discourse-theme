@@ -11,40 +11,38 @@ overrides, plugin outlet connectors, and API initializers) with no changes to Di
 
 ## Status
 
-This theme is under active development. Some of what's described in `docs/` is a design/roadmap
-for work that hasn't been built yet — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code)
-for a precise list of what's implemented versus planned. In short:
+Approaching a Version 1.0 release — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code)
+for the precise, current list of what's implemented versus still planned. In short:
 
 - The **topic page** transformation (dossier-style header, classification banner, summary,
-  document intelligence panel, table of contents, related-documents panel) is implemented and live.
-- The **homepage and sidebar** redesigns are **not** implemented yet. Early scaffolding for them
-  (`common/homepage.html`, `common/sidebar.html`) used filenames Discourse's theme compiler doesn't
-  recognize, so it never actually rendered — those dead files were removed in RC cleanup. See
-  `docs/ddi-intelligence-archive-dashboard.md` for the roadmap to build this properly.
-- Most settings in `settings.yml` are declared but **not currently read by any code** — toggling
-  them today has no effect (`ddi_debug_mode_enabled` is the one exception). See
-  [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which ones are intentionally
-  reserved for planned work versus removed as unaccountable.
+  document intelligence panel, table of contents, related-documents panel, Document Relationships,
+  Knowledge Graph Viewer) is implemented and live.
+- The **homepage/categories page** now has a real Intelligence Dashboard (archive statistics),
+  Intelligence Index (full alphabetical document list), Intelligence Timeline (year-grouped browse
+  view), and Division Cards/Header (per-category presentation) — all implemented and live. The
+  **sidebar** redesign, and a few of the dashboard's originally-planned sections (Search
+  Intelligence, Recent Revisions), are still unbuilt — see **Known Gaps / Unwired Code** in
+  ARCHITECTURE.md for exactly what remains.
+- **Staff tools** — a Document Integrity Dashboard (archive-wide metadata/reference audit) and a
+  System Status Dashboard (archive health summary) — are implemented, staff/admin-only.
+- **Member tools** — a global Command Palette (Ctrl+K/Cmd+K), a Favorites panel (native Discourse
+  bookmarks), and browser-local Reading Lists — are implemented.
+- Most, not all, settings in `settings.yml` are read by code — see **Theme Settings** below for
+  exactly which.
 
 ## What's actually implemented
 
-On the topic page, in render order:
+On the **topic page**, in render order: Dossier Header, Security Banner, Executive Summary, Document
+Intelligence, Table of Contents, Document Relationships, Knowledge Graph Viewer, and (staff/debug-only)
+a Verification Panel and Debug Panel. Archive-wide, on the homepage/category pages: Intelligence
+Dashboard, Intelligence Index, Intelligence Timeline, Division Cards, Division Header. Available from
+anywhere: Command Palette, Favorites, Reading Lists. Staff-only: Document Integrity Dashboard, System
+Status Dashboard. Plus a full dark "command network" visual restyling of standard Discourse chrome
+(header, sidebar, topic list, buttons, timeline, scrollbars, dialogs) in `common/common.scss`.
 
-| Component | What it does | Source |
-|---|---|---|
-| Dossier Header | Classification-colored header block showing document ID, author, status, issued date | `connectors/topic-above-post-stream/ddi-dossier-header.*`, `api-initializers/ddi-dossier-refresh.js` |
-| Security Banner | Classification banner (e.g. "RESTRICTED") derived from the topic's tags | `connectors/topic-above-posts/ddi-security-banner.*` |
-| Executive Summary | Shows the first paragraph of the topic's first post as a summary | `connectors/topic-above-posts/ddi-executive-summary.*` |
-| Document Intelligence | Reading time, word count, category, replies, views, last revision | `connectors/topic-above-posts/ddi-document-intelligence.*` |
-| Table of Contents | Auto-generated from `<h2>` headings in the first post | `connectors/topic-above-posts/ddi-document-toc.*` |
-| Intelligence Network | Up to 5 related documents, ranked by shared category / classification / tags | `connectors/topic-below-post-stream/ddi-intelligence-network.*`, `services/ddi-related-intelligence.js` |
-
-Plus a full dark "command network" visual restyling of the standard Discourse chrome (header,
-sidebar, topic list, buttons, timeline, scrollbars) in `common/common.scss`.
-
-There is a known, unfixed bug in the classification lookup (`lib/ddi-classification.js`) — see
-[ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) before relying on classification-based
-behavior.
+This list is intentionally a summary, not a reference — **[ARCHITECTURE.md](ARCHITECTURE.md)** has a
+dedicated section per component (what it does, which files implement it, what it reuses, and any
+known limitation), and is the accurate source if this list and that document ever disagree.
 
 ## Documentation
 
@@ -75,27 +73,31 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml`. `ddi_debug_mode_enabled` is read directly
-(`settings.ddi_debug_mode_enabled`) by the Debug Mode panel's connector — the rest are not yet
-consumed by any JS or SCSS, but are intentionally reserved for specific planned work rather than
-orphaned (see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan each maps
-to). Two settings that had no such mapping (`ddi_header_enabled`, `ddi_interface_mode_enabled`) were
-removed in RC cleanup rather than kept as unaccountable toggles.
+Declared in `settings.yml` — 12 settings, 8 of them read by real code, 4 still reserved for planned
+work (not orphaned — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan
+each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabled`,
+`ddi_interface_mode_enabled`) were removed in RC cleanup rather than kept as unaccountable toggles.
 
-| Setting | Type | Default | Description |
-|---|---|---|---|
-| `ddi_compact_density` | bool | `true` | Use compact dashboard spacing density |
-| `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | Controls ambient red glow intensity |
-| `ddi_homepage_dashboard_enabled` | bool | `true` | Render command dashboard homepage sections from categories |
-| `ddi_sidebar_command_panel_enabled` | bool | `true` | Enable command-panel sidebar presentation |
-| `ddi_footer_enabled` | bool | `true` | Enable DDI corporate command footer |
-| `ddi_debug_mode_enabled` | bool | `false` | Show a diagnostic metadata panel on topic pages — off by default |
+| Setting | Type | Default | Wired? | Description |
+|---|---|---|---|---|
+| `ddi_homepage_dashboard_enabled` | bool | `true` | ✅ | Show the Intelligence Dashboard above the page content |
+| `ddi_intelligence_index_enabled` | bool | `true` | ✅ | Show the alphabetical Intelligence Index |
+| `ddi_timeline_view_enabled` | bool | `true` | ✅ | Show the year-grouped Intelligence Timeline |
+| `ddi_knowledge_graph_viewer_enabled` | bool | `true` | ✅ | Show the interactive Knowledge Graph Viewer |
+| `ddi_reading_lists_enabled` | bool | `true` | ✅ | Show the Reading Lists trigger |
+| `ddi_integrity_dashboard_enabled` | bool | `true` | ✅ | Show the staff-only Document Integrity Dashboard trigger |
+| `ddi_system_status_enabled` | bool | `true` | ✅ | Show the staff-only System Status trigger |
+| `ddi_debug_mode_enabled` | bool | `false` | ✅ | Show a diagnostic metadata panel on topic pages — off by default |
+| `ddi_compact_density` | bool | `true` | reserved | Use compact dashboard spacing density |
+| `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | reserved | Controls ambient red glow intensity |
+| `ddi_sidebar_command_panel_enabled` | bool | `true` | reserved | Enable command-panel sidebar presentation |
+| `ddi_footer_enabled` | bool | `true` | reserved | Enable DDI corporate command footer |
 
 ## Project Structure
 
 ```
 about.json            Theme metadata (name, version, authors)
-settings.yml           Theme settings (see above — mostly reserved, one wired)
+settings.yml           Theme settings (see above — 8 of 12 wired)
 common/                Styles and templates applied on all devices
   common.scss           Main stylesheet — the live CSS token system and all component styling
   header.html / footer.html
