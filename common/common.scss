@@ -192,6 +192,20 @@ body::before {
   gap: 16px;
 }
 
+/* auto-fit's 300px floor is wider than the content area on a 320-375px
+   viewport (main-outlet's own chrome plus this grid's own container
+   padding already eat ~80-140px), which forces a single track wider than
+   its container instead of just wrapping to one column — a real
+   horizontal-overflow bug, not a hypothetical one. Below 600px, drop the
+   floor so auto-fit can never demand more than the viewport actually has;
+   this grid still naturally reduces to one column at that width anyway, so
+   visually nothing changes except that it no longer overflows. */
+@media (max-width: 600px) {
+  .ddi-division-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
    GLOBAL BORDERS
    ============================================================ */
@@ -1154,6 +1168,22 @@ a:hover {
   color: white !important;
 }
 
+/* At 40px, uppercase, with .08em letter-spacing, a real document title
+   ("FLEET SECURITY OPERATIONS BULLETIN") wraps into many short lines on a
+   320-375px screen — not a horizontal-overflow bug (there's no nowrap
+   forcing it wider than the viewport) but a genuine readability/wasted-
+   vertical-space one. Targets .topic-title .fancy-title specifically,
+   not the bare .fancy-title rule below, since that's the one actually
+   rendered here — its selector's higher specificity already wins on this
+   page regardless of source order. */
+@media (max-width: 600px) {
+  .topic-title .fancy-title {
+    font-size: 26px;
+
+    letter-spacing: .04em;
+  }
+}
+
 .topic-title .topic-statuses {
   margin-right: 12px;
 }
@@ -1536,7 +1566,6 @@ a:hover {
    ============================================================ */
 
 .ddi-dossier-header {
-  max-width: 760px;
   margin: 0 0 20px;
   padding: 22px 28px;
   max-width: 100%;
@@ -1553,6 +1582,14 @@ a:hover {
   box-shadow:
     inset 0 0 40px var(--ddi-red-05),
     0 15px 40px rgba(0,0,0,.35);
+}
+
+/* Its own hardcoded padding, not .ddi-card's, so the .ddi-card mobile
+   padding rule above doesn't reach it — same reasoning, applied here too. */
+@media (max-width: 600px) {
+  .ddi-dossier-header {
+    padding: 18px;
+  }
 }
 
 .ddi-dossier-classification {
@@ -1603,6 +1640,21 @@ a:hover {
   font-size: 15px;
 
   font-weight: 700;
+}
+
+/* Fixed 4-up on desktop reads fine (Dossier Header, Document Relationships,
+   Document Navigation, Intelligence Index, Intelligence Network all reuse
+   this unchanged) but at mobile widths each column shrinks below what an
+   uppercase, letter-spaced label like "CLASSIFICATION" can fit without
+   wrapping into unreadable fragments — stack to one column instead, the
+   same collapse-at-600px pattern already used by .ddi-intel-grid/
+   .ddi-nav-links/.ddi-stat-grid below. */
+@media (max-width: 600px) {
+  .ddi-dossier-grid {
+    grid-template-columns: 1fr;
+
+    gap: 12px;
+  }
 }
 
 .ddi-lifecycle-badge {
@@ -1709,6 +1761,20 @@ a:hover {
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.02),
     var(--ddi-shadow-xs);
+}
+
+/* .ddi-card is the base shell for nearly every DDI panel and dialog
+   (Homepage Dashboard, Executive Summary, Timeline, Integrity/System
+   Status/Reading Lists dialogs, Division Header, and more) — its 28px
+   horizontal padding is comfortable on desktop but a meaningful bite out of
+   a 320-375px viewport, doubly so inside a dialog that already has its own
+   backdrop gutter (see .ddi-command-palette-backdrop below). Tightening it
+   below 600px reclaims real content width everywhere at once rather than
+   patching each consumer individually. */
+@media (max-width: 600px) {
+  .ddi-card {
+    padding: 18px;
+  }
 }
 
 .ddi-card-title {
@@ -2367,6 +2433,18 @@ a:hover {
   display: flex;
 }
 
+/* Every DDI dialog (Command Palette, Favorites, Integrity Dashboard,
+   System Status, Reading Lists) shares this one backdrop, which has no
+   horizontal padding at all — each dialog's own width:100% then stretches
+   flush to both screen edges on mobile, with zero gutter. padding-inline
+   only (not the padding shorthand) so it can't clobber the padding-top
+   already set here and by .ddi-integrity-dashboard below. */
+@media (max-width: 600px) {
+  .ddi-command-palette-backdrop {
+    padding-inline: 16px;
+  }
+}
+
 .ddi-command-palette {
   width: 100%;
   max-width: 560px;
@@ -2522,6 +2600,17 @@ a:hover {
 
 .ddi-integrity-trigger:hover {
   background: var(--ddi-red-12);
+}
+
+/* 8px 14px padding at 10px font is under the ~44px touch-target guideline;
+   4px more each way lands closer to it without visibly changing the
+   compact corner-button look. Stacking gap (44px between the two
+   bottom-right triggers' own `bottom` values, see .ddi-system-status-trigger
+   below) still comfortably clears the taller button. */
+@media (max-width: 600px) {
+  .ddi-integrity-trigger {
+    padding: 10px 16px;
+  }
 }
 
 .ddi-integrity-dashboard {
@@ -2738,6 +2827,16 @@ a:hover {
   cursor: grabbing;
 }
 
+/* Node positions are already percentage-based within this container (see
+   ddi-knowledge-graph-view.js), so width was never a horizontal-overflow
+   risk here — this is purely reclaiming some of the fixed 420px of
+   vertical space on a short mobile viewport. */
+@media (max-width: 600px) {
+  .ddi-graph-canvas {
+    height: 320px;
+  }
+}
+
 .ddi-graph-canvas-inner {
   position: relative;
 
@@ -2817,6 +2916,14 @@ a:hover {
   background: var(--ddi-red-12);
 }
 
+/* Each node is a real tap target (opens a document) at 6px/10px padding
+   around ~11px text — a bit under the ~44px touch-target guideline. */
+@media (max-width: 600px) {
+  .ddi-graph-node {
+    padding: 8px 12px;
+  }
+}
+
 .ddi-graph-node-title {
   font-size: .74rem;
   font-weight: 700;
@@ -2861,11 +2968,24 @@ a:hover {
   left: 20px;
 }
 
+/* Desktop keeps this in its own bottom-left corner, clear of the other two
+   triggers' bottom-right stack. On a narrow phone, "READING LISTS" and
+   "INTEGRITY DASHBOARD" are each wide enough relative to the viewport that
+   opposite-corner placement risks the two buttons' text overlapping in the
+   middle. Stacking all three in one corner sidesteps that regardless of
+   label length, rather than trying to guess exact rendered widths — third
+   position above System Status's own 64px offset, with the same ~44px
+   clearance the other two already rely on. */
+@media (max-width: 600px) {
+  .ddi-reading-lists-trigger {
+    right: 20px;
+    left: auto;
+    bottom: 108px;
+  }
+}
+
 .ddi-reading-lists-panel {
   max-width: 820px;
-  max-height: 82vh;
-
-  overflow-y: auto;
 }
 
 .ddi-reading-list-shared-banner {

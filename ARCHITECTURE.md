@@ -2179,6 +2179,97 @@ not fire again); `activate()` is idempotent (calling it twice registers only one
 counter stays locked while any one of two simultaneously-active modals remains open, unlocking only
 once both have deactivated.
 
+## Mobile & Responsive Audit
+
+A CSS-only pass across every custom DDI component, closing the gaps left by five earlier
+`@media (max-width: 600px)`/`900px` rules (`.ddi-intel-grid`, `.ddi-watermark-text`, `.ddi-nav-links`,
+`.ddi-stat-grid`, and `mobile.scss`'s own unrelated topic-list rule) that only ever covered a few of
+this theme's grids. Every fix lives in `common/common.scss` — no `.hbs`/`.js` file changed, no
+markup, no desktop-visible value changed; every new rule is inside a `max-width: 600px` query, the
+same breakpoint the file's five pre-existing DDI media queries already used.
+
+**`.ddi-dossier-grid`'s fixed `repeat(4, 1fr)` had no responsive handling at all — the single
+highest-impact finding.** Five components share this bare class unchanged: Dossier Header, Document
+Relationships, Document Navigation (the "Archive Navigation" card — one connector, two names for the
+same feature, see below), Intelligence Index, and Intelligence Network. (Timeline, Reading Lists, and
+Favorites all pair it with the `.ddi-favorites-grid` auto-fit modifier instead, which was already
+safe — confirmed by grep before touching anything, not assumed.) At a 320-375px content width, four
+fixed columns leave roughly 45-90px each — not enough for an uppercase, `.22em`-letter-spaced label
+like "CLASSIFICATION" to render without wrapping into unreadable fragments, worst of all inside
+Intelligence Index, where it repeats once per document in what can be a long list. Collapses to one
+column below 600px, the same shape as `.ddi-intel-grid`'s existing 3→1 collapse.
+
+**`.ddi-division-cards-grid`'s `auto-fit, minmax(300px, 1fr)` was a real, confirmed horizontal-
+overflow bug, not a hypothetical one — the only defect in this audit that actually broke "no
+horizontal scrolling."** `auto-fit`/`minmax` guarantees every track is *at least* its minimum, even
+if that's wider than the container; `#main-outlet`'s own chrome plus this grid's own padding leaves
+only ~240px of content width at 320px and ~295px at 375px — both narrower than the 300px floor,
+forcing a track wider than the page and a horizontal scrollbar. Verified by computing actual content
+width at all four required test widths (320/375/768/1024) before and after: overflows at 320 and 375
+pre-fix, fits cleanly post-fix, and 768/1024 were never affected (they already had ≥300px to spare).
+Used by both Division Cards and Reading Lists' "all reading lists" view — fixing it once fixes both.
+Below 600px, the floor is dropped (`grid-template-columns: 1fr`) rather than lowered, since the grid
+already reduces to one column naturally at that width regardless of the floor's exact value.
+
+**`.ddi-card`'s 28px horizontal padding, tightened to 18px below 600px, benefits nearly every
+component in one place rather than patching each consumer.** `.ddi-card` is the shared shell for
+Homepage/Intelligence Dashboard, Executive Summary, Timeline, Division Header, and all five dialogs
+(Command Palette, Favorites, Integrity Dashboard, System Status, Reading Lists) — reclaiming 10px a
+side matters most inside a dialog, which already loses width to its own backdrop gutter (below).
+`.ddi-dossier-header` isn't built on `.ddi-card` (its own class, own hardcoded `padding: 22px 28px`)
+so it needed the identical reduction added separately — same reasoning, different selector.
+
+**`.ddi-command-palette-backdrop` had zero horizontal padding — every dialog stretched flush to both
+screen edges on mobile.** All five dialogs share this one backdrop; each dialog's own `width: 100%`
+resolves against the backdrop's content box, so adding `padding-inline: 16px` there (not the `padding`
+shorthand, so it doesn't disturb the `padding-top` already set here and by `.ddi-integrity-dashboard`)
+gives every dialog a gutter in one place. "Ensure dialogs fit within the viewport" is otherwise
+already satisfied pre-existing: every panel already carries `max-height`/`overflow-y: auto` so a tall
+dialog scrolls internally rather than exceeding the viewport — this fix is purely about the horizontal
+axis, which had no equivalent protection at all.
+
+**Corner trigger buttons (Integrity Dashboard, System Status, Reading Lists): a touch-target bump and
+a real overlap risk, verified by computing pixel positions rather than eyeballing it.** `padding: 8px
+14px` at a 10px font lands under the ~44px touch-target guideline; bumped to `10px 16px` below 600px.
+Separately, Reading Lists' trigger sits in the opposite corner from the other two on desktop
+(bottom-left vs. bottom-right) — safe there, but on a narrow phone "READING LISTS" and "INTEGRITY
+DASHBOARD" are each wide enough relative to the viewport that the two could plausibly overlap in the
+middle, and rendered text width isn't something that can be measured from source alone. Rather than
+guess, the mobile fix moves all three into one corner (`bottom: 108px`, stacked above System Status's
+existing 64px), which rules out horizontal collision regardless of label width. Verified the
+resulting stack has ≥10px clearance between each button at the bumped touch-target height.
+
+**Knowledge Graph: no overflow risk to begin with (nodes are positioned in percentage space within an
+`overflow: hidden` container — confirmed, not assumed), but the fixed 420px canvas height and 6px/10px
+node padding were both worth trimming for a mobile viewport.** Canvas drops to 320px below 600px,
+reclaiming vertical space without touching the percentage-based layout math in
+`ddi-knowledge-graph-view.js` at all; node padding grows slightly (`8px 12px`) since each node is a
+real tap target that opens a document.
+
+**Already correct, confirmed by inspection rather than left unverified:** `.ddi-integrity-table`
+already had `.ddi-integrity-table-wrap { overflow-x: auto; }` — the standard "wide table scrolls in
+its own container" pattern — so "verify tables become usable on mobile" needed no change; Search
+Results' badge row already used `flex-wrap: wrap`; Document Footer's `.ddi-intel-grid` and Archive
+Navigation's `.ddi-nav-links` both already had their own 600px collapse from earlier work. "Archive
+Navigation" and "Document Navigation" in this audit's component list turned out to be the same single
+connector (`ddi-document-navigation.js`, card title "ARCHIVE NAVIGATION") — confirmed via a direct
+search for any second navigation connector before assuming so.
+
+**Dead/redundant CSS removed while auditing, not left alongside the fix.** `.ddi-dossier-header`
+declared `max-width: 760px` immediately followed by `max-width: 100%` in the same rule — the second,
+identical-specificity, later declaration always won, making the first genuinely unreachable; deleted
+it rather than the (already-shipped, unchanged) effective behavior. `.ddi-reading-lists-panel`
+re-declared `max-height: 82vh; overflow-y: auto;` — values already inherited unchanged from
+`.ddi-integrity-dashboard-panel` on the same element (both classes are always present together) —
+removed the duplicate, kept its one genuinely different property, `max-width: 820px`.
+
+**Verified directly**, not just visually reasoned about: compiled the full stylesheet with `sass`
+after every change (`sass common/common.scss`, zero errors, all 15 `@media` blocks present — the 5
+pre-existing plus 10 new); computed `#main-outlet` and nested-dialog content widths at exactly
+320/375/768/1024px against every changed selector's floor/column-count to confirm the 320/375 bugs
+are fixed and 768/1024 are numerically unchanged; computed the corner-trigger stacking positions to
+confirm no overlap at the bumped touch-target size.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
