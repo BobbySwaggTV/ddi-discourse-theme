@@ -6,6 +6,7 @@ import {
   filterDepartmentsByQuery,
 } from "../lib/ddi-command-palette";
 import { readRecentlyViewed, recordVisit } from "../lib/ddi-recently-viewed";
+import { createModal } from "../lib/ddi-modal";
 
 export default apiInitializer("1.0", (api) => {
   let backdrop;
@@ -15,12 +16,12 @@ export default apiInitializer("1.0", (api) => {
   let liveRegion;
   let entries = [];
   let activeIndex = -1;
-  let lastFocusedElement = null;
+  let modal;
 
   let favoritesBackdrop;
   let favoritesDialog;
   let favoritesListEl;
-  let favoritesLastFocusedElement = null;
+  let favoritesModal;
 
   let allDocuments = null;
   let allDepartments = null;
@@ -126,9 +127,6 @@ export default apiInitializer("1.0", (api) => {
 
     dialog = document.createElement("div");
     dialog.className = "ddi-card ddi-command-palette";
-    dialog.setAttribute("role", "dialog");
-    dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("aria-label", "Archive command palette");
 
     input = document.createElement("input");
     input.type = "text";
@@ -155,6 +153,12 @@ export default apiInitializer("1.0", (api) => {
     dialog.appendChild(liveRegion);
     backdrop.appendChild(dialog);
     document.body.appendChild(backdrop);
+
+    modal = createModal(dialog, {
+      label: "Archive command palette",
+      initialFocus: () => input,
+      onClose: close,
+    });
 
     backdrop.addEventListener("mousedown", (event) => {
       if (event.target === backdrop) {
@@ -304,21 +308,11 @@ export default apiInitializer("1.0", (api) => {
       event.preventDefault();
       event.stopPropagation();
       activate(entries[activeIndex]);
-      return;
     }
 
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-      return;
-    }
-
-    if (event.key === "Tab") {
-      // Single focusable control while open — keep focus trapped on it
-      // rather than letting Tab escape to the page behind the dialog.
-      event.preventDefault();
-    }
+    // Escape and Tab (there's only one real focusable control here, the
+    // input — results rows are tabindex="-1" — so trapping Tab just keeps
+    // it there) are both handled by the shared modal utility.
   }
 
   function isOpen() {
@@ -333,11 +327,10 @@ export default apiInitializer("1.0", (api) => {
       return;
     }
 
-    lastFocusedElement = document.activeElement;
     backdrop.classList.add("ddi-command-palette-open");
     input.value = "";
-    input.focus();
     refresh("");
+    modal.activate();
   }
 
   function close() {
@@ -346,8 +339,7 @@ export default apiInitializer("1.0", (api) => {
     }
 
     backdrop.classList.remove("ddi-command-palette-open");
-    lastFocusedElement?.focus?.();
-    lastFocusedElement = null;
+    modal.deactivate();
   }
 
   function toggle() {
@@ -368,13 +360,10 @@ export default apiInitializer("1.0", (api) => {
 
     favoritesDialog = document.createElement("div");
     favoritesDialog.className = "ddi-card ddi-command-palette ddi-favorites-panel";
-    favoritesDialog.setAttribute("role", "dialog");
-    favoritesDialog.setAttribute("aria-modal", "true");
-    favoritesDialog.setAttribute("aria-label", "Favorite documents");
-    favoritesDialog.setAttribute("tabindex", "-1");
 
     const title = document.createElement("div");
     title.className = "ddi-card-title";
+    title.id = "ddi-favorites-title";
     title.textContent = "Favorites";
     favoritesDialog.appendChild(title);
 
@@ -385,13 +374,16 @@ export default apiInitializer("1.0", (api) => {
     favoritesBackdrop.appendChild(favoritesDialog);
     document.body.appendChild(favoritesBackdrop);
 
+    favoritesModal = createModal(favoritesDialog, {
+      labelledBy: "ddi-favorites-title",
+      onClose: closeFavorites,
+    });
+
     favoritesBackdrop.addEventListener("mousedown", (event) => {
       if (event.target === favoritesBackdrop) {
         closeFavorites();
       }
     });
-
-    favoritesDialog.addEventListener("keydown", onFavoritesKeydown);
   }
 
   function renderFavoriteRow(favorite) {
@@ -512,9 +504,8 @@ export default apiInitializer("1.0", (api) => {
       return;
     }
 
-    favoritesLastFocusedElement = document.activeElement;
     favoritesBackdrop.classList.add("ddi-command-palette-open");
-    favoritesDialog.focus();
+    favoritesModal.activate();
     loadFavorites();
   }
 
@@ -524,42 +515,7 @@ export default apiInitializer("1.0", (api) => {
     }
 
     favoritesBackdrop.classList.remove("ddi-command-palette-open");
-    favoritesLastFocusedElement?.focus?.();
-    favoritesLastFocusedElement = null;
-  }
-
-  function onFavoritesKeydown(event) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeFavorites();
-      return;
-    }
-
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    const focusable = [
-      ...favoritesDialog.querySelectorAll(
-        "a[href], button:not([disabled])"
-      ),
-    ];
-
-    if (!focusable.length) {
-      event.preventDefault();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    favoritesModal.deactivate();
   }
 
   try {

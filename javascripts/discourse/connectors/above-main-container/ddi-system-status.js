@@ -1,4 +1,5 @@
 import { getOwner } from "@ember/owner";
+import { createModal } from "../../lib/ddi-modal";
 
 export default {
   shouldRender(args, component) {
@@ -20,6 +21,29 @@ export default {
       status: null,
       ddiSystemStatus: owner.lookup("service:ddi-system-status"),
       ddiIntegrityDashboard: owner.lookup("service:ddi-integrity-dashboard"),
+
+      // Same free-function pattern as the Integrity Dashboard connector —
+      // see its setupModal for why these can't be `this`-bound methods.
+      // isOpen lives on this component (not a service), so onClose closes
+      // it via the component directly rather than a service reference.
+      setupModal: (element) => {
+        element._ddiModal = createModal(element, {
+          labelledBy: "ddi-system-status-title",
+          onClose: () => component.set("isOpen", false),
+        });
+      },
+
+      onOpenChange: (element, [isOpen]) => {
+        if (isOpen) {
+          element._ddiModal?.activate();
+        } else {
+          element._ddiModal?.deactivate();
+        }
+      },
+
+      teardownModal: (element) => {
+        element._ddiModal?.destroy();
+      },
     });
   },
 

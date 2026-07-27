@@ -1600,18 +1600,21 @@ hand-rolled router transition. An earlier draft of this feature called `service:
 this URL, handling both Ember and full-page cases correctly," and reusing it is strictly safer than
 the hand-rolled equivalent this initially had. Caught during self-review, fixed before this shipped.
 
-**Accessibility: a real combobox/listbox pattern, not decorative ARIA.** The input carries
-`role="combobox"` and `aria-activedescendant` pointing at whichever result row is currently
-selected; the results container is `role="listbox"`; each row is `role="option"` with
-`tabindex="-1"` (deliberately *not* independently tabbable — selection moves via
-`aria-activedescendant`, keeping the input the single real focus target while open, which is also
-why `Tab` is prevented from leaving the dialog: there's nothing else to trap focus between). A
-visually-hidden `aria-live="polite"` status region announces the result count on every keystroke,
-for screen-reader users who can't see the list update. Opening moves focus to the input; closing
-restores focus to whatever was focused before the palette opened, so keyboard users aren't dropped
-back at the top of the page. Known, stated limitation: content *behind* the palette isn't marked
-`aria-hidden` while it's open (a fuller implementation would toggle that on the rest of the page) —
-judged out of scope for "keep lightweight" against the actual accessibility gains of doing so.
+**Accessibility: a real combobox/listbox pattern, not decorative ARIA — dialog mechanics (Escape,
+focus trap, focus restore, scroll lock) come from the shared `lib/ddi-modal.js` utility, not
+bespoke code.** The input carries `role="combobox"` and `aria-activedescendant` pointing at
+whichever result row is currently selected; the results container is `role="listbox"`; each row is
+`role="option"` with `tabindex="-1"` (deliberately *not* independently tabbable — selection moves
+via `aria-activedescendant`, keeping the input the single real focus target while open, which is
+also why the shared Tab-trap's first-focusable/last-focusable happen to be the same element: there's
+nothing else to trap focus between). A visually-hidden `aria-live="polite"` status region announces
+the result count on every keystroke, for screen-reader users who can't see the list update. See
+**Modal Accessibility** below for what the shared utility provides to every DDI dialog, including
+this one: Escape closes, focus is restored to whatever was focused before opening, and background
+scroll is now locked while open (previously not the case here). Known, stated limitation, unchanged
+by that refactor: content *behind* the palette isn't marked `aria-hidden` while it's open (a fuller
+implementation would toggle that on the rest of the page) — judged out of scope for "keep
+lightweight" against the actual accessibility gains of doing so.
 
 **New CSS reuses the established shell and row patterns.** `.ddi-card` (dialog background/border/
 shadow), `.ddi-toc-item`/`.ddi-toc-title` (result rows, identical to every other document list in
@@ -1678,16 +1681,17 @@ simplification, not something the verification pass needed to touch). Each uniqu
 goes through `ddi-citation-preview.js`'s existing `getCitationById()` unchanged — the exact same
 call Document Quick Preview and Recently Viewed already make, already cached by document id.
 
-**Reuses the Command Palette's own modal machinery rather than building a second one.** The
-favorites panel is a second dialog/backdrop pair inside the same `ddi-command-palette.js`
-initializer (not a separate file) specifically so it can share the palette's existing
-`.ddi-command-palette-backdrop` styling and be triggered directly from `activate()` without
-inventing a cross-initializer communication mechanism. It does *not* reuse the palette's
-combobox/`aria-activedescendant` pattern, though — there's no search input here, just a scrollable
-list of real, independently-focusable controls (each row's two buttons), which is a genuinely
-different interaction shape and gets its own, simpler Tab-trap (cycle between the first and last
-focusable element) rather than forcing the search palette's virtual-cursor pattern onto content it
-doesn't fit.
+**Reuses the Command Palette's backdrop styling and, for dialog mechanics, the shared
+`lib/ddi-modal.js` utility — not a second hand-rolled implementation of either.** The favorites
+panel is a second dialog/backdrop pair inside the same `ddi-command-palette.js` initializer (not a
+separate file) specifically so it can share the palette's existing `.ddi-command-palette-backdrop`
+styling and be triggered directly from `activate()` without inventing a cross-initializer
+communication mechanism. It does *not* reuse the palette's combobox/`aria-activedescendant`
+pattern, though — there's no search input here, just a scrollable list of real,
+independently-focusable controls (each row's two buttons), a genuinely different interaction shape
+from the palette's virtual-cursor-over-a-listbox one. What it does share with the palette (and every
+other DDI dialog) is Escape/Tab-trap/focus-restore/scroll-lock, all from the one shared modal
+utility — see **Modal Accessibility** below.
 
 **Reuses `.ddi-dossier-grid`'s cell typography without touching its existing 4-column layout.**
 Favorites needs 5 grid cells (Document Number, Classification, Department, Document Type, Last
@@ -1702,13 +1706,14 @@ Preview's.** Favorited documents are, by definition, not necessarily the current
 Citation Preview (built on the same underlying `lib/` helpers the Metadata Engine also uses) is the
 established mechanism for exactly this "some other document" case throughout this theme.
 
-**Known, stated UX limitations, not silently accepted.** Opening the panel focuses the dialog
-container itself rather than a specific row (the list is still loading — "LOADING FAVORITES…" — at
-the moment focus is set, so there's nothing to focus into yet); Tab correctly proceeds into the
-first row once loaded, but a Shift+Tab pressed *before* any Tab press could move focus outside the
-dialog in that one narrow window. Removing a bookmark re-renders the list, which resets focus to
-the document body rather than a nearby remaining control. Both are real, narrow rough edges judged
-disproportionate to fix for a "quick-access panel," not code the review missed.
+**Known, stated UX limitation, not silently accepted.** Removing a bookmark re-renders the list,
+which resets focus to the document body rather than a nearby remaining control — a real, narrow
+rough edge judged disproportionate to fix for a "quick-access panel," not code the review missed.
+(A previously-documented second limitation here — a Shift+Tab pressed before any Tab press could
+escape the dialog, in the one narrow window before the list finished loading — no longer applies:
+the shared modal utility's Tab-trap queries the dialog's actual focusable elements live on every
+keypress rather than depending on Tab having been pressed first, so it traps correctly from the
+first keypress regardless of loading state.)
 
 ## Document Integrity Dashboard
 
@@ -2081,6 +2086,98 @@ correctly halts a runaway/self-referential pagination loop. Separately, `ddi-int
 full pipeline (fetch → shape via Citation Preview → sort → filter) was re-verified against a
 multi-topic mock archive to confirm existing sort/filter behavior is untouched by the data-source
 change.
+
+## Modal Accessibility
+
+Brings every DDI dialog — Command Palette, Favorites, Integrity Dashboard, System Status, Reading
+Lists — into line on keyboard/screen-reader behavior via one shared utility, `lib/ddi-modal.js`,
+rather than five independent (and, for two of them, already-duplicated) implementations of the same
+mechanics.
+
+**One function, `createModal(element, options)`, is the entire surface area.** It sets `role`,
+`aria-modal="true"`, and either `aria-labelledby` (an id pointing at the dialog's own visible title)
+or `aria-label` (for the one dialog with no visible title — Command Palette) immediately, and
+returns `{ activate, deactivate, destroy }`. It does not decide *when* a dialog is open — every
+dialog already owns that (a service's `@tracked isOpen`, or local component state) — it only turns
+the accessibility behavior on and off in step with whatever the caller tells it. `activate()`
+records the currently-focused element, locks background scroll, registers one document-level
+`keydown` listener (Escape closes via an `onClose` callback; Tab is trapped between the dialog's
+first and last focusable descendants, recomputed live on every keypress rather than cached at open
+time), and moves focus to an explicit `initialFocus` target, the first focusable descendant, or the
+dialog element itself as a last resort (it's always given `tabindex="-1"` if it doesn't already have
+one, so that fallback is always valid). `deactivate()` reverses all of it, including restoring focus
+to whatever was focused before the dialog opened. `destroy()` is `deactivate()` under another name,
+for use as a `{{will-destroy}}` safety net if a dialog's element is torn down while still open.
+
+**Background scroll lock is ref-counted at the module level, on purpose.** `lockScroll()`/
+`unlockScroll()` share one counter across every `createModal()` instance in the page — the body's
+`overflow` is only touched on the 0→1 and 1→0 transitions, so if a second dialog were ever open
+while a first is still active, closing one wouldn't prematurely re-enable scrolling while the other
+is still up. Every current DDI dialog closes any sibling before opening (see **DDI System Status
+Dashboard**'s "two full-screen dialogs never stack"), so this is a correctness guarantee against a
+case that can't happen today, not a response to an observed bug — cheap enough to include outright
+rather than assume the invariant holds forever.
+
+**Two different integration shapes for two different dialog implementations, same underlying
+utility.** Command Palette and Favorites are hand-built DOM inside `api-initializers/
+ddi-command-palette.js`; each now calls `createModal()` once when its dialog element is first
+created and calls the returned `.activate()`/`.deactivate()` directly from its own existing
+`open()`/`close()` functions, in place of the hand-rolled focus-save/restore and (for Favorites) an
+entire bespoke `onFavoritesKeydown` Tab-trap that duplicated what Command Palette's own `keydown`
+handler was separately doing. Integrity Dashboard, System Status, and Reading Lists are classic Ember
+connector components whose dialog visibility is driven by a tracked `isOpen` (service-owned for the
+first and third, component-local for the second) toggling a CSS class — for these, `setupModal`
+creates the controller via `{{did-insert}}`, `onOpenChange` calls `.activate()`/`.deactivate()` via
+`{{did-update this.onOpenChange <the isOpen value>}}` (which re-fires whenever that tracked value
+changes), and `teardownModal` calls `.destroy()` via `{{will-destroy}}`. All three are free functions
+closing over a plain service/component reference captured in `setupComponent`, never `this` —
+the same lesson already established by the Knowledge Graph Viewer's `setupGraphCanvas`/
+`teardownGraphCanvas` (did-insert/will-destroy guarantee the element as an argument but not `this`
+bound to the component), applied here to a third modifier, `{{did-update}}`, for the same reason.
+
+**Reading Lists needed one extra line the other two Ember connectors didn't: `setupModal` also
+activates immediately if the dialog is already open at insert time.** A shared reading list URL
+(`?ddi-shared-list=...`) sets `ddiReadingLists.isOpen = true` inside the service's own constructor,
+before the connector's panel ever renders — `{{did-update}}` only fires on *later* changes to the
+watched value, so relying on it alone would leave that one auto-opened dialog rendered visually open
+with no focus trap, no Escape handling, and no scroll lock. Integrity Dashboard and System Status
+have no code path that starts `isOpen` at `true`, so they don't need the same guard — this was a
+deliberate, checked difference, not an inconsistency.
+
+**Dead code removed, not left alongside the new utility.** Favorites' entire `onFavoritesKeydown`
+function (manual Escape handling plus a hand-rolled Tab-trap querying `a[href], button:not([disabled])`)
+is gone, along with the `favoritesLastFocusedElement` variable it and `openFavorites()`/
+`closeFavorites()` maintained. Command Palette's `onInputKeydown` lost its own `Escape` branch and
+the `Tab`-prevention branch it used to carry (`ArrowUp`/`ArrowDown`/`Enter` — real combobox
+navigation, not modal mechanics — are untouched). Both dialogs' manual `dialog.setAttribute("role",
+...)`/`aria-modal`/`aria-label` calls are gone too; `createModal()` sets all of it now.
+
+**No UI or visual change — appearance was never in scope.** Every dialog's existing markup, CSS
+classes, and backdrop-open toggle are untouched; only `role`/`aria-*`/`tabindex` attributes (already
+either present or invisible to sighted users) and JS-level focus/scroll/keydown behavior changed.
+The one behavior genuinely new to *every* dialog, not just Favorites/Command Palette, is background
+scroll lock — none of the three Ember-connector dialogs (Integrity Dashboard, System Status, Reading
+Lists) prevented background scrolling before this.
+
+**Known, stated limitation.** As already noted under **Command Palette**, content behind an open
+dialog isn't marked `aria-hidden` — true for all five dialogs now, not just that one, and still
+judged out of scope for the same reason. Separately: each dialog's Escape/Tab listener is
+independent per `createModal()` instance, scoped to whether *that* dialog is currently active, not a
+single global modal stack — if two dialogs were ever simultaneously open (which, per the ref-count
+note above, doesn't happen today), one Escape press would close both rather than just the top one.
+Judged an acceptable, honestly-documented simplification for a theme where that situation is
+prevented by convention rather than something worth a full modal-stack manager to guard against.
+
+**Verified directly**, against a minimal in-memory DOM mock standing in for `document`/elements (no
+`jsdom` dependency in this repo): static ARIA attributes set on creation; `activate()` saves focus,
+locks scroll, and moves focus to the first focusable descendant by default; Escape invokes `onClose`;
+Tab wraps at both ends of the focusable set (including Shift+Tab from the first element, and that a
+Tab press from a *middle* element is left alone); `deactivate()` restores focus, unlocks scroll, and
+removes its listener (confirmed by dispatching another Escape afterward and observing `onClose` does
+not fire again); `activate()` is idempotent (calling it twice registers only one listener);
+`destroy()` cleans up correctly even without an explicit `deactivate()` call first; and the scroll-lock
+counter stays locked while any one of two simultaneously-active modals remains open, unlocking only
+once both have deactivated.
 
 ## CSS Architecture
 

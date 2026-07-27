@@ -8,6 +8,37 @@ declares `version`/`theme_version` `0.2.1`, and the labels don't even increase m
 time in the commit history. They should not be read as an authoritative release history. This
 changelog uses dates instead, since those are verifiable.
 
+## 2026-07-27 — Modal Accessibility: shared focus-trap/Escape/scroll-lock utility for every dialog
+
+- New `lib/ddi-modal.js` — one `createModal(element, options)` used by all five DDI dialogs (Command
+  Palette, Favorites, Integrity Dashboard, System Status, Reading Lists). Provides, per dialog: Escape
+  closes; focus trapped inside via Tab (recomputed live against the dialog's actual focusable
+  elements on every keypress, not cached at open time); focus restored to whatever was focused before
+  opening; `role="dialog"`, `aria-modal="true"`, and `aria-labelledby` (or `aria-label` where there's
+  no visible title) set on creation; background scroll locked while any dialog is open, via a
+  module-level ref count shared across all instances; every listener removed on close/destroy.
+- Refactored all five dialogs onto the shared utility in place of their previous implementations:
+  Favorites and Command Palette (raw DOM, in `api-initializers/ddi-command-palette.js`) previously
+  had two separately hand-rolled Escape/Tab-trap/focus-restore implementations; Integrity Dashboard,
+  System Status, and Reading Lists (classic Ember connectors) had none at all. The three Ember
+  connectors wire in via `{{did-insert}}`/`{{did-update}}`/`{{will-destroy}}` — free functions closing
+  over a captured service/component reference, never `this`, the same lesson already established by
+  the Knowledge Graph Viewer's `setupGraphCanvas`.
+- Fixed a real bug in the process: Favorites' own Tab-trap previously depended on a Tab having
+  already been pressed once before Shift+Tab could be trapped correctly, a narrow window where
+  Shift+Tab could escape the dialog. The shared utility's live (not cached) focusable-element lookup
+  doesn't have that ordering dependency.
+- No UI or visual change. The one behavior genuinely new everywhere (not just Favorites/Command
+  Palette, which already prevented it): background scroll is now locked on all five dialogs, including
+  the three Ember-connector ones, which never locked it before.
+- Removed dead code: Favorites' entire `onFavoritesKeydown` function and its
+  `favoritesLastFocusedElement` variable; Command Palette's `onInputKeydown` Escape/Tab branches (its
+  Arrow/Enter combobox-navigation logic is untouched); both dialogs' manual `role`/`aria-modal`/
+  `aria-label` `setAttribute()` calls, now owned entirely by the shared utility.
+- Corrected two now-stale claims in ARCHITECTURE.md's Command Palette and Favorites Panel sections —
+  the latter's documented "Shift-Tab-before-first-Tab" limitation no longer applies — rather than
+  leaving them alongside the fix. Added a new "Modal Accessibility" section.
+
 ## 2026-07-26 — Archive Pagination: shared, paginated, session-cached archive service
 
 - New `services/ddi-archive.js` — the single highest-leverage item flagged in the Version 1

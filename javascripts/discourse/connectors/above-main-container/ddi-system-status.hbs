@@ -3,9 +3,14 @@
 </button>
 
 <div class="ddi-command-palette-backdrop ddi-integrity-dashboard ddi-system-status-dashboard {{if this.isOpen "ddi-command-palette-open"}}">
-  <div class="ddi-card ddi-integrity-dashboard-panel ddi-system-status-panel">
+  <div
+    class="ddi-card ddi-integrity-dashboard-panel ddi-system-status-panel"
+    {{did-insert this.setupModal}}
+    {{did-update this.onOpenChange this.isOpen}}
+    {{will-destroy this.teardownModal}}
+  >
 
-    <div class="ddi-card-title">
+    <div class="ddi-card-title" id="ddi-system-status-title">
       DDI SYSTEM STATUS
     </div>
 

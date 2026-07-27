@@ -3,9 +3,14 @@
 </button>
 
 <div class="ddi-command-palette-backdrop ddi-integrity-dashboard {{if this.ddiIntegrityDashboard.isOpen "ddi-command-palette-open"}}">
-  <div class="ddi-card ddi-integrity-dashboard-panel">
+  <div
+    class="ddi-card ddi-integrity-dashboard-panel"
+    {{did-insert this.setupModal}}
+    {{did-update this.onOpenChange this.ddiIntegrityDashboard.isOpen}}
+    {{will-destroy this.teardownModal}}
+  >
 
-    <div class="ddi-card-title">
+    <div class="ddi-card-title" id="ddi-integrity-dashboard-title">
       DOCUMENT INTEGRITY DASHBOARD
     </div>
 
