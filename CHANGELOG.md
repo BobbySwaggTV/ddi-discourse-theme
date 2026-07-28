@@ -9,6 +9,39 @@ read the early ad hoc labels as an authoritative release history — this change
 that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
 the entry below; every entry before it predates that field meaning anything.
 
+## 2026-07-28 — Maintenance: fix `discourse.template-action` deprecation warning
+
+- Replaced every deprecated `{{action "name" ...}}` template usage (28 occurrences, across the six
+  connectors with any interactive buttons: Knowledge Graph Viewer, Intelligence Timeline, Document
+  Integrity Dashboard, Reading Lists, DDI System Status Dashboard, Document Actions) with `{{on
+  "click" ...}}`, using `{{fn}}` to pre-bind arguments where an action took any. Confirmed via a
+  repository-wide search for `{{action`, `action=`, and `(action ...)` before and after: zero legacy
+  template-action syntax remains anywhere.
+- Pure syntax migration — no behavior change. Every replaced button was already `<button
+  type="button">` (verified per call site before touching any of them), which has no native browser
+  default action to prevent, so `{{action}}`'s implicit `preventDefault()` was already a no-op and
+  dropping it changes nothing observable; keyboard activation (Enter/Space) is native `<button>`
+  behavior, unaffected by which API wires up the click handler.
+- The real adaptation: `{{action}}`'s automatic `this`-binding has no equivalent under `{{on}}`, so
+  every action method that relied on it (`this.set(...)`, `this.someService.method()`, etc.) was
+  moved out of each connector's `actions: {}` hash into a plain closure over `component` (and any
+  already-captured service, e.g. `ddiReadingLists`) — the identical free-function, no-`this` pattern
+  already established for this theme's `{{did-insert}}`/`{{did-update}}`/`{{will-destroy}}` handlers,
+  applied to the last places still depending on the opposite guarantee. Every method body is otherwise
+  unchanged: same conditions, same service calls, same async/error-handling paths, same argument
+  lists — confirmed by grepping every touched file afterward for any stray `this.` that should have
+  been renamed (none found; only explanatory comments remain).
+- Removed the now-dead `actions: {}` hash entirely from all six connectors — nothing referenced it
+  once every button switched to a direct property lookup.
+- Verified directly: all touched files re-confirmed syntactically valid; `{{fn}}`'s argument-passing
+  order mocked and confirmed to match `{{action}}`'s own; the trickiest migrated actions (Reading
+  Lists' async `share`/`toggleReadingListMembership` with their `isDestroying` guards, Document
+  Actions' `toggleFavorite`, System Status's cross-dialog handoff, Knowledge Graph's `resetView`)
+  individually re-verified against mocked components for identical outcomes. Two stale
+  `ARCHITECTURE.md` mentions of `{{action}}` as the live pattern corrected in place. Zero unused
+  imports, zero orphaned exports, zero deprecated Ember APIs, zero console/debug statements — all 72
+  theme JS files re-verified syntactically valid.
+
 ## 2026-07-28 — v1.1: Command Palette Expansion — the primary navigation hub
 
 - Six new Command Palette entries: Open Reading Lists, Open Favorites (already existed, re-grouped

@@ -14,8 +14,10 @@ const SCALE_STEP = 0.1;
 // first argument, but don't guarantee `this` inside it is the component.
 // Neither function below needs `this`: state lives in the closure, and the
 // reset/teardown handles are stashed directly on the element so the
-// `resetView` action (a normal {{action}}, which does bind `this`) can find
-// them again via `this.element` without needing to share any other state.
+// `resetView` handler (bound via {{on "click"}} in setupComponent below,
+// not {{action}} — see that comment for why it closes over `component`
+// instead of relying on `this`) can find them again via `component.element`
+// without needing to share any other state.
 function setupGraphCanvas(element) {
   const inner = element.querySelector(".ddi-graph-canvas-inner");
 
@@ -110,6 +112,20 @@ export default {
       quadrantLabels: [],
       setupGraph: setupGraphCanvas,
       teardownGraph: teardownGraphCanvas,
+
+      // {{action}} is deprecated (discourse.template-action) — replaced with
+      // {{on "click"}} in the template, which requires a plain function
+      // reference rather than a named entry in an `actions` hash, and
+      // doesn't auto-bind `this` the way {{action}} did. Closing over
+      // `component` directly (the same free-function, no-`this` pattern
+      // setupGraphCanvas above already established for did-insert/
+      // will-destroy) preserves the exact same behavior without relying on
+      // that binding.
+      resetView: () => {
+        component.element
+          ?.querySelector(".ddi-graph-canvas")
+          ?._ddiResetGraphView?.();
+      },
     });
 
     if (!topic) {
@@ -147,13 +163,5 @@ export default {
 
         component.setProperties({ isLoading: false, hasRelationships: false });
       });
-  },
-
-  actions: {
-    resetView() {
-      this.element
-        ?.querySelector(".ddi-graph-canvas")
-        ?._ddiResetGraphView?.();
-    },
   },
 };

@@ -60,136 +60,157 @@ export default {
       readingListOptions: [],
       favoriteError: null,
       shareStatus: null,
-    });
-  },
 
-  actions: {
-    toggleReadingListMenu() {
-      if (this.isReadingListMenuOpen) {
-        this.set("isReadingListMenuOpen", false);
-        return;
-      }
-
-      this.setProperties({
-        isReadingListMenuOpen: true,
-        readingListOptions: buildReadingListOptions(
-          this.ddiReadingLists.lists,
-          this.documentId
-        ),
-      });
-    },
-
-    async toggleReadingListMembership(listId, inList) {
-      if (inList) {
-        await this.ddiReadingLists.removeDocument(listId, this.documentId);
-      } else {
-        await this.ddiReadingLists.addDocument(listId, String(this.documentId));
-      }
-
-      if (this.isDestroying || this.isDestroyed) {
-        return;
-      }
-
-      this.setProperties({
-        isReadingListMenuOpen: false,
-        readingListOptions: buildReadingListOptions(
-          this.ddiReadingLists.lists,
-          this.documentId
-        ),
-      });
-    },
-
-    manageReadingLists() {
-      this.set("isReadingListMenuOpen", false);
-      this.ddiReadingLists.open();
-    },
-
-    async toggleFavorite() {
-      this.set("favoriteError", null);
-
-      if (this.isFavorited) {
-        const favorites = await this.ddiFavorites.getFavorites();
-
-        if (this.isDestroying || this.isDestroyed) {
+      // {{action}} is deprecated (discourse.template-action) — replaced
+      // with {{on "click"}} (plus {{fn}} for the one that takes arguments)
+      // in the template. {{on}} needs a plain function reference rather
+      // than an `actions` hash entry and doesn't auto-bind `this`, so each
+      // of these closes over `component` (and the already-captured
+      // `ddiReadingLists`/`ddiFavorites`/`firstPost`) directly instead —
+      // the same free-function, no-`this` pattern this theme already uses
+      // for did-insert/did-update/will-destroy handlers. Bodies are
+      // otherwise unchanged from the old `actions` hash (`this.` ->
+      // `component.`, or the already-captured local variable, only).
+      toggleReadingListMenu: () => {
+        if (component.isReadingListMenuOpen) {
+          component.set("isReadingListMenuOpen", false);
           return;
         }
 
-        const match = favorites.find(
-          (favorite) => favorite.id === this.documentId
-        );
+        component.setProperties({
+          isReadingListMenuOpen: true,
+          readingListOptions: buildReadingListOptions(
+            ddiReadingLists.lists,
+            component.documentId
+          ),
+        });
+      },
 
-        if (!match) {
-          this.set("favoriteError", "Could not find this favorite to remove.");
-          return;
-        }
-
-        const removed = await this.ddiFavorites.removeFavorite(
-          match.bookmarkId
-        );
-
-        if (this.isDestroying || this.isDestroyed) {
-          return;
-        }
-
-        if (removed) {
-          this.set("isFavorited", false);
+      toggleReadingListMembership: async (listId, inList) => {
+        if (inList) {
+          await ddiReadingLists.removeDocument(listId, component.documentId);
         } else {
-          this.set("favoriteError", "Could not remove favorite.");
+          await ddiReadingLists.addDocument(
+            listId,
+            String(component.documentId)
+          );
         }
 
-        return;
-      }
-
-      const toggle = findBookmarkToggle(this.firstPost);
-
-      if (!toggle) {
-        this.set("favoriteError", "Favoriting isn't available for this document.");
-        return;
-      }
-
-      try {
-        // Hands off to Discourse's own bookmark flow (which may itself open
-        // a dialog for reminder options) rather than assuming a synchronous
-        // toggle — this component intentionally does not guess at the
-        // outcome by flipping isFavorited here; the topic model's own
-        // `bookmarked` flag is the source of truth again on next visit.
-        await toggle.call(this.firstPost);
-      } catch {
-        if (this.isDestroying || this.isDestroyed) {
+        if (component.isDestroying || component.isDestroyed) {
           return;
         }
 
-        this.set("favoriteError", "Could not open the favorite option for this document.");
-      }
-    },
+        component.setProperties({
+          isReadingListMenuOpen: false,
+          readingListOptions: buildReadingListOptions(
+            ddiReadingLists.lists,
+            component.documentId
+          ),
+        });
+      },
 
-    async share() {
-      this.set("shareStatus", null);
+      manageReadingLists: () => {
+        component.set("isReadingListMenuOpen", false);
+        ddiReadingLists.open();
+      },
 
-      try {
-        await navigator.clipboard.writeText(this.documentUrl);
+      toggleFavorite: async () => {
+        component.set("favoriteError", null);
 
-        if (this.isDestroying || this.isDestroyed) {
+        if (component.isFavorited) {
+          const favorites = await ddiFavorites.getFavorites();
+
+          if (component.isDestroying || component.isDestroyed) {
+            return;
+          }
+
+          const match = favorites.find(
+            (favorite) => favorite.id === component.documentId
+          );
+
+          if (!match) {
+            component.set(
+              "favoriteError",
+              "Could not find this favorite to remove."
+            );
+            return;
+          }
+
+          const removed = await ddiFavorites.removeFavorite(
+            match.bookmarkId
+          );
+
+          if (component.isDestroying || component.isDestroyed) {
+            return;
+          }
+
+          if (removed) {
+            component.set("isFavorited", false);
+          } else {
+            component.set("favoriteError", "Could not remove favorite.");
+          }
+
           return;
         }
 
-        this.set("shareStatus", "Link copied to clipboard.");
-      } catch {
-        if (this.isDestroying || this.isDestroyed) {
+        const toggle = findBookmarkToggle(component.firstPost);
+
+        if (!toggle) {
+          component.set(
+            "favoriteError",
+            "Favoriting isn't available for this document."
+          );
           return;
         }
 
-        this.set(
-          "shareStatus",
-          `Could not copy automatically — copy this link: ${this.documentUrl}`
-        );
-      }
-    },
+        try {
+          // Hands off to Discourse's own bookmark flow (which may itself
+          // open a dialog for reminder options) rather than assuming a
+          // synchronous toggle — this component intentionally does not
+          // guess at the outcome by flipping isFavorited here; the topic
+          // model's own `bookmarked` flag is the source of truth again on
+          // next visit.
+          await toggle.call(component.firstPost);
+        } catch {
+          if (component.isDestroying || component.isDestroyed) {
+            return;
+          }
 
-    openKnowledgeGraph() {
-      document
-        .getElementById("ddi-knowledge-graph-viewer")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    },
+          component.set(
+            "favoriteError",
+            "Could not open the favorite option for this document."
+          );
+        }
+      },
+
+      share: async () => {
+        component.set("shareStatus", null);
+
+        try {
+          await navigator.clipboard.writeText(component.documentUrl);
+
+          if (component.isDestroying || component.isDestroyed) {
+            return;
+          }
+
+          component.set("shareStatus", "Link copied to clipboard.");
+        } catch {
+          if (component.isDestroying || component.isDestroyed) {
+            return;
+          }
+
+          component.set(
+            "shareStatus",
+            `Could not copy automatically — copy this link: ${component.documentUrl}`
+          );
+        }
+      },
+
+      openKnowledgeGraph: () => {
+        document
+          .getElementById("ddi-knowledge-graph-viewer")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+    });
   },
 };

@@ -20,6 +20,16 @@ export default {
     component.setProperties({
       ddiIntegrityDashboard,
 
+      // {{action}} is deprecated (discourse.template-action) — replaced
+      // with {{on "click"}} in the template, which needs a plain function
+      // reference rather than an `actions` hash entry and doesn't
+      // auto-bind `this`. Closing over `ddiIntegrityDashboard` directly
+      // (already captured above) is the same free-function, no-`this`
+      // pattern the did-insert/did-update/will-destroy handlers below
+      // already use for the identical reason.
+      open: () => ddiIntegrityDashboard.open(),
+      close: () => ddiIntegrityDashboard.close(),
+
       // Free functions, not component methods — did-insert/did-update/
       // will-destroy invoke whatever they're given with the element as the
       // first argument but don't guarantee `this` inside it is the
@@ -45,15 +55,5 @@ export default {
         element._ddiModal?.destroy();
       },
     });
-  },
-
-  actions: {
-    open() {
-      this.ddiIntegrityDashboard.open();
-    },
-
-    close() {
-      this.ddiIntegrityDashboard.close();
-    },
   },
 };

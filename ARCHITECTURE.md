@@ -1356,8 +1356,10 @@ the callback is the component — so neither function uses `this` at all. `setup
 as plain properties (`component.setProperties({ setupGraph: setupGraphCanvas, ... })`), which the
 template reads via `this.setupGraph` as an ordinary property lookup, not an action. The
 `resetView`/teardown handles that closure creates are stashed directly on the DOM element itself
-(`element._ddiResetGraphView`), so the `resetView` action (a real `{{action}}`, which does reliably
-bind `this`) can find them again later via `this.element` without any shared component state at all.
+(`element._ddiResetGraphView`), so `resetView` — bound via `{{on "click"}}` since the
+`discourse.template-action` cleanup (see **Deprecated Template Actions**), a plain closure over
+`component` rather than a `{{action}}`-bound method — can find them again later via
+`component.element` without any shared component state at all.
 Listeners attach `wheel`/`pointerdown`/`pointermove`/`pointerup` and update a CSS `transform` on
 `.ddi-graph-canvas-inner` directly — routing every drag/scroll event through `set()`-based component
 state would mean a re-render per pixel of mouse movement, which this theme's existing patterns (e.g.
@@ -1879,11 +1881,12 @@ the trigger there doesn't compete with or displace anything already rendered. It
 specifically so it adds zero layout height to any page for the staff members who do see it, and is
 invisible (not merely hidden) to everyone else via `shouldRender()`.
 
-**Confidence caveat.** The classic connector `actions: {}` hash + `{{action "open"}}`/`{{action
-"close"}}` in the template is the same pattern this theme's `setupComponent`-style connectors are
-already written against; `service:current-user` and `.staff` are standard, long-stable Discourse DI
-conventions. Untested against a live Discourse instance — if either assumption is wrong, the safe
-failure mode is the trigger button simply not appearing or not opening, not a broken page.
+**Confidence caveat.** The classic connector `setupComponent`-style shape, with `open`/`close`
+exposed as plain component properties bound via `{{on "click"}}` (see **Deprecated Template
+Actions**), is the same pattern every connector in this theme is already written against;
+`service:current-user` and `.staff` are standard, long-stable Discourse DI conventions. Untested
+against a live Discourse instance — if either assumption is wrong, the safe failure mode is the
+trigger button simply not appearing or not opening, not a broken page.
 
 ## DDI System Status Dashboard
 
@@ -2575,6 +2578,65 @@ favorite removal's found/not-found/server-failure paths; favorite add's toggle-p
 throwing paths, confirming no optimistic state flip on success; share's clipboard success/failure
 paths; the Knowledge Graph anchor scroll no-ops safely when the target element is absent; and that no
 action calls `set()` after the component starts destroying mid-await.
+
+## Deprecated Template Actions
+
+A maintenance pass fixing a real Discourse admin warning (`discourse.template-action`): the classic
+`{{action "name" arg1 arg2}}` template helper is deprecated across current Discourse, in favor of the
+`{{on "click" ...}}` modifier (an event listener, not Ember's action-dispatch mechanism) combined with
+the `{{fn}}` helper for partial application of arguments. Every one of this theme's 28 `{{action}}`
+usages, across the six connectors that have any interactive buttons — Knowledge Graph Viewer, Intelligence
+Timeline, Document Integrity Dashboard, Reading Lists, DDI System Status Dashboard, and Document
+Actions — was replaced. **Pure syntax migration: no button's visible behavior, click target, or
+keyboard reachability changed.** Every replaced button was already a real `<button type="button">`
+(confirmed by inspecting each of the 28 call sites individually before touching any of them, not
+assumed) — `type="button"` has no native browser default action for a click to begin with, so
+`{{action}}`'s implicit `preventDefault()` was already a no-op everywhere it was used, and dropping it
+in favor of `{{on}}` (which doesn't auto-`preventDefault()`) changes nothing observable. Keyboard
+activation (Enter/Space on a focused button) is native `<button>` behavior, unrelated to which
+JavaScript API wires up the click handler, so it's unaffected either way.
+
+**The real work wasn't the template syntax — it was that `{{action}}`'s automatic `this`-binding had
+no replacement, and every action method's body relied on it.** `{{action "foo"}}` looks up `foo` in
+a connector's `actions: {}` hash and invokes it with `this` bound to the component; `{{on "click"
+this.foo}}` requires `foo` to be a plain, already-bound function property on the component, and
+invokes it as a native DOM event listener would — `this` inside it is whatever the function's own
+closure captured, nothing more. Every migrated action already had a direct precedent for this exact
+constraint already established in this codebase: `{{did-insert}}`/`{{did-update}}`/`{{will-destroy}}`
+have carried the identical "you get the element, not a bound `this`" guarantee since the Knowledge
+Graph Viewer's `setupGraphCanvas` first ran into it, and every connector since (Modal Accessibility's
+`setupModal`, Document Actions' whole action set) has used the same fix: close over `component`
+(and, where one was already captured, the relevant service — `ddiReadingLists`, `ddiIntegrityDashboard`,
+etc.) directly, instead of relying on any binding the invocation mechanism provides. Migrating
+`{{action}}` away applied that exact, already-proven pattern to the last places still relying on the
+opposite guarantee, rather than introducing a new one.
+
+**Every action method's body is otherwise byte-for-byte the same logic, `this.` renamed to
+`component.` (or the captured local variable it already pointed at) and nothing else** — confirmed by
+grepping every touched file afterward for a stray `this.` that should have been renamed and finding
+none (only comments mentioning `this.`/`{{action}}` remain, explaining the migration itself). No
+conditional, no service call, no argument, and no async/await/error-handling path changed. Reading
+Lists' `share(listId)` — one of the more involved ones, an async method with an `isDestroying`/
+`isDestroyed` guard inside a `.then()` callback — is representative: the guard, the three branches
+(no url / copied / clipboard-denied-but-url-shown), and the exact message strings are all unchanged;
+only `this.set(...)`/`this.isDestroying` became `component.set(...)`/`component.isDestroying`.
+
+**Argument passing is identical, via `{{fn}}`.** `{{action "toggleYear" entry.year}}` called
+`toggleYear(entry.year, event)`; `{{on "click" (fn this.toggleYear entry.year)}}` calls the exact same
+`toggleYear(entry.year, event)` — `{{fn}}` partially applies its own arguments first, then the
+listener appends whatever the browser passes (the click event), the same order `{{action}}` already
+used. No action method needed a signature change; every one already ignored the trailing event
+argument it was implicitly receiving before, the same as it does now.
+
+**Verified directly**, not just by inspection: every touched file re-confirmed syntactically valid;
+zero remaining `{{action}}`/`action=`/`(action ...)` occurrences anywhere in the repository (a
+second, repository-wide grep after the fact, not just within the six files known to be touched); zero
+stray `this.` left in any migrated closure; the `{{fn}}` partial-application semantics themselves
+mocked and confirmed to pass arguments in the same order `{{action}}` did; and the trickiest migrated
+actions (Reading Lists' async `toggleReadingListMembership`/`share` with their `isDestroying` guards,
+Document Actions' `toggleFavorite`, System Status's cross-dialog `openIntegrityDashboard` handoff,
+Knowledge Graph's `resetView` reaching through `component.element`) individually re-verified against
+mocked components to confirm identical outcomes to their pre-migration behavior.
 
 ## CSS Architecture
 

@@ -15,10 +15,27 @@ export default {
   setupComponent(args, component) {
     const owner = getOwner(component);
     const ddiSystemStatus = owner.lookup("service:ddi-system-status");
+    const ddiIntegrityDashboard = owner.lookup(
+      "service:ddi-integrity-dashboard"
+    );
 
     component.setProperties({
       ddiSystemStatus,
-      ddiIntegrityDashboard: owner.lookup("service:ddi-integrity-dashboard"),
+      ddiIntegrityDashboard,
+
+      // {{action}} is deprecated (discourse.template-action) — replaced
+      // with {{on "click"}} in the template, which needs a plain function
+      // reference rather than an `actions` hash entry and doesn't
+      // auto-bind `this`. Closing over the two services captured above is
+      // the same free-function, no-`this` pattern the did-insert/
+      // did-update/will-destroy handlers below already use for the
+      // identical reason.
+      open: () => ddiSystemStatus.open(),
+      close: () => ddiSystemStatus.close(),
+      openIntegrityDashboard: () => {
+        ddiSystemStatus.close();
+        ddiIntegrityDashboard.open();
+      },
 
       // Same free-function pattern as the Integrity Dashboard connector —
       // see its setupModal for why these can't be `this`-bound methods.
@@ -44,20 +61,5 @@ export default {
         element._ddiModal?.destroy();
       },
     });
-  },
-
-  actions: {
-    open() {
-      this.ddiSystemStatus.open();
-    },
-
-    close() {
-      this.ddiSystemStatus.close();
-    },
-
-    openIntegrityDashboard() {
-      this.ddiSystemStatus.close();
-      this.ddiIntegrityDashboard.open();
-    },
   },
 };

@@ -18,7 +18,7 @@
             <button
               type="button"
               class="ddi-timeline-year-toggle"
-              {{action "toggleYear" entry.year}}
+              {{on "click" (fn this.toggleYear entry.year)}}
             >
               <span class="ddi-timeline-year-caret">{{if entry.isExpanded "−" "+"}}</span>
               <span class="ddi-timeline-year-label">{{entry.year}}</span>

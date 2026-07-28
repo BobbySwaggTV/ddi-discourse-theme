@@ -1,4 +1,4 @@
-<button type="button" class="ddi-integrity-trigger" {{action "open"}}>
+<button type="button" class="ddi-integrity-trigger" {{on "click" this.open}}>
   Integrity Dashboard
 </button>
 
@@ -58,7 +58,7 @@
     {{/if}}
 
     <div class="ddi-favorites-actions">
-      <button type="button" class="ddi-nav-link" {{action "close"}}>Close</button>
+      <button type="button" class="ddi-nav-link" {{on "click" this.close}}>Close</button>
     </div>
 
   </div>

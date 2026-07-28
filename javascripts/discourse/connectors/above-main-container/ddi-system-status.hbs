@@ -1,4 +1,4 @@
-<button type="button" class="ddi-integrity-trigger ddi-system-status-trigger" {{action "open"}}>
+<button type="button" class="ddi-integrity-trigger ddi-system-status-trigger" {{on "click" this.open}}>
   System Status
 </button>
 
@@ -29,7 +29,7 @@
         <button
           type="button"
           class="ddi-stat-tile ddi-stat-tile-link"
-          {{action "openIntegrityDashboard"}}
+          {{on "click" this.openIntegrityDashboard}}
         >
           <span>Documents Missing Metadata</span>
           <strong>{{this.ddiSystemStatus.status.missingMetadata}}</strong>
@@ -38,7 +38,7 @@
         <button
           type="button"
           class="ddi-stat-tile ddi-stat-tile-link"
-          {{action "openIntegrityDashboard"}}
+          {{on "click" this.openIntegrityDashboard}}
         >
           <span>Broken Cross References</span>
           <strong>{{this.ddiSystemStatus.status.brokenCrossReferences}}</strong>
@@ -47,7 +47,7 @@
         <button
           type="button"
           class="ddi-stat-tile ddi-stat-tile-link"
-          {{action "openIntegrityDashboard"}}
+          {{on "click" this.openIntegrityDashboard}}
         >
           <span>Broken Related Documents</span>
           <strong>{{this.ddiSystemStatus.status.brokenRelatedDocuments}}</strong>
@@ -56,7 +56,7 @@
         <button
           type="button"
           class="ddi-stat-tile ddi-stat-tile-link"
-          {{action "openIntegrityDashboard"}}
+          {{on "click" this.openIntegrityDashboard}}
         >
           <span>Duplicate Document Numbers</span>
           <strong>{{this.ddiSystemStatus.status.duplicateDocumentNumbers}}</strong>
@@ -100,7 +100,7 @@
     {{/if}}
 
     <div class="ddi-favorites-actions">
-      <button type="button" class="ddi-nav-link" {{action "close"}}>Close</button>
+      <button type="button" class="ddi-nav-link" {{on "click" this.close}}>Close</button>
     </div>
 
   </div>

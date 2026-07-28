@@ -1,4 +1,4 @@
-<button type="button" class="ddi-integrity-trigger ddi-reading-lists-trigger" {{action "open"}}>
+<button type="button" class="ddi-integrity-trigger ddi-reading-lists-trigger" {{on "click" this.open}}>
   Reading Lists
 </button>
 
@@ -22,15 +22,15 @@
           {{this.ddiReadingLists.sharedListPreview.documentIds.length}} document(s)
         </div>
         <div class="ddi-favorites-actions">
-          <button type="button" class="ddi-nav-link" {{action "importSharedList"}}>Import</button>
-          <button type="button" class="ddi-nav-link" {{action "dismissSharedList"}}>Dismiss</button>
+          <button type="button" class="ddi-nav-link" {{on "click" this.importSharedList}}>Import</button>
+          <button type="button" class="ddi-nav-link" {{on "click" this.dismissSharedList}}>Dismiss</button>
         </div>
       </div>
     {{/if}}
 
     {{#if this.ddiReadingLists.activeListId}}
 
-      <button type="button" class="ddi-nav-link ddi-reading-list-back" {{action "closeList"}}>
+      <button type="button" class="ddi-nav-link ddi-reading-list-back" {{on "click" this.closeList}}>
         &larr; All Reading Lists
       </button>
 
@@ -111,7 +111,7 @@
                   <button
                     type="button"
                     class="ddi-nav-link ddi-favorites-remove"
-                    {{action "removeDocument" this.ddiReadingLists.activeListId doc.id}}
+                    {{on "click" (fn this.removeDocument this.ddiReadingLists.activeListId doc.id)}}
                   >
                     Remove
                   </button>
@@ -137,7 +137,7 @@
             class="ddi-command-palette-input ddi-reading-list-add-input"
             placeholder="DOCUMENT NUMBER OR LINK (E.G. DDI-000042)"
           />
-          <button type="button" class="ddi-nav-link" {{action "addDocument"}}>Add Document</button>
+          <button type="button" class="ddi-nav-link" {{on "click" this.addDocument}}>Add Document</button>
         </div>
 
         {{#if this.shareStatus}}
@@ -150,14 +150,14 @@
           <button
             type="button"
             class="ddi-nav-link"
-            {{action "openAll" this.ddiReadingLists.activeListId}}
+            {{on "click" (fn this.openAll this.ddiReadingLists.activeListId)}}
           >
             Open All Documents
           </button>
           <button
             type="button"
             class="ddi-nav-link"
-            {{action "share" this.ddiReadingLists.activeListId}}
+            {{on "click" (fn this.share this.ddiReadingLists.activeListId)}}
           >
             Share
           </button>
@@ -177,7 +177,7 @@
           class="ddi-command-palette-input ddi-reading-list-description-input"
           placeholder="DESCRIPTION (OPTIONAL)"
         />
-        <button type="button" class="ddi-nav-link" {{action "createList"}}>
+        <button type="button" class="ddi-nav-link" {{on "click" this.createList}}>
           Create Reading List
         </button>
       </div>
@@ -188,7 +188,7 @@
             <button
               type="button"
               class="ddi-card ddi-reading-list-card"
-              {{action "openList" list.id}}
+              {{on "click" (fn this.openList list.id)}}
             >
               <div class="ddi-card-title">{{list.name}}</div>
 
@@ -212,7 +212,7 @@
     {{/if}}
 
     <div class="ddi-favorites-actions">
-      <button type="button" class="ddi-nav-link" {{action "close"}}>Close</button>
+      <button type="button" class="ddi-nav-link" {{on "click" this.close}}>Close</button>
     </div>
 
   </div>

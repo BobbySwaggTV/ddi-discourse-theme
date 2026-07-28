@@ -8,7 +8,7 @@
           class="ddi-nav-link ddi-document-action"
           aria-haspopup="true"
           aria-expanded={{if this.isReadingListMenuOpen "true" "false"}}
-          {{action "toggleReadingListMenu"}}
+          {{on "click" this.toggleReadingListMenu}}
         >
           Add to Reading List
         </button>
@@ -22,7 +22,7 @@
                   role="menuitemcheckbox"
                   aria-checked={{if option.inList "true" "false"}}
                   class="ddi-toc-item ddi-document-action-menu-item"
-                  {{action "toggleReadingListMembership" option.id option.inList}}
+                  {{on "click" (fn this.toggleReadingListMembership option.id option.inList)}}
                 >
                   <span class="ddi-toc-title">
                     {{if option.inList "✓ " ""}}{{option.name}}
@@ -38,7 +38,7 @@
             <button
               type="button"
               class="ddi-nav-link ddi-document-action-menu-manage"
-              {{action "manageReadingLists"}}
+              {{on "click" this.manageReadingLists}}
             >
               Manage Reading Lists
             </button>
@@ -52,7 +52,7 @@
         <button
           type="button"
           class="ddi-nav-link ddi-document-action"
-          {{action "toggleFavorite"}}
+          {{on "click" this.toggleFavorite}}
         >
           Remove Favorite
         </button>
@@ -60,7 +60,7 @@
         <button
           type="button"
           class="ddi-nav-link ddi-document-action"
-          {{action "toggleFavorite"}}
+          {{on "click" this.toggleFavorite}}
         >
           Add Favorite
         </button>
@@ -71,7 +71,7 @@
       <button
         type="button"
         class="ddi-nav-link ddi-document-action"
-        {{action "openKnowledgeGraph"}}
+        {{on "click" this.openKnowledgeGraph}}
       >
         Open Knowledge Graph
       </button>
@@ -80,7 +80,7 @@
     <button
       type="button"
       class="ddi-nav-link ddi-document-action"
-      {{action "share"}}
+      {{on "click" this.share}}
     >
       Share Document
     </button>

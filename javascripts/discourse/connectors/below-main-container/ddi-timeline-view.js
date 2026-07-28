@@ -24,6 +24,22 @@ export default {
       isVisible: true,
       isLoading: true,
       years: [],
+
+      // {{action}} is deprecated (discourse.template-action) — replaced with
+      // {{on "click" (fn this.toggleYear entry.year)}} in the template.
+      // {{on}} doesn't auto-bind `this` the way {{action}} did, so this
+      // closes over `component` directly instead (the same pattern used
+      // throughout this theme for did-insert/will-destroy handlers, which
+      // have the identical no-`this`-guarantee constraint).
+      toggleYear: (year) => {
+        const years = component.years.map((entry) =>
+          entry.year === year
+            ? { ...entry, isExpanded: !entry.isExpanded }
+            : entry
+        );
+
+        component.set("years", years);
+      },
     });
 
     owner
@@ -41,17 +57,5 @@ export default {
 
         component.setProperties({ isLoading: false, years });
       });
-  },
-
-  actions: {
-    toggleYear(year) {
-      const years = this.years.map((entry) =>
-        entry.year === year
-          ? { ...entry, isExpanded: !entry.isExpanded }
-          : entry
-      );
-
-      this.set("years", years);
-    },
   },
 };
