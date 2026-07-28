@@ -61,3 +61,8 @@ ddi_reading_lists_enabled:
   type: bool
   default: true
   description: "Show the Reading Lists trigger (create reusable, shareable document reading lists stored locally in the browser)"
+
+ddi_document_actions_enabled:
+  type: bool
+  default: true
+  description: "Show the Document Actions bar near the Dossier Header (Add to Reading List, Favorite, Open Knowledge Graph, Share) — individual actions still hide themselves when unavailable regardless of this setting"

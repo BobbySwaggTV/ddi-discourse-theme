@@ -35,6 +35,13 @@ export default apiInitializer("1.0", (api) => {
   let allDocuments = null;
   let allDepartments = null;
 
+  // Set by openTimeline() when Timeline isn't on the current page and has to
+  // be navigated to first — consumed by the api.onPageChange() handler
+  // below once the new page has settled, the same "wait for the route
+  // transition, then act" shape recordVisit() already uses in that same
+  // handler.
+  let pendingScrollId = null;
+
   async function loadDocuments() {
     if (allDocuments) {
       return allDocuments;
@@ -83,13 +90,77 @@ export default apiInitializer("1.0", (api) => {
     return { type, label, sublabel, url, special };
   }
 
+  // The one "is this a topic route" check, used both to gate "Open
+  // Knowledge Graph" (only makes sense for the document currently being
+  // viewed — there's no page-agnostic graph to jump to the way
+  // Timeline/Reading Lists/Favorites/the staff dashboards are each one
+  // fixed destination regardless of where you are) and by
+  // api.onPageChange() below for recordVisit(), which used to inline this
+  // exact same check independently.
+  function isTopicRoute() {
+    const router = api.container.lookup("service:router");
+    return Boolean(router.currentRouteName?.startsWith("topic."));
+  }
+
+  function buildToolAndStaffEntries() {
+    const currentUser = api.container.lookup("service:current-user");
+    const isStaff = Boolean(currentUser?.staff);
+
+    const toolEntries = [
+      settings.ddi_reading_lists_enabled &&
+        buildEntry("tool", "Open Reading Lists", null, null, "reading-lists"),
+      buildEntry("tool", "Open Favorites", null, null, "favorites"),
+      settings.ddi_timeline_view_enabled &&
+        buildEntry("tool", "Open Timeline", null, null, "timeline"),
+      settings.ddi_knowledge_graph_viewer_enabled &&
+        isTopicRoute() &&
+        buildEntry(
+          "tool",
+          "Open Knowledge Graph",
+          null,
+          null,
+          "knowledge-graph"
+        ),
+    ].filter(Boolean);
+
+    // Mirrors the exact double gate (setting + currentUser.staff) each
+    // staff dashboard's own connector already applies in its
+    // shouldRender() — a non-staff user never sees these entries exist,
+    // the same way they never see the trigger buttons.
+    const staffEntries = isStaff
+      ? [
+          settings.ddi_integrity_dashboard_enabled &&
+            buildEntry(
+              "staff",
+              "Open Integrity Dashboard",
+              null,
+              null,
+              "integrity-dashboard"
+            ),
+          settings.ddi_system_status_enabled &&
+            buildEntry(
+              "staff",
+              "Open System Status Dashboard",
+              null,
+              null,
+              "system-status"
+            ),
+        ].filter(Boolean)
+      : [];
+
+    return [...toolEntries, ...staffEntries];
+  }
+
   async function buildEntries(query) {
     const normalized = query.trim();
+    const matchesQuery = (entry) =>
+      entry.label.toLowerCase().includes(normalized.toLowerCase());
+
     const staticActions = [
       buildEntry("action", "Open Homepage", null, "/"),
       buildEntry("action", "Open Category Pages", null, "/categories"),
-      buildEntry("action", "Open Favorites", null, null, "favorites"),
-    ].filter((entry) => entry.label.toLowerCase().includes(normalized.toLowerCase()));
+      ...buildToolAndStaffEntries(),
+    ].filter(matchesQuery);
 
     const departments = filterDepartmentsByQuery(
       loadDepartments(),
@@ -246,6 +317,10 @@ export default apiInitializer("1.0", (api) => {
     switch (type) {
       case "action":
         return "Navigate";
+      case "tool":
+        return "Archive Tools";
+      case "staff":
+        return "Staff Tools";
       case "department":
         return "Departments";
       case "recent":
@@ -274,6 +349,45 @@ export default apiInitializer("1.0", (api) => {
     );
   }
 
+  // With Navigate/Archive Tools/Staff Tools/Departments/Documents all
+  // potentially present at once now, arrowing one row at a time through
+  // every entry to reach a later section is real friction — Tab/Shift+Tab
+  // jump straight to the next/previous section's first entry instead,
+  // wrapping at either end. Only meaningful improvement available here:
+  // Tab was already a no-op inside the palette (the shared modal utility's
+  // trap just cycles back to this same input, the only real Tab stop), so
+  // this replaces "does nothing new" with a genuine navigation aid rather
+  // than taking over a key that previously did something else.
+  function jumpToAdjacentSection(direction) {
+    const sectionStarts = [];
+    let lastType = null;
+
+    entries.forEach((entry, index) => {
+      if (entry.type !== lastType) {
+        sectionStarts.push(index);
+        lastType = entry.type;
+      }
+    });
+
+    if (!sectionStarts.length) {
+      return;
+    }
+
+    if (direction > 0) {
+      const next = sectionStarts.find((index) => index > activeIndex);
+      setActiveIndex(next !== undefined ? next : sectionStarts[0]);
+    } else {
+      const previous = [...sectionStarts]
+        .reverse()
+        .find((index) => index < activeIndex);
+      setActiveIndex(
+        previous !== undefined
+          ? previous
+          : sectionStarts[sectionStarts.length - 1]
+      );
+    }
+  }
+
   async function refresh(query) {
     entries = await buildEntries(query);
     setActiveIndex(entries.length ? 0 : -1);
@@ -291,6 +405,35 @@ export default apiInitializer("1.0", (api) => {
     }, REFRESH_DEBOUNCE_MS);
   }
 
+  // Returns whether an element was actually found and scrolled to — lets
+  // callers fall back to navigating first when the target isn't on the
+  // current page (see openTimeline()) instead of silently doing nothing.
+  function scrollToElement(id) {
+    const element = document.getElementById(id);
+
+    if (!element) {
+      return false;
+    }
+
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    return true;
+  }
+
+  // Timeline is a section on the homepage/category pages, not a dialog —
+  // "opening" it means scrolling to it if it's already on the current page,
+  // or navigating to the homepage first if it isn't. Reuses
+  // DiscourseURL.routeTo() (the same navigation already used for every
+  // other entry) rather than a new routing mechanism; the actual scroll
+  // after navigating is deferred to api.onPageChange() below.
+  function openTimeline() {
+    if (scrollToElement("ddi-timeline-view")) {
+      return;
+    }
+
+    pendingScrollId = "ddi-timeline-view";
+    DiscourseURL.routeTo("/");
+  }
+
   function activate(entry) {
     if (!entry) {
       return;
@@ -298,9 +441,28 @@ export default apiInitializer("1.0", (api) => {
 
     close();
 
-    if (entry.special === "favorites") {
-      openFavorites();
-      return;
+    switch (entry.special) {
+      case "favorites":
+        openFavorites();
+        return;
+      case "reading-lists":
+        api.container.lookup("service:ddi-reading-lists").open();
+        return;
+      case "integrity-dashboard":
+        api.container.lookup("service:ddi-integrity-dashboard").open();
+        return;
+      case "system-status":
+        api.container.lookup("service:ddi-system-status").open();
+        return;
+      case "timeline":
+        openTimeline();
+        return;
+      case "knowledge-graph":
+        // Only ever offered as an entry while already on a topic route
+        // (see isTopicRoute() above), so the anchor is always on the
+        // current page — no navigation needed, unlike Timeline.
+        scrollToElement("ddi-knowledge-graph-viewer");
+        return;
     }
 
     DiscourseURL.routeTo(entry.url);
@@ -338,11 +500,22 @@ export default apiInitializer("1.0", (api) => {
       }
 
       activate(entries[activeIndex]);
+      return;
     }
 
-    // Escape and Tab (there's only one real focusable control here, the
-    // input — results rows are tabindex="-1" — so trapping Tab just keeps
-    // it there) are both handled by the shared modal utility.
+    if (event.key === "Tab") {
+      // Overrides the shared modal utility's generic Tab-trap (which would
+      // otherwise just cycle back to this same input, the only real Tab
+      // stop — a no-op) with a section jump instead. Focus never leaves
+      // the input either way, so the trap's actual safety property is
+      // unchanged; this only replaces what Tab does while it's here.
+      event.preventDefault();
+      event.stopPropagation();
+      jumpToAdjacentSection(event.shiftKey ? -1 : 1);
+      return;
+    }
+
+    // Escape is handled by the shared modal utility.
   }
 
   function isOpen() {
@@ -564,9 +737,20 @@ export default apiInitializer("1.0", (api) => {
     close();
     closeFavorites();
 
-    const router = api.container.lookup("service:router");
+    if (pendingScrollId) {
+      const id = pendingScrollId;
+      pendingScrollId = null;
 
-    if (!router.currentRouteName?.startsWith("topic.")) {
+      // Waits one frame for the new route's connectors to render — the
+      // same reason ddi-document-toc.js defers its own post-render DOM
+      // work with requestAnimationFrame ("wait until Discourse has
+      // rendered the cooked post"); the target element's wrapper renders
+      // synchronously once its connector mounts, but that mount itself
+      // happens as part of this same page-change cycle.
+      requestAnimationFrame(() => scrollToElement(id));
+    }
+
+    if (!isTopicRoute()) {
       return;
     }
 

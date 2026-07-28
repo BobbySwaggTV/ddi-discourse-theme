@@ -2,11 +2,11 @@
   System Status
 </button>
 
-<div class="ddi-command-palette-backdrop ddi-integrity-dashboard ddi-system-status-dashboard {{if this.isOpen "ddi-command-palette-open"}}">
+<div class="ddi-command-palette-backdrop ddi-integrity-dashboard ddi-system-status-dashboard {{if this.ddiSystemStatus.isOpen "ddi-command-palette-open"}}">
   <div
     class="ddi-card ddi-integrity-dashboard-panel ddi-system-status-panel"
     {{did-insert this.setupModal}}
-    {{did-update this.onOpenChange this.isOpen}}
+    {{did-update this.onOpenChange this.ddiSystemStatus.isOpen}}
     {{will-destroy this.teardownModal}}
   >
 
@@ -14,16 +14,16 @@
       DDI SYSTEM STATUS
     </div>
 
-    {{#if this.isLoading}}
+    {{#if this.ddiSystemStatus.isLoading}}
       <div class="ddi-card-body">
         SCANNING ARCHIVE…
       </div>
-    {{else if this.status}}
+    {{else if this.ddiSystemStatus.status}}
       <div class="ddi-stat-grid">
 
         <div class="ddi-stat-tile ddi-stat-tile-total">
           <span>Total Documents</span>
-          <strong>{{this.status.totalDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.totalDocuments}}</strong>
         </div>
 
         <button
@@ -32,7 +32,7 @@
           {{action "openIntegrityDashboard"}}
         >
           <span>Documents Missing Metadata</span>
-          <strong>{{this.status.missingMetadata}}</strong>
+          <strong>{{this.ddiSystemStatus.status.missingMetadata}}</strong>
         </button>
 
         <button
@@ -41,7 +41,7 @@
           {{action "openIntegrityDashboard"}}
         >
           <span>Broken Cross References</span>
-          <strong>{{this.status.brokenCrossReferences}}</strong>
+          <strong>{{this.ddiSystemStatus.status.brokenCrossReferences}}</strong>
         </button>
 
         <button
@@ -50,7 +50,7 @@
           {{action "openIntegrityDashboard"}}
         >
           <span>Broken Related Documents</span>
-          <strong>{{this.status.brokenRelatedDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.brokenRelatedDocuments}}</strong>
         </button>
 
         <button
@@ -59,37 +59,37 @@
           {{action "openIntegrityDashboard"}}
         >
           <span>Duplicate Document Numbers</span>
-          <strong>{{this.status.duplicateDocumentNumbers}}</strong>
+          <strong>{{this.ddiSystemStatus.status.duplicateDocumentNumbers}}</strong>
         </button>
 
         <div class="ddi-stat-tile">
           <span>Draft Documents</span>
-          <strong>{{this.status.draftDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.draftDocuments}}</strong>
         </div>
 
         <div class="ddi-stat-tile">
           <span>Archived Documents</span>
-          <strong>{{this.status.archivedDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.archivedDocuments}}</strong>
         </div>
 
         <div class="ddi-stat-tile">
           <span>Public Documents</span>
-          <strong>{{this.status.publicDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.publicDocuments}}</strong>
         </div>
 
         <div class="ddi-stat-tile">
           <span>Internal Documents</span>
-          <strong>{{this.status.internalDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.internalDocuments}}</strong>
         </div>
 
         <div class="ddi-stat-tile">
           <span>Restricted Documents</span>
-          <strong>{{this.status.restrictedDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.restrictedDocuments}}</strong>
         </div>
 
         <div class="ddi-stat-tile">
           <span>Top Secret Documents</span>
-          <strong>{{this.status.topSecretDocuments}}</strong>
+          <strong>{{this.ddiSystemStatus.status.topSecretDocuments}}</strong>
         </div>
 
       </div>

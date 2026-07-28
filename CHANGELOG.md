@@ -9,6 +9,89 @@ read the early ad hoc labels as an authoritative release history — this change
 that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
 the entry below; every entry before it predates that field meaning anything.
 
+## 2026-07-28 — v1.1: Command Palette Expansion — the primary navigation hub
+
+- Six new Command Palette entries: Open Reading Lists, Open Favorites (already existed, re-grouped
+  rather than duplicated), Open Timeline, Open Knowledge Graph, Open Integrity Dashboard (staff), Open
+  System Status Dashboard (staff). Directly closes a gap the Post-Release Product Review named
+  concretely: the palette "doesn't know about half the product."
+- Every entry reuses something that already exists — no new dialog, route, or service:
+  - Reading Lists, Integrity Dashboard, and System Status call each dashboard's existing `open()`
+    service method directly, the same method their own trigger buttons already call.
+  - Knowledge Graph (only offered while already on a topic route) scroll-anchors to
+    `#ddi-knowledge-graph-viewer`, the exact same element `id` Document Actions' own "Open Knowledge
+    Graph" action already scrolls to.
+  - Timeline scroll-anchors to a new `id` on its existing outer card if already on the page, or
+    navigates to `/` and defers the scroll to `api.onPageChange()` (one `requestAnimationFrame` frame,
+    the same "wait for render" technique `ddi-document-toc.js` already uses) otherwise.
+- **Prerequisite: `services/ddi-system-status.js`'s dialog state (`isOpen`/`isLoading`/`status`)
+  moved from its connector onto the service itself** — the identical move `ddi-integrity-dashboard.js`
+  already made, needed for the identical reason: Command Palette can't open a dialog whose open/closed
+  state lives as local component state on a different connector. The connector's own `open`/`close`/
+  `openIntegrityDashboard` actions are now thin delegating wrappers; no change to its own trigger
+  button or visible output.
+- New entry types `"tool"` ("Archive Tools") and `"staff"` ("Staff Tools") for grouping — Favorites
+  moved from `"action"` into `"tool"`, a deliberate re-grouping (it belongs with the other
+  open-a-panel entries, not static-page navigation), not an oversight.
+- Staff entries are gated on both their own settings.yml flag and `currentUser.staff` — the identical
+  double gate each staff dashboard's own `shouldRender()` already applies — so a non-staff user never
+  sees them exist, not shown-but-disabled.
+- Keyboard: Tab/Shift+Tab now jump to the next/previous section's first entry, wrapping at either end
+  — the only available improvement that doesn't regress anything, since Tab was already an effective
+  no-op inside the palette (the shared modal utility's Tab-trap finds only one focusable element, the
+  input, and just re-focuses it). Verified by simulating both the modal's capturing-phase listener and
+  the new bubbling-phase listener firing in their real order: the modal's harmless no-op still runs
+  first, the section jump still runs after, and focus never leaves the input either way.
+- Consolidated a routing check found duplicated while implementing this: `api.onPageChange()`'s own
+  inline "is this a topic route" check now calls the same `isTopicRoute()` helper the new Knowledge
+  Graph gating introduced, instead of each independently re-deriving the same answer.
+- Verified directly: entry visibility across every staff/route/setting combination; `activate()`'s
+  dispatch for all six new entries plus the pre-existing fallback, confirming no cross-contamination;
+  Timeline's same-page vs. cross-page branches; section-jump forward/backward/wrap behavior; the
+  System Status migration's cross-dialog handoff to Integrity Dashboard and single-source-of-truth
+  reactivity. No new files added. Zero unused imports, zero orphaned exports, zero deprecated Ember
+  APIs, zero console/debug statements — all 72 theme JS files re-verified syntactically valid.
+
+## 2026-07-27 — v1.1: Document Actions — Add to Reading List, Favorite, Knowledge Graph, Share
+
+- First v1.1 feature, built directly from the Post-Release Product Review's own findings: a compact
+  action bar near the Dossier Header (`connectors/topic-above-post-stream/ddi-document-actions.*`)
+  with Add to Reading List, Add/Remove Favorite, Open Knowledge Graph, and Share Document. Gated by a
+  new `ddi_document_actions_enabled` setting (default on), matching every other DDI panel's own
+  settings convention.
+- Every action reuses an existing service unchanged — no new storage, no new document-lookup code, no
+  new fetch logic anywhere in this feature:
+  - Add to Reading List calls `ddiReadingLists.addDocument()`/`removeDocument()` directly, the same
+    methods the Reading Lists dialog itself uses; a new pure helper,
+    `lib/ddi-document-actions.js#buildReadingListOptions()`, only reshapes already-fetched list data
+    for the dropdown (list name + current-document membership), the same role
+    `groupDocumentsByYear()` already plays for Timeline.
+  - Add/Remove Favorite reuses `ddiFavorites.getFavorites()`/`removeFavorite()` unchanged for
+    removal. Deliberately no new "add bookmark" implementation — `ddi-favorites.js` never built one
+    by design, relying on Discourse's native bookmark UI; this feature feature-detects
+    `post.toggleBookmark`/`toggleBookmarkWithReminder` on the topic's first post instead (a
+    `addKeyboardShortcut`-class confidence caveat, not confirmed against a live instance — see
+    ARCHITECTURE.md) and hides Add Favorite entirely if neither exists, rather than risk a broken or
+    duplicate bookmark flow.
+  - Open Knowledge Graph doesn't re-run `ddiKnowledgeGraph.getDocumentGraph()` (which would duplicate
+    the Knowledge Graph Viewer connector's own graph-building work) — it scroll-anchors to that
+    connector's existing output instead, via one added `id` attribute on its outer card.
+  - Share Document copies the document's own canonical URL, computed with the same inline formula
+    already used in three other files, via the identical clipboard-write-with-fallback pattern
+    `ddi-reading-lists.js`'s own Share already established.
+- Every async action (`toggleFavorite`, `share`, `toggleReadingListMembership`) guards
+  `isDestroying`/`isDestroyed` before calling `set()` — the exact convention the v1.0 RC audit found
+  missing in one place (`ddi-reading-lists.js`'s `share()` action) and fixed there; not repeated here.
+- Verified directly: the pure reshaping helper exercised for membership true/false/empty/null input;
+  every connector action mirrored against mocked services (no live Ember runtime available),
+  including reading-list add/remove argument types, favorite removal's found/not-found/
+  server-failure paths, favorite add's toggle-present/absent/throwing paths (confirming no
+  optimistic state flip on success), share's clipboard success/failure paths, the Knowledge Graph
+  anchor's safe no-op when absent, and that no action calls `set()` after the component starts
+  destroying mid-await. Zero unused imports, zero orphaned exports, zero deprecated Ember APIs, zero
+  console/debug statements — all 72 theme JS files (including the 2 new to this feature)
+  re-verified syntactically valid.
+
 ## 2026-07-27 — Version 1.0 release preparation
 
 - **`about.json` version bump: `0.2.1` → `1.0.0`.** The first time `version`/`theme_version` has

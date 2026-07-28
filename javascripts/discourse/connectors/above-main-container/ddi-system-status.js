@@ -14,22 +14,21 @@ export default {
 
   setupComponent(args, component) {
     const owner = getOwner(component);
+    const ddiSystemStatus = owner.lookup("service:ddi-system-status");
 
     component.setProperties({
-      isOpen: false,
-      isLoading: false,
-      status: null,
-      ddiSystemStatus: owner.lookup("service:ddi-system-status"),
+      ddiSystemStatus,
       ddiIntegrityDashboard: owner.lookup("service:ddi-integrity-dashboard"),
 
       // Same free-function pattern as the Integrity Dashboard connector —
       // see its setupModal for why these can't be `this`-bound methods.
-      // isOpen lives on this component (not a service), so onClose closes
-      // it via the component directly rather than a service reference.
+      // isOpen now lives on the service (not this component), the same
+      // move Integrity Dashboard's own connector already made, so onClose
+      // closes it via the service rather than local component state.
       setupModal: (element) => {
         element._ddiModal = createModal(element, {
           labelledBy: "ddi-system-status-title",
-          onClose: () => component.set("isOpen", false),
+          onClose: () => ddiSystemStatus.close(),
         });
       },
 
@@ -49,23 +48,15 @@ export default {
 
   actions: {
     open() {
-      this.setProperties({ isOpen: true, isLoading: true });
-
-      this.ddiSystemStatus.getStatus().then((status) => {
-        if (this.isDestroying || this.isDestroyed) {
-          return;
-        }
-
-        this.setProperties({ isLoading: false, status });
-      });
+      this.ddiSystemStatus.open();
     },
 
     close() {
-      this.setProperties({ isOpen: false });
+      this.ddiSystemStatus.close();
     },
 
     openIntegrityDashboard() {
-      this.setProperties({ isOpen: false });
+      this.ddiSystemStatus.close();
       this.ddiIntegrityDashboard.open();
     },
   },

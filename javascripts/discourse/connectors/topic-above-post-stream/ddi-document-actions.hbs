@@ -1,0 +1,101 @@
+{{#if this.isVisible}}
+  <div class="ddi-document-actions">
+
+    {{#if this.readingListsEnabled}}
+      <div class="ddi-document-action-group">
+        <button
+          type="button"
+          class="ddi-nav-link ddi-document-action"
+          aria-haspopup="true"
+          aria-expanded={{if this.isReadingListMenuOpen "true" "false"}}
+          {{action "toggleReadingListMenu"}}
+        >
+          Add to Reading List
+        </button>
+
+        {{#if this.isReadingListMenuOpen}}
+          <div class="ddi-document-action-menu" role="menu">
+            {{#if this.readingListOptions.length}}
+              {{#each this.readingListOptions as |option|}}
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={{if option.inList "true" "false"}}
+                  class="ddi-toc-item ddi-document-action-menu-item"
+                  {{action "toggleReadingListMembership" option.id option.inList}}
+                >
+                  <span class="ddi-toc-title">
+                    {{if option.inList "✓ " ""}}{{option.name}}
+                  </span>
+                </button>
+              {{/each}}
+            {{else}}
+              <div class="ddi-card-body ddi-document-action-menu-empty">
+                NO READING LISTS YET
+              </div>
+            {{/if}}
+
+            <button
+              type="button"
+              class="ddi-nav-link ddi-document-action-menu-manage"
+              {{action "manageReadingLists"}}
+            >
+              Manage Reading Lists
+            </button>
+          </div>
+        {{/if}}
+      </div>
+    {{/if}}
+
+    {{#if this.isFavoriteVisible}}
+      {{#if this.isFavorited}}
+        <button
+          type="button"
+          class="ddi-nav-link ddi-document-action"
+          {{action "toggleFavorite"}}
+        >
+          Remove Favorite
+        </button>
+      {{else if this.canAddFavorite}}
+        <button
+          type="button"
+          class="ddi-nav-link ddi-document-action"
+          {{action "toggleFavorite"}}
+        >
+          Add Favorite
+        </button>
+      {{/if}}
+    {{/if}}
+
+    {{#if this.knowledgeGraphEnabled}}
+      <button
+        type="button"
+        class="ddi-nav-link ddi-document-action"
+        {{action "openKnowledgeGraph"}}
+      >
+        Open Knowledge Graph
+      </button>
+    {{/if}}
+
+    <button
+      type="button"
+      class="ddi-nav-link ddi-document-action"
+      {{action "share"}}
+    >
+      Share Document
+    </button>
+
+    {{#if this.favoriteError}}
+      <div class="ddi-document-action-status ddi-reading-list-error">
+        {{this.favoriteError}}
+      </div>
+    {{/if}}
+
+    {{#if this.shareStatus}}
+      <div class="ddi-document-action-status">
+        {{this.shareStatus}}
+      </div>
+    {{/if}}
+
+  </div>
+{{/if}}

@@ -1628,6 +1628,83 @@ shadow), `.ddi-toc-item`/`.ddi-toc-title` (result rows, identical to every other
 this theme), and `.ddi-nav-section-label` (section headers) are all reused verbatim; only the
 backdrop, positioning, input styling, and active-row highlight are new.
 
+### Command Palette Expansion (v1.1)
+
+Six new entries — Open Reading Lists, Open Favorites (already existed; re-grouped, not new), Open
+Timeline, Open Knowledge Graph, Open Integrity Dashboard, Open System Status Dashboard — make the
+palette what the Post-Release Product Review named as a concrete gap: it "doesn't know about half
+the product," forcing users to hunt for corner-anchored trigger buttons instead. Every entry
+activates something that already existed; no new dialog, route, or service was created.
+
+**Every activation delegates to an existing service's `open()`, an existing scroll target, or the
+existing Favorites dialog helper — nothing here recomputes what those already compute.**
+`activate()`'s `switch` on `entry.special` calls `ddiReadingLists.open()`,
+`ddiIntegrityDashboard.open()`, and `ddiSystemStatus.open()` directly (the identical methods their
+own trigger buttons already call), and reuses the existing `openFavorites()` helper for Favorites
+unchanged. Two entries aren't dialogs, so "open" means something else for them, reusing
+infrastructure Document Actions already established rather than inventing new routing:
+
+- **Open Knowledge Graph** only appears as an entry while already on a topic route (there's no
+  page-agnostic graph — it's always the *current* document's) and, when activated, scroll-anchors to
+  `#ddi-knowledge-graph-viewer` — the exact same element `id` Document Actions' own "Open Knowledge
+  Graph" action already scrolls to (see **Document Actions** above), not a second anchor.
+- **Open Timeline** is available from anywhere, since jumping to it from a page that isn't already
+  showing it is the actual point of a "navigation hub" entry. If `#ddi-timeline-view` (a new `id` on
+  `ddi-timeline-view.hbs`'s existing outer card, the identical technique used for the Knowledge Graph
+  anchor) is already on the current page, it scrolls directly; otherwise it navigates to `/` via
+  `DiscourseURL.routeTo()` (the same navigation every other entry already uses) and defers the scroll
+  to `api.onPageChange()` — the same page-lifecycle hook `recordVisit()` already relies on in this
+  same file — via one `requestAnimationFrame` frame, the identical "wait for the route's connectors to
+  render" technique `ddi-document-toc.js` already uses for its own post-render DOM work.
+- **Open System Status Dashboard required one prerequisite change**, documented in **DDI System
+  Status Dashboard** above: its dialog state moved from the connector onto its own service, mirroring
+  the exact move Integrity Dashboard's service already made for the identical reason. Without this,
+  opening it from Command Palette would have needed either a second dialog implementation (a
+  duplicate) or a new cross-component signaling mechanism the project has already deliberately ruled
+  out (see that section) — the fix was extending existing, proven infrastructure, not building around it.
+
+**Visibility is entry-by-entry, checked synchronously against the same settings and staff gate each
+feature's own connector already applies — never a second implementation of "is this available."**
+Reading Lists/Timeline/Knowledge Graph each check their own existing `ddi_*_enabled` setting; the two
+staff entries check both their own setting *and* `currentUser.staff`, the identical double-gate their
+own connectors' `shouldRender()` already applies, so a non-staff user never sees the entries exist —
+not shown-but-disabled, absent, the same "hide what doesn't work" standard **Document Actions**
+established.
+
+**Grouping**: two new section types, `"tool"` (Reading Lists, Favorites, Timeline, Knowledge Graph —
+labeled "Archive Tools") and `"staff"` (Integrity Dashboard, System Status — labeled "Staff Tools"),
+alongside the existing `"action"`/`"department"`/`"recent"`/`"document"` types. Favorites moved from
+`"action"` into `"tool"` — a deliberate re-grouping, not an oversight: it belongs with the other
+"open a panel" entries, not alongside "navigate to a static page." Section membership stays
+contiguous (tool entries are constructed before staff entries, and `Array.prototype.filter` preserves
+order), so the existing "insert a label whenever the type changes" rendering logic in `renderEntries()`
+needed no changes to correctly show the two new section headers.
+
+**Keyboard: Tab/Shift+Tab now jump to the next/previous section's first entry, wrapping at either
+end.** With five possible sections now visible at once on an empty query, arrowing one row at a time
+to reach a later one is real friction. This was the only keyboard change available that doesn't
+regress anything: Tab was already effectively a no-op inside the palette (the shared modal utility's
+document-level, capturing-phase Tab-trap — see **Modal Accessibility** — finds only one focusable
+element, the input itself, so it always re-focuses the same input either way) — confirmed directly by
+simulating both listeners firing in their real capturing-then-bubbling order, not assumed: the modal's
+handler still runs first and still re-focuses the input (a harmless no-op, since it was already
+focused), and the new bubbling-phase handler on the input still runs afterward and performs the
+section jump. Focus never leaves the input in either case, so the trap's actual safety property is
+unchanged; only what Tab *does* while focus is there is new. Home/End and other key combinations were
+considered and rejected — Home/End inside a focused text input already means "move the cursor," and
+overriding that would regress normal text editing, not improve navigation.
+
+**Verified directly.** Entry visibility was checked for every combination of staff/non-staff,
+topic-route/non-topic-route, and each relevant setting on/off; `activate()`'s dispatch was checked to
+call the correct service method or helper for all six new entries plus the pre-existing
+plain-URL fallback, confirming no cross-contamination between them; `openTimeline()`'s same-page
+(scrolls, never navigates) and cross-page (navigates, queues exactly one pending scroll) branches;
+`jumpToAdjacentSection()`'s forward/backward/wrap-at-both-ends behavior against a five-section mock
+entry list; and the System Status service migration's `open()`/`close()`, the cross-dialog handoff to
+Integrity Dashboard, and that both the template and Command Palette read the identical single source
+of truth. No new files were added — six entries, one keyboard behavior, and one prerequisite service
+migration, entirely inside already-existing files.
+
 ## Favorites Panel
 
 A quick-access panel — Document Number, Title, Classification, Department, Document Type, Last
@@ -1873,6 +1950,16 @@ across connector boundaries.
 closes itself first, then opens the Integrity Dashboard — both dialogs reuse the same
 `.ddi-command-palette-backdrop`/`z-index: 2000` shell, so showing both at once would just be two
 identical full-screen overlays on top of each other with no visible way to tell them apart.
+
+**v1.1 update: this dashboard's own `isOpen`/`isLoading`/`status` moved from the connector onto
+`services/ddi-system-status.js` itself** — the exact same move `ddi-integrity-dashboard.js` made
+above, for the exact same reason: Command Palette Expansion (see **Command Palette** below) needed to
+open this dialog from outside its own connector, which local component state can't do without new
+cross-component plumbing. `open()`/`close()` now live on the service as `@tracked` fields;
+`connectors/above-main-container/ddi-system-status.js`'s own `open`/`close`/`openIntegrityDashboard`
+actions are now thin delegating wrappers around `this.ddiSystemStatus`, with no change to the
+connector's own trigger-button behavior or visible output — the same "delegate, don't duplicate"
+shape the Integrity Dashboard connector already established.
 
 **The `/latest.json` half of this is no longer duplicated — the Archive Pagination refactor fixed
 exactly this.** This section originally described `ddiIntelligenceIndex.getIndex()` (for totals/
@@ -2394,6 +2481,100 @@ shape of a topic page whose staff member opens Integrity Dashboard mid-load) sho
 eliminating 12 of 13 redundant re-resolves in that scenario, a 61% reduction in simulated wall-clock
 time — a specific, reproducible number from this repo's own mocked benchmark, not a live-browser
 measurement.
+
+## Document Actions
+
+The first v1.1 feature: a compact action bar — Add to Reading List, Add/Remove Favorite, Open
+Knowledge Graph, Share Document — rendered near the Dossier Header
+(`connectors/topic-above-post-stream/ddi-document-actions.*`). Built directly from the Post-Release
+Product Review's own findings, not a generic addition: three of its four actions exist specifically
+to close friction that review named concretely (Reading Lists had no way to add the document you're
+currently viewing without leaving the page to copy its ID; Command Palette couldn't reach Reading
+Lists, Timeline, or the staff tools; there was no single place to act on the current document at all).
+
+**Every action reuses an existing service unchanged — this is a new surface over old capability, not
+a new capability.** No new storage, no new document-lookup code, no new fetch logic anywhere in this
+feature.
+
+- **Add to Reading List** calls `ddiReadingLists.addDocument(listId, String(topic.id))` /
+  `removeDocument(listId, topic.id)` directly — the exact methods the Reading Lists dialog itself
+  uses. The only new code is `lib/ddi-document-actions.js#buildReadingListOptions()`, a pure
+  presentation-shaping function (list name + "is the current document already in it") that plays the
+  same role for this dropdown that `lib/ddi-timeline-view.js#groupDocumentsByYear()` plays for
+  Timeline — reshaping already-fetched service data for a template, not fetching or storing anything
+  new. Reading `ddiReadingLists.lists` directly in the template (not copied into local component
+  state) means the dropdown and the full Reading Lists dialog can never disagree about what lists
+  exist. Zero lists, or wanting the full create/rename/share experience, both route to the *existing*
+  dialog via `ddiReadingLists.open()` rather than a second, smaller create-list form.
+- **Add/Remove Favorite** reuses `ddiFavorites.getFavorites()` / `removeFavorite(bookmarkId)`
+  unchanged for removal — the exact pair the Favorites Panel already uses. There is deliberately no
+  new "add" implementation: `ddi-favorites.js` never built one, by design, relying entirely on
+  Discourse's own native bookmark UI (see **Favorites Panel** above) — this feature follows that same
+  discipline rather than inventing a parallel bookmark-creation path. **Confidence caveat:** the "can
+  this document be favorited" check and the add action itself feature-detect
+  `post.toggleBookmark`/`post.toggleBookmarkWithReminder` on the topic's first post — the method the
+  native bookmark button itself is believed to call, based on general knowledge of Discourse's
+  client-side API, the same class of caveat already flagged for `addKeyboardShortcut` (see **Command
+  Palette**) and not confirmed against a live instance. If neither method exists, Add Favorite simply
+  isn't offered (an unfavorited document with no detected toggle shows neither button) rather than
+  risking a broken or duplicate bookmark flow — "hide what doesn't work" applied literally. On
+  success, this component deliberately does **not** optimistically flip its own `isFavorited` flag:
+  the native toggle may itself open a reminder dialog, so this component can't reliably know the
+  outcome inline, and claims it can't verify — the topic model's own `bookmarked` field (read
+  directly, no new fetch — the same "already-loaded model field" reuse `ddi-document-metadata.js`
+  applies to `topic.closed` elsewhere) is trusted again on the next page visit instead.
+- **Open Knowledge Graph** does not call `ddiKnowledgeGraph.getDocumentGraph()` a second time — doing
+  so would duplicate the exact graph-building work the Knowledge Graph Viewer connector already does
+  for this same topic. Instead it scroll-anchors to that connector's own existing output: its outer
+  `.ddi-card` (in `ddi-knowledge-graph.hbs`) gained one `id="ddi-knowledge-graph-viewer"` attribute —
+  a markup-only addition, no behavior change to that connector — and this action is
+  `document.getElementById("ddi-knowledge-graph-viewer")?.scrollIntoView(...)`. That element always
+  renders when the feature setting is on, whether or not this specific document has any
+  relationships (the "NO DOCUMENT RELATIONSHIPS FOUND" empty state lives inside the same wrapper), so
+  the action is shown whenever `ddi_knowledge_graph_viewer_enabled` is on — checked once, synchronously,
+  with no risk of racing the Viewer's own async load, unlike checking "does this document actually
+  have relationships" would have required.
+- **Share Document** copies the document's own canonical URL — `topic.slug ? /t/{slug}/{id} :
+  /t/{id}`, the identical inline formula `ddi-citation-preview.js`, `ddi-knowledge-graph.js`, and
+  `ddi-integrity-dashboard.js` already each compute the same way, matched here rather than diverged
+  from or extracted into a new shared helper (extracting one wasn't asked for and would be a fourth
+  duplicate site's problem to solve, not this feature's). Uses the identical
+  `navigator.clipboard.writeText()` + raw-URL-fallback-on-failure pattern `ddi-reading-lists.js`'s own
+  `shareList()` already established, not a second implementation of "copy this text."
+
+**Visibility is settings- and state-driven, checked synchronously wherever possible, to avoid both
+async races and duplicate fetches.** A new `ddi_document_actions_enabled` setting (default on) gates
+the whole bar, matching every other DDI panel's own settings convention. Within it: Add to Reading
+List follows `ddi_reading_lists_enabled`; the Favorite action is hidden entirely for logged-out users
+(bookmarks are inherently a logged-in Discourse feature) and further limited to Remove-only when no
+add mechanism was detected; Open Knowledge Graph follows `ddi_knowledge_graph_viewer_enabled`; Share
+is always available (clipboard failure degrades to a visible link rather than hiding the button, the
+same choice Reading Lists' own Share already makes).
+
+**Guards every async action against a destroyed component before calling `set()`** —
+`toggleFavorite()`, `share()`, and `toggleReadingListMembership()` all check
+`this.isDestroying || this.isDestroyed` after their awaits, the exact convention this project's own
+`CODING_STANDARDS.md` documents and the one gap the v1.0 RC audit found and fixed elsewhere
+(`ddi-reading-lists.js`'s `share()` action) — not repeated here.
+
+**Known, accepted limitation.** The reading-list picker is a lightweight inline dropdown, not a full
+`role="menu"` widget — it carries real ARIA (`aria-haspopup`, `aria-expanded`,
+`role="menuitemcheckbox"`/`aria-checked` per item) and closes on any selection or on re-clicking its
+own trigger, but doesn't implement roving-tabindex arrow-key navigation or an Escape-to-close
+handler the way the five full dialogs (see **Modal Accessibility**) do. Standard Tab-order navigation
+between its items works regardless. Judged proportionate for a small inline disclosure widget rather
+than pulling in the full modal-dialog accessibility machinery built for actual backdrop dialogs — a
+deliberate scope decision, not an oversight.
+
+**Verified directly.** `lib/ddi-document-actions.js#buildReadingListOptions()` was exercised directly
+(membership true/false per list, empty/null input); every connector action was mirrored against
+mocked services (no live Ember runtime available) covering: reading-list add/remove call the correct
+existing service method with the correct argument type (string for `addDocument`, matching what
+`parseDocumentId()` expects; number for `removeDocument`, matching `documentIds`' own stored type);
+favorite removal's found/not-found/server-failure paths; favorite add's toggle-present/absent/
+throwing paths, confirming no optimistic state flip on success; share's clipboard success/failure
+paths; the Knowledge Graph anchor scroll no-ops safely when the target element is absent; and that no
+action calls `set()` after the component starts destroying mid-await.
 
 ## CSS Architecture
 

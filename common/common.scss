@@ -1745,6 +1745,90 @@ a:hover {
   color: #e7edf6;
 }
 
+/* ============================================================
+   DDI DOCUMENT ACTIONS
+   (near the Dossier Header — see
+   connectors/topic-above-post-stream/ddi-document-actions.js. Reuses
+   .ddi-nav-link for every button, .ddi-toc-item/-title for reading-list
+   menu rows, .ddi-card-body for the empty-list state, and
+   .ddi-reading-list-error for the favorite-error message verbatim; only
+   the action row layout and the small reading-list popover are new)
+   ============================================================ */
+
+.ddi-document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin: 0 0 20px;
+}
+
+.ddi-document-action-group {
+  position: relative;
+}
+
+.ddi-document-action {
+  padding: 10px 16px;
+
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+}
+
+.ddi-document-action-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10;
+
+  width: 240px;
+  max-width: calc(100vw - 40px);
+
+  background: var(--ddi-bg-panel);
+  border: 1px solid var(--ddi-border);
+  box-shadow: var(--ddi-shadow-md);
+
+  padding: 8px;
+}
+
+.ddi-document-action-menu-item {
+  width: 100%;
+
+  background: none;
+  border: none;
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.ddi-document-action-menu-empty {
+  padding: 8px 4px;
+
+  font-size: .78rem;
+}
+
+.ddi-document-action-menu-manage {
+  width: 100%;
+  margin-top: 8px;
+
+  text-align: center;
+}
+
+.ddi-document-action-status {
+  flex-basis: 100%;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .82rem;
+
+  word-break: break-all;
+}
+
 /* ==========================================
    DDI DOSSIER CARD
 ========================================== */

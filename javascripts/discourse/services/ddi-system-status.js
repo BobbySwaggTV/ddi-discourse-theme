@@ -1,4 +1,5 @@
 import Service, { service } from "@ember/service";
+import { tracked } from "@glimmer/tracking";
 import { buildArchiveStatistics } from "../lib/ddi-archive-statistics";
 import { ISSUE_TYPES } from "../lib/ddi-integrity-issues";
 
@@ -13,6 +14,27 @@ export default class DdiSystemStatusService extends Service {
   @service currentUser;
   @service ddiIntelligenceIndex;
   @service ddiIntegrityDashboard;
+
+  // Owns the dashboard dialog's open/loading/status state directly, rather
+  // than leaving it local to the connector component — the same move
+  // ddi-integrity-dashboard.js's own service already made, needed here for
+  // the identical reason: Command Palette needs to open this dialog from
+  // outside its own connector, the same way System Status's own summary
+  // cards already open the Integrity Dashboard from outside *its* connector.
+  @tracked isOpen = false;
+  @tracked isLoading = false;
+  @tracked status = null;
+
+  async open() {
+    this.isOpen = true;
+    this.isLoading = true;
+    this.status = await this.getStatus();
+    this.isLoading = false;
+  }
+
+  close() {
+    this.isOpen = false;
+  }
 
   async getStatus() {
     if (!this.currentUser?.staff) {
