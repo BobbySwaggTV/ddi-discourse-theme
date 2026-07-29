@@ -3182,3 +3182,68 @@ a:hover {
 .ddi-reading-list-add-row .ddi-reading-list-add-input {
   flex: 1;
 }
+
+/* ============================================================
+   DDI DOCUMENT AUTHOR ASSISTANT
+   (composer-time guidance panel — connectors/composer-fields/
+   ddi-document-author-assistant.js. Reuses .ddi-card, .ddi-card-title, and
+   .ddi-integrity-pass/-warn verbatim; only the compact checklist rows below
+   are new, since composer real estate is far narrower than a full-width
+   homepage/topic-page .ddi-card)
+   ============================================================ */
+
+.ddi-author-assistant {
+  margin: 12px 0;
+  padding: 16px 18px;
+}
+
+.ddi-author-assistant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.ddi-author-assistant-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+
+  font-size: .86rem;
+}
+
+.ddi-author-assistant-icon {
+  flex-shrink: 0;
+  width: 1.1em;
+  text-align: center;
+}
+
+.ddi-author-assistant-field {
+  flex: 1;
+  color: #d8dce2;
+}
+
+.ddi-author-assistant-status {
+  flex-shrink: 0;
+
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+/* Composer width can drop well below 480px on a phone; wrapping the status
+   onto its own line (indented past the icon, under the field label) keeps
+   every row readable instead of truncating or overflowing the panel. */
+@media (max-width: 480px) {
+  .ddi-author-assistant-item {
+    flex-wrap: wrap;
+  }
+
+  .ddi-author-assistant-status {
+    margin-left: calc(1.1em + 8px);
+  }
+}

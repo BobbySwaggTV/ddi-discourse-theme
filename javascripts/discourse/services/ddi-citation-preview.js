@@ -11,6 +11,24 @@ import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
 export default class DdiCitationPreviewService extends Service {
   @service site;
 
+  // Performance Audit (v1.1): getCitation(topic) used to recompute from
+  // scratch on every call and never consulted this cache, even though it
+  // wrote to it — only getCitationById() actually benefited from a repeat
+  // call. That mattered more than it looked: getIndex()
+  // (services/ddi-intelligence-index.js) calls getCitation() once per topic
+  // in the *entire* archive, and up to 5 independent connectors/services on
+  // a single homepage/category page (Browse Archive, Intelligence
+  // Dashboard, Division Cards, Division Header, Archive Navigation on every
+  // topic page view) each call getIndex() themselves — so the same topic's
+  // citation, including _resolveRevision()'s own `/t/{id}.json` fallback
+  // fetch (real for every /latest.json-sourced topic, which never carries
+  // post_stream), was being rebuilt and re-fetched once per connector, per
+  // page view. getCitation() and getCitationById() now both read/write the
+  // same Map, keyed by topic id either way, via a shared _buildCitation()
+  // that itself never touches the cache — avoiding the re-entrant deadlock
+  // a naive "getCitation() calls getCitationById()'s cache" merge would
+  // cause (_loadCitationById() already writes this exact key before it
+  // resolves).
   _cache = new Map();
 
   async getCitationById(documentId) {
@@ -35,7 +53,7 @@ export default class DdiCitationPreviewService extends Service {
       return null;
     }
 
-    return this.getCitation(topic);
+    return this._buildCitation(topic);
   }
 
   async getCitation(topic) {
@@ -43,6 +61,16 @@ export default class DdiCitationPreviewService extends Service {
       return null;
     }
 
+    const key = String(topic.id);
+
+    if (!this._cache.has(key)) {
+      this._cache.set(key, this._buildCitation(topic));
+    }
+
+    return this._cache.get(key);
+  }
+
+  async _buildCitation(topic) {
     const { classification, className: classificationClass } =
       getClassification(topic);
 
@@ -62,7 +90,7 @@ export default class DdiCitationPreviewService extends Service {
       topic.post_stream?.posts?.[0]?.cooked
     );
 
-    const citation = {
+    return {
       id: topic.id,
       documentId: formatDocumentId(topic.id),
       title: topic.title,
@@ -77,10 +105,6 @@ export default class DdiCitationPreviewService extends Service {
       updatedDate: formatDocumentDate(updatedAt),
       url: topic.slug ? `/t/${topic.slug}/${topic.id}` : `/t/${topic.id}`,
     };
-
-    this._cache.set(String(topic.id), Promise.resolve(citation));
-
-    return citation;
   }
 
   async _resolveRevision(topic) {

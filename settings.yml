@@ -66,3 +66,8 @@ ddi_document_actions_enabled:
   type: bool
   default: true
   description: "Show the Document Actions bar near the Dossier Header (Add to Reading List, Favorite, Open Knowledge Graph, Share) — individual actions still hide themselves when unavailable regardless of this setting"
+
+ddi_document_author_assistant_enabled:
+  type: bool
+  default: true
+  description: "Show the Document Author Assistant panel in the composer (real-time ✓/⚠ guidance on Document Number, Classification, Department, Document Type, Lifecycle, Executive Summary, H2 Sections, Cross References, Related Documents) while composing a new topic or editing an existing document's first post — never shown for replies"

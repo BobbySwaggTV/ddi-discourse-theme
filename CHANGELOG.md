@@ -9,6 +9,131 @@ read the early ad hoc labels as an authoritative release history — this change
 that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
 the entry below; every entry before it predates that field meaning anything.
 
+## 2026-07-29 — v1.1: Release audit and cleanup
+
+- Full repository audit ahead of tagging v1.1.0: connectors, services, `lib/`, SCSS, templates,
+  `settings.yml`, and every top-level doc, checked against every item in the audit's checklist
+  (duplicate functionality, dead connectors, orphan exports, unused settings, duplicated CSS,
+  duplicate service calls, inconsistent naming, stale documentation, outdated comments, TODO/FIXME
+  markers, deprecated Ember/Discourse APIs, unnecessary observers/listeners).
+- Mechanical checks came back clean: 0 TODO/FIXME markers, 0 remaining `{{action}}` usages, 0
+  deprecated Ember Native Array Extensions (`findBy`/`filterBy`/etc.), 0 unused imports, 0 orphan
+  `lib/` exports, every `services/*.js` file referenced by at least one consumer, every connector's
+  `.js`/`.hbs` pair matched, only one exact-duplicate CSS selector found and confirmed legitimate
+  (a shared base rule plus an intentional override, not accidental duplication).
+- Fixed the real findings, all documentation/comment-only (zero behavioral impact):
+  - `ARCHITECTURE.md`'s "Archive-Wide Components" summary still described the deleted
+    `ddi-intelligence-index.*` connector by name — updated to describe the current
+    `ddi-browse-archive.*` merge.
+  - The "Command Palette Expansion (v1.1)" section still described its "Open Timeline" entry and
+    `#ddi-timeline-view` target as current — annotated with the later Browse Archive rename rather
+    than silently rewritten, preserving when each thing actually happened.
+  - The `settings.yml` summary in `ARCHITECTURE.md`'s Known Gaps, `CONTRIBUTING.md`, and
+    `README.md` all still said "12 settings, 8 wired" from before this session's two new v1.1
+    settings (`ddi_document_actions_enabled`, `ddi_document_author_assistant_enabled`) — corrected
+    to 14/10 in all three places.
+  - `README.md` still framed the project as "Approaching a Version 1.0 release" (already shipped),
+    was missing Document Actions and the Document Author Assistant from its feature summary and
+    settings table entirely, listed a non-existent `common/header.html`, and its documentation index
+    was missing 4 of the 10 files actually in `docs/` — all corrected.
+  - `javascripts/discourse.js` carried a stale comment (referencing a pre-changelog `v0.2.1` label
+    and a claim about DOM injection that stopped being true once `ddi-dossier-refresh.js` shipped)
+    and tab indentation inconsistent with this repo's 2-space standard — reworded and reformatted;
+    the no-op initializer's behavior is unchanged.
+- Nothing was found to need removal or refactoring beyond the above — `assets/ddi-logo.png`
+  (unreferenced, previously flagged) and the 4 reserved `settings.yml` entries remain exactly as
+  the prior RC audit deliberately left them, both explicit human-call-not-unilateral decisions this
+  audit re-confirmed rather than re-litigated.
+- Re-ran full verification after cleanup: all 74 theme JS files pass `node --check`, `sass` compiles
+  `common/common.scss` cleanly, `settings.yml` re-validated as YAML (14 settings), unused-import and
+  orphan-export sweeps clean.
+
+## 2026-07-29 — v1.1: Archive browsing performance pass
+
+- Audited all 10 named archive-browsing surfaces (Homepage Dashboard, Browse Archive, Timeline,
+  Search decoration, Knowledge Graph, Citation Preview, Related Documents, Reading Lists,
+  Favorites, Command Palette) for duplicate requests, repeated parsing, unnecessary DOM/observer
+  work, and cache misses, against the earlier Performance Audit's own baseline.
+- Fixed the one real gap: `ddi-citation-preview.js#getCitation(topic)` wrote to its own cache but
+  never read from it, so every call rebuilt the citation from scratch — including a
+  `/t/{id}.json` revision-fallback fetch per topic, since `/latest.json` results never carry
+  `post_stream`. `getCitation()` and `getCitationById()` now share one cache Map, both reading and
+  writing through it (the citation-building logic itself moved unchanged into a new
+  `_buildCitation()` that neither entry point's cache check re-enters, avoiding a Promise-awaiting-
+  itself deadlock the naive merge would have caused — verified directly).
+- `ddi-intelligence-index.js#getIndex(filters)` is now cached per filter key for the session (same
+  Promise-Map pattern used throughout this codebase) — up to 5 independent callers on a single page
+  view were each rebuilding the full archive-wide citation set from scratch: Browse Archive and
+  Intelligence Dashboard on the homepage/category pages, Division Cards and Division Header on a
+  category page, and Archive Navigation on every topic page view. Division Cards alone calls
+  `getIndex()` once per division (6 calls) on the `/categories` index.
+- One accepted, explicitly-documented tradeoff: `revision` is now frozen for the session on first
+  resolution, matching the freshness `getCitationById()`'s callers (Reading Lists, Favorites,
+  Related Documents, Command Palette) already had — this closes an inconsistency between two entry
+  points into the same cache rather than introducing a new staleness policy.
+- Considered and deliberately left alone: `ddi-favorites.js#getFavorites()` stays uncached —
+  bookmark state changes from multiple surfaces this theme doesn't control, so every call needs to
+  reflect what actually just happened. Command Palette, Search decoration's `MutationObserver`,
+  Knowledge Graph, and Reading Lists' own reading-time cache were all re-verified already correct
+  from the earlier Performance Audit and left untouched.
+- No listener, observer, or lifecycle hook was added, removed, or changed — this pass is entirely
+  at the service-cache layer, so listener/observer cleanup verification reduced to confirming none
+  were touched.
+- Measured directly: a mocked mixed-page-view simulation (3 no-filter + 2 same-department
+  `getIndex()` calls, 500-document archive) showed revision fetches and citation rebuilds both
+  dropping from 2,500 to 500 (80% reduction); a second simulation of Division Cards' actual
+  6-division `/categories` page load showed revision fetches dropping from 3,000 to 500 (83%
+  reduction), with `getIndex()` still correctly running once per genuinely-distinct filter. Cache
+  correctness confirmed for different filter keys returning independently correct results, not a
+  merged one. `check-unused-imports.py`/`check-orphan-exports.py` re-run clean; `node --check`
+  clean on all 74 theme JS files. No CSS, markup, or connector-facing return shape changed.
+
+## 2026-07-29 — v1.1: Document Author Assistant
+
+- New composer-time guidance panel (`connectors/composer-fields/
+  ddi-document-author-assistant.*`, gated by new `ddi_document_author_assistant_enabled`, default
+  on): shows only while creating a new topic or editing an existing document's first post (never
+  for replies), and marks 9 items ✓ Valid or ⚠ Needs attention in real time as the draft changes —
+  Document Number, Classification, Department, Document Type, Lifecycle, Executive Summary, H2
+  Sections, Cross References, Related Documents. Purely informational: never blocks publishing,
+  never auto-corrects anything, never touches the composer beyond displaying itself.
+- Zero validation logic reimplemented. `lib/ddi-integrity.js`'s `checkClassification`/
+  `checkDepartment`/`checkDocumentType`/`checkLifecycle` — the same functions the topic-page
+  Verification Panel already renders — are now individually exported (purely additive, existing
+  callers unchanged) and reused against a small adapter built from composer state. Cross References
+  and Related Documents reuse `findDocumentReferences()`/`findDocumentRelationships()` directly
+  against the raw draft body. Document Number reuses `formatDocumentId()`.
+- Executive Summary and H2 Sections have no prior dedicated library (the closest precedent is a
+  one-line cooked-HTML query inline in two other connectors), so they're new, minimal, synchronous
+  raw-Markdown checks in a new `lib/ddi-document-author-assistant.js` — deliberately not cooking the
+  draft client-side just to reuse those cooked-HTML queries, which would have added new async
+  indirection for no benefit.
+- First feature in this theme to touch the composer. Looks up `service:composer` directly rather
+  than trusting the `composer-fields` outlet's own `args` shape. Flags `creatingTopic`/
+  `editingPost`/`editingFirstPost` as an unconfirmed-against-a-live-instance confidence caveat (same
+  class as this theme's existing Post-bookmark-toggle feature-detection), with a same-answer
+  fallback (`post.post_number === 1`) if `editingFirstPost` is ever absent.
+- Real-time updates via Ember's classic `addObserver`/`removeObserver` on the Composer model's
+  `reply`/`title`/`categoryId`/`tags` (not polling, not DOM scraping), torn down via
+  `{{will-destroy}}` — the same did-insert/will-destroy lifecycle pattern already used for Knowledge
+  Graph Viewer and Document Integrity Dashboard — so no observer is left registered on the
+  composer model after the panel is destroyed.
+- Deduplicated during implementation: `lib/ddi-integrity.js`'s private `result()` formatter was
+  exported and reused rather than copied a second time into the new lib, caught before this task's
+  own "remove duplicate logic" verification step.
+- Reuses `.ddi-card`/`.ddi-card-title` and the Verification Panel's own `.ddi-integrity-pass`/
+  `.ddi-integrity-warn` status colors verbatim; only a new compact single-column checklist layout
+  was added, sized for composer width rather than a full-width homepage/topic-page card. Each row's
+  longer explanation is a native `title` tooltip, not always-visible text, keeping the panel to
+  exactly the task's "✓ Valid / ⚠ Needs attention" display.
+- Verified directly: all 9 checks exercised against mocked drafts (empty, blank, fully valid,
+  partial, heading-only, unrecognized category) — no throws, correct valid/warn outcomes in every
+  case. A separate mock simulation of the observer wiring confirmed real-time recompute on every
+  watched-property change, correct category resolution, full observer cleanup on teardown, and that
+  `isDestroying`/`isDestroyed` guards block any post-destroy work. `check-unused-imports.py`/
+  `check-orphan-exports.py` re-run clean; `node --check` clean on all 74 theme JS files;
+  `settings.yml` re-validated as YAML; `sass` compiles `common/common.scss` cleanly.
+
 ## 2026-07-29 — v1.1: Homepage UX cleanup — Browse Archive
 
 - Merged the homepage/category-page Intelligence Index (alphabetical) and Intelligence Timeline

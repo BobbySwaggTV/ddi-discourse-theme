@@ -1,0 +1,26 @@
+{{#if this.isVisible}}
+  <div class="ddi-card ddi-author-assistant" {{will-destroy this.teardown}}>
+
+    <div class="ddi-card-title">
+      DOCUMENT AUTHOR ASSISTANT
+    </div>
+
+    <ul class="ddi-author-assistant-list">
+      {{#each this.checks as |check|}}
+        <li class="ddi-author-assistant-item" title="{{check.detail}}">
+          <span
+            class="ddi-author-assistant-icon ddi-integrity-{{check.statusClass}}"
+            aria-hidden="true"
+          >
+            {{if check.isValid "✓" "⚠"}}
+          </span>
+          <span class="ddi-author-assistant-field">{{check.field}}</span>
+          <span class="ddi-author-assistant-status ddi-integrity-{{check.statusClass}}">
+            {{if check.isValid "Valid" "Needs attention"}}
+          </span>
+        </li>
+      {{/each}}
+    </ul>
+
+  </div>
+{{/if}}

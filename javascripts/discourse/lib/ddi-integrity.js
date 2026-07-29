@@ -3,7 +3,12 @@ import { isValidClassification } from "./ddi-classification";
 const PASS = "PASS";
 const WARN = "WARN";
 
-function result(field, passed, passDetail, warnDetail) {
+// Exported so the Document Author Assistant (lib/ddi-document-author-
+// assistant.js) can build its own new checks in the exact same
+// { field, status, statusClass, detail } shape as the checks it reuses from
+// this file below, instead of a second, independently-maintained copy of
+// this formatting.
+export function result(field, passed, passDetail, warnDetail) {
   return {
     field,
     status: passed ? PASS : WARN,
@@ -12,7 +17,15 @@ function result(field, passed, passDetail, warnDetail) {
   };
 }
 
-function checkClassification(metadata) {
+// Individually exported (alongside the bundled verifyDocumentIntegrity()
+// below) so the Document Author Assistant can reuse the exact same
+// Classification/Department/Document Type/Lifecycle checks against a
+// composer draft's not-yet-a-real-topic metadata shape, without pulling in
+// checkMetadata() — which reads title/author/createdDate fields a draft
+// doesn't meaningfully have yet — and without reimplementing any of this
+// logic a second time. See ARCHITECTURE.md's "Document Author Assistant"
+// section.
+export function checkClassification(metadata) {
   const hasExplicitTag = (metadata.tags || []).some(isValidClassification);
 
   return result(
@@ -23,7 +36,7 @@ function checkClassification(metadata) {
   );
 }
 
-function checkDepartment(metadata) {
+export function checkDepartment(metadata) {
   return result(
     "Department",
     Boolean(metadata.department),
@@ -32,7 +45,7 @@ function checkDepartment(metadata) {
   );
 }
 
-function checkDocumentType(metadata) {
+export function checkDocumentType(metadata) {
   return result(
     "Document Type",
     Boolean(metadata.documentType),
@@ -41,7 +54,7 @@ function checkDocumentType(metadata) {
   );
 }
 
-function checkLifecycle(metadata) {
+export function checkLifecycle(metadata) {
   return result(
     "Lifecycle",
     Boolean(metadata.lifecycle),
