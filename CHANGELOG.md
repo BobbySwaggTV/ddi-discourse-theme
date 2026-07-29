@@ -9,6 +9,39 @@ read the early ad hoc labels as an authoritative release history — this change
 that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
 the entry below; every entry before it predates that field meaning anything.
 
+## 2026-07-29 — v1.1: Homepage UX cleanup — Browse Archive
+
+- Merged the homepage/category-page Intelligence Index (alphabetical) and Intelligence Timeline
+  (year-grouped) cards into one "Browse Archive" section with a tab switcher, so the two no longer
+  render back to back showing the same document set twice in a row. Both views are fully preserved
+  and independently togglable via their existing settings (`ddi_intelligence_index_enabled`,
+  `ddi_timeline_view_enabled`); if only one is on, that view renders with no switcher, matching
+  prior behavior exactly.
+- `connectors/below-main-container/ddi-timeline-view.js`/`.hbs` and `ddi-intelligence-index.js`/
+  `.hbs` are retired; `ddi-browse-archive.js`/`.hbs` replaces both, reusing the untouched
+  `lib/ddi-route-guard.js#isExcludedRoute()` and `lib/ddi-timeline-view.js#groupDocumentsByYear()`.
+- Fixes a real duplicate service call as a direct consequence of the merge, not just visual
+  deduplication: the two retired connectors each independently called
+  `service:ddi-intelligence-index`'s `getIndex()` with identical arguments on every render; the
+  merged connector calls it once and derives both views from that single result.
+- Tab bar uses the standard ARIA tabs pattern (`role="tablist"`/`"tab"`/`"tabpanel"`,
+  `aria-selected`/`aria-controls`/`aria-labelledby`); full roving-tabindex arrow-key navigation was
+  scoped out as disproportionate for a 2-option switcher — both buttons already reach via Tab and
+  activate via native `<button>` semantics.
+- Fixed a dependency the merge would have silently broken: Command Palette's "Open Timeline" entry
+  scroll-anchored to `#ddi-timeline-view`, an id only the now-deleted template carried. Found via a
+  repository-wide grep before deleting anything. Renamed to "Browse Archive," gated on either
+  underlying setting, retargeted to the merged component's `#ddi-browse-archive` id, with its
+  `special` dispatch value and helper function renamed to match end to end.
+- No new CSS beyond the tab bar itself (`.ddi-browse-archive-tabs`/`-tab`/`-tab-active`); every
+  other class each view's markup uses is reused verbatim from the retired templates. Neither
+  retired wrapper class carried any dedicated CSS, confirmed by grep before deletion.
+- Verified directly: single `getIndex()` call per render confirmed from source; ARIA
+  id/target cross-references checked by hand; responsive layout re-checked against this theme's
+  existing 320–1024px content-width methodology with `flex-wrap` applied defensively to the tab
+  bar; `check-unused-imports.py`/`check-orphan-exports.py` re-run clean after deletion; `node
+  --check` clean on all touched files; `settings.yml` re-validated as YAML.
+
 ## 2026-07-28 — Maintenance: fix `discourse.template-action` deprecation warning
 
 - Replaced every deprecated `{{action "name" ...}}` template usage (28 occurrences, across the six

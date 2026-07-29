@@ -17,9 +17,9 @@ for the precise, current list of what's implemented versus still planned. In sho
 - The **topic page** transformation (dossier-style header, classification banner, summary,
   document intelligence panel, table of contents, related-documents panel, Document Relationships,
   Knowledge Graph Viewer) is implemented and live.
-- The **homepage/categories page** now has a real Intelligence Dashboard (archive statistics),
-  Intelligence Index (full alphabetical document list), Intelligence Timeline (year-grouped browse
-  view), and Division Cards/Header (per-category presentation) — all implemented and live. The
+- The **homepage/categories page** now has a real Intelligence Dashboard (archive statistics), a
+  Browse Archive section (tabbed: alphabetical Intelligence Index / year-grouped Intelligence
+  Timeline), and Division Cards/Header (per-category presentation) — all implemented and live. The
   **sidebar** redesign, and a few of the dashboard's originally-planned sections (Search
   Intelligence, Recent Revisions), are still unbuilt — see **Known Gaps / Unwired Code** in
   ARCHITECTURE.md for exactly what remains.
@@ -35,7 +35,8 @@ for the precise, current list of what's implemented versus still planned. In sho
 On the **topic page**, in render order: Dossier Header, Security Banner, Executive Summary, Document
 Intelligence, Table of Contents, Document Relationships, Knowledge Graph Viewer, and (staff/debug-only)
 a Verification Panel and Debug Panel. Archive-wide, on the homepage/category pages: Intelligence
-Dashboard, Intelligence Index, Intelligence Timeline, Division Cards, Division Header. Available from
+Dashboard, Browse Archive (tabbed Intelligence Index / Intelligence Timeline), Division Cards,
+Division Header. Available from
 anywhere: Command Palette, Favorites, Reading Lists. Staff-only: Document Integrity Dashboard, System
 Status Dashboard. Plus a full dark "command network" visual restyling of standard Discourse chrome
 (header, sidebar, topic list, buttons, timeline, scrollbars, dialogs) in `common/common.scss`.
@@ -81,8 +82,8 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 | Setting | Type | Default | Wired? | Description |
 |---|---|---|---|---|
 | `ddi_homepage_dashboard_enabled` | bool | `true` | ✅ | Show the Intelligence Dashboard above the page content |
-| `ddi_intelligence_index_enabled` | bool | `true` | ✅ | Show the alphabetical Intelligence Index |
-| `ddi_timeline_view_enabled` | bool | `true` | ✅ | Show the year-grouped Intelligence Timeline |
+| `ddi_intelligence_index_enabled` | bool | `true` | ✅ | Show the "All Documents" (alphabetical) tab of Browse Archive |
+| `ddi_timeline_view_enabled` | bool | `true` | ✅ | Show the "By Year" tab of Browse Archive |
 | `ddi_knowledge_graph_viewer_enabled` | bool | `true` | ✅ | Show the interactive Knowledge Graph Viewer |
 | `ddi_reading_lists_enabled` | bool | `true` | ✅ | Show the Reading Lists trigger |
 | `ddi_integrity_dashboard_enabled` | bool | `true` | ✅ | Show the staff-only Document Integrity Dashboard trigger |

@@ -2815,14 +2815,55 @@ a:hover {
 }
 
 /* ============================================================
-   DDI INTELLIGENCE TIMELINE
-   (chronological, year-grouped browse view — see
-   connectors/below-main-container/ddi-timeline-view.js. Reuses
+   DDI BROWSE ARCHIVE
+   (Homepage UX cleanup, v1.1 — merges what were two independent cards,
+   Intelligence Timeline and Intelligence Index, into one tabbed section;
+   see connectors/below-main-container/ddi-browse-archive.js. Reuses
    .ddi-card, .ddi-card-title, .ddi-card-body, .ddi-toc-item,
    .ddi-toc-title, .ddi-dossier-grid, and .ddi-favorites-grid (its
-   5-column variant) verbatim; only the year toggle row and its
-   caret/count are new)
+   5-column variant) verbatim, exactly as the two former cards already
+   did; only the tab bar and the year toggle row's caret/count are new)
    ============================================================ */
+
+.ddi-browse-archive-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  margin-bottom: 20px;
+
+  border-bottom: 1px solid var(--ddi-border);
+}
+
+.ddi-browse-archive-tab {
+  padding: 10px 16px;
+
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+
+  color: var(--ddi-text-muted);
+
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition: all .18s ease;
+}
+
+.ddi-browse-archive-tab:hover {
+  color: var(--ddi-text-primary);
+}
+
+.ddi-browse-archive-tab-active {
+  color: var(--ddi-red);
+
+  border-bottom-color: var(--ddi-red);
+}
 
 .ddi-timeline-year {
   border-bottom: 1px solid var(--ddi-border);

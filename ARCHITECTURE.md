@@ -398,6 +398,10 @@ adjacent fix, not new work for this task.
 
 ## Intelligence Timeline
 
+*(Per-document lifecycle timeline — not to be confused with the archive-wide, year-grouped
+browsing view that shares this same section title further down this file, now folded into
+**Browse Archive (Homepage UX Cleanup, v1.1)** near the end of this document.)*
+
 A vertical list, on every document, of up to 6 lifecycle events in fixed chronological/logical
 order: Created, Approved, Revised, Reviewed, Deprecated, Archived. Only events the theme can
 actually derive today are rendered — there's no fabricated "pending" placeholder for the rest,
@@ -639,6 +643,17 @@ the two still don't conflict: Intelligence Dashboard renders on `discovery-list-
 `below-main-container` (after the entire routed template), so they don't compete for the same
 space.
 
+**Homepage UX Cleanup (v1.1): merged into Browse Archive.** This connector and Intelligence
+Timeline below (the year-grouped one, not the per-document lifecycle timeline documented earlier
+in this file under the same heading name — see that section's own note) were two always-visible
+cards rendering the same archive document set back to back, in two different orders. They're now
+one component, `connectors/below-main-container/ddi-browse-archive.js`, with a tab switcher
+between "All Documents" (this view, alphabetical) and "By Year" (the grouped view). Everything
+described above — the outlet placement, the route guard, the Citation Preview reuse, the
+alphabetical sort, the filter-ready `getIndex()` plumbing, the dead-CSS removal — is unchanged and
+still accurate; only the wrapper component and its outlet file changed. See **Browse Archive
+(Homepage UX Cleanup, v1.1)** near the end of this document for the merge itself.
+
 ## Intelligence Timeline
 
 A chronological, year-grouped browse view — every document in the archive (or, on a category page,
@@ -705,6 +720,14 @@ originally documented a shared single-`/latest.json`-page limitation inherited f
 Index; since the Archive Pagination refactor (see **Archive Pagination** below), `getIndex()` returns
 the complete archive, so every year the archive actually has documents in is grouped and shown —
 with zero change to this file.
+
+**Homepage UX Cleanup (v1.1): merged into Browse Archive.** `connectors/below-main-container/
+ddi-timeline-view.js`/`.hbs` are retired. Every behavior and piece of reasoning documented above —
+the year grouping, the `updatedAt`-as-proxy date choice, the expand/collapse-via-new-array
+mechanics, the deliberate non-reuse of `lib/ddi-timeline.js`, the empty/no-date fail-gracefully
+handling — carries over unchanged into `ddi-browse-archive.js`'s "By Year" tab; only the wrapper
+component and outlet file changed, and `lib/ddi-timeline-view.js#groupDocumentsByYear()` itself was
+not touched. See **Browse Archive (Homepage UX Cleanup, v1.1)** near the end of this document.
 
 ## Intelligence Dashboard
 
@@ -2637,6 +2660,86 @@ actions (Reading Lists' async `toggleReadingListMembership`/`share` with their `
 Document Actions' `toggleFavorite`, System Status's cross-dialog `openIntegrityDashboard` handoff,
 Knowledge Graph's `resetView` reaching through `component.element`) individually re-verified against
 mocked components to confirm identical outcomes to their pre-migration behavior.
+
+## Browse Archive (Homepage UX Cleanup, v1.1)
+
+A homepage/category-page UX pass, not a feature — the requested reading order was Search ↓
+Archive Summary ↓ Recent Activity ↓ Browse Archive, and the theme already produced that order
+(Discourse's native Search Banner and topic list, then Intelligence Dashboard on
+`discovery-list-container-top`, then two `below-main-container` cards). What undercut it was the
+last step showing the same document set twice in a row, in two different orders, with no framing
+for why: Intelligence Index (alphabetical) immediately followed by Intelligence Timeline
+(year-grouped) read as redundant rather than as two deliberate browsing modes.
+
+**The fix: merge the two into one "Browse Archive" section with a tab switcher**, rather than
+reorder, hide, or cut either view — both were explicitly required to stay
+(`ddi_intelligence_index_enabled` / `ddi_timeline_view_enabled` still independently gate their own
+tab; see **Intelligence Index** and **Intelligence Timeline** above for everything about each
+view's own logic, which is unchanged). `connectors/below-main-container/ddi-timeline-view.js`/
+`.hbs` and `ddi-intelligence-index.js`/`.hbs` are retired; `connectors/below-main-container/
+ddi-browse-archive.js`/`.hbs` replaces both.
+
+**A UX fix that also happened to remove a real duplicate service call — not just visual
+deduplication.** Both retired connectors independently called `service:ddi-intelligence-index`'s
+`getIndex(department ? { department } : {})` with identical arguments on every homepage/category
+render. The merged connector calls it exactly once and derives both the alphabetical `documents`
+array (used as-is, already sorted) and the year-grouped `years` array
+(`groupDocumentsByYear(documents)`, from the untouched `lib/ddi-timeline-view.js`) from that one
+result. This is the same "one fetch, multiple derived views" shape already established elsewhere
+in this codebase (Intelligence Index's own service maps one `getIndex()` result through Citation
+Preview for every consumer) — merging the two former connectors made a data-flow duplication that
+already existed structurally impossible to keep, not just visually redundant.
+
+**Tab state, not route or setting state.** Which tab is active lives on the connector component
+(`activeTab`/`isYearTabActive`/`isIndexTabActive`, set via a `setTab(tab)` closure), defaulting to
+"By Year" if that view is enabled, else "All Documents." If only one of the two settings is on,
+`showTabs` is false and that view renders directly with no switcher — an admin who had disabled
+one view before this merge sees exactly what they saw before, just without the empty second card
+that used to sit above or below it.
+
+**ARIA tabs pattern**, matching the standard tabs design pattern rather than inventing bespoke
+semantics: the tab bar is `role="tablist"` with an `aria-label`; each tab button is `role="tab"`
+with a stable `id`, `aria-selected` (a pre-computed boolean template property, not the `eq` helper
+— `ember-truth-helpers`' availability in this bare theme is unconfirmed, the same reasoning already
+applied to every other conditional in this codebase), and `aria-controls` pointing at its panel's
+`id`; each panel is `role="tabpanel"` with `aria-labelledby` pointing back at its tab. Full
+roving-tabindex arrow-key tab navigation was deliberately scoped out as disproportionate for a
+2-option switcher — Tab/Shift+Tab already reaches both buttons in document order, and each is
+natively activatable via click or Enter/Space like any other button in this theme; this is a
+scope decision, not an oversight.
+
+**Fixed a dependency the merge would otherwise have silently broken.** Command Palette's "Open
+Timeline" entry (see **Command Palette Expansion (v1.1)** above) scrolled to
+`#ddi-timeline-view`, an id that only existed on the now-deleted `ddi-timeline-view.hbs`. Found via
+a repository-wide `grep` for that id before deleting anything, not discovered after the fact. The
+entry is now "Browse Archive," gated on either underlying setting instead of just the timeline
+one, scrolls to the merged component's `#ddi-browse-archive` id, and its `special` dispatch value
+changed from `"timeline"` to `"browse-archive"` end to end (palette entry, `activate()`'s switch,
+and the renamed `openBrowseArchive()` helper) — a required fix to avoid shipping a silently dead
+keyboard-navigable action, not new Command Palette work.
+
+**No new CSS beyond the tab bar itself.** `.ddi-browse-archive-tabs`/`.ddi-browse-archive-tab`/
+`.ddi-browse-archive-tab-active` are the only new rules; every other class each view's markup uses
+(`.ddi-card`, `.ddi-toc-item`, `.ddi-dossier-grid`, `.ddi-timeline-year*`, `.ddi-favorites-grid`)
+is copied verbatim from the two retired templates with zero changes, confirmed via `sass` compiling
+`common/common.scss` cleanly. Neither retired wrapper class (`.ddi-timeline-view`,
+`.ddi-intelligence-index`) carried any dedicated CSS of its own, confirmed by grep before deletion,
+so nothing was orphaned by removing them.
+
+**Verified directly.** No duplicate logic: confirmed exactly one `getIndex()` call per render via
+the merged connector's source, and that both `lib/ddi-route-guard.js#isExcludedRoute()` and
+`lib/ddi-timeline-view.js#groupDocumentsByYear()` are reused unmodified rather than reimplemented.
+Accessibility: the tab pattern above matched against the standard ARIA tabs authoring practice;
+`aria-selected`/`aria-controls`/`aria-labelledby` cross-references checked by hand for every
+id/target pair. Responsive layout: reused the theme's existing mobile audit methodology (320/375/
+768/1024px content-width checks against `#main-outlet`'s 80px outlet chrome and `.ddi-card`'s
+18px/28px padding) — the tab bar's two buttons were checked against the narrowest viewport's
+content width and given `flex-wrap: wrap` defensively, since both existing card bodies' own layouts
+were already verified responsive before this merge and are unchanged. Dead code: both
+`check-unused-imports.py` and `check-orphan-exports.py` re-run after deletion found nothing
+orphaned; `ddi-command-palette.js`'s remaining "Timeline" mentions confirmed all intentional
+(comments explaining the rename, not stale references). Syntax: `node --check` clean on the new
+connector and every touched file; `settings.yml` re-validated as valid YAML.
 
 ## CSS Architecture
 

@@ -35,11 +35,11 @@ export default apiInitializer("1.0", (api) => {
   let allDocuments = null;
   let allDepartments = null;
 
-  // Set by openTimeline() when Timeline isn't on the current page and has to
-  // be navigated to first — consumed by the api.onPageChange() handler
-  // below once the new page has settled, the same "wait for the route
-  // transition, then act" shape recordVisit() already uses in that same
-  // handler.
+  // Set by openBrowseArchive() when Browse Archive isn't on the current
+  // page and has to be navigated to first — consumed by the
+  // api.onPageChange() handler below once the new page has settled, the
+  // same "wait for the route transition, then act" shape recordVisit()
+  // already uses in that same handler.
   let pendingScrollId = null;
 
   async function loadDocuments() {
@@ -93,8 +93,8 @@ export default apiInitializer("1.0", (api) => {
   // The one "is this a topic route" check, used both to gate "Open
   // Knowledge Graph" (only makes sense for the document currently being
   // viewed — there's no page-agnostic graph to jump to the way
-  // Timeline/Reading Lists/Favorites/the staff dashboards are each one
-  // fixed destination regardless of where you are) and by
+  // Browse Archive/Reading Lists/Favorites/the staff dashboards are each
+  // one fixed destination regardless of where you are) and by
   // api.onPageChange() below for recordVisit(), which used to inline this
   // exact same check independently.
   function isTopicRoute() {
@@ -110,8 +110,15 @@ export default apiInitializer("1.0", (api) => {
       settings.ddi_reading_lists_enabled &&
         buildEntry("tool", "Open Reading Lists", null, null, "reading-lists"),
       buildEntry("tool", "Open Favorites", null, null, "favorites"),
-      settings.ddi_timeline_view_enabled &&
-        buildEntry("tool", "Open Timeline", null, null, "timeline"),
+      // Homepage UX cleanup (v1.1) merged the old standalone Timeline and
+      // Intelligence Index cards into one "Browse Archive" section with a
+      // tab switcher — this entry now points there, available whenever
+      // either of the two underlying view settings is on (the section
+      // itself renders under the same condition; see
+      // ddi-browse-archive.js's own shouldRender()).
+      (settings.ddi_timeline_view_enabled ||
+        settings.ddi_intelligence_index_enabled) &&
+        buildEntry("tool", "Browse Archive", null, null, "browse-archive"),
       settings.ddi_knowledge_graph_viewer_enabled &&
         isTopicRoute() &&
         buildEntry(
@@ -407,7 +414,8 @@ export default apiInitializer("1.0", (api) => {
 
   // Returns whether an element was actually found and scrolled to — lets
   // callers fall back to navigating first when the target isn't on the
-  // current page (see openTimeline()) instead of silently doing nothing.
+  // current page (see openBrowseArchive()) instead of silently doing
+  // nothing.
   function scrollToElement(id) {
     const element = document.getElementById(id);
 
@@ -419,18 +427,21 @@ export default apiInitializer("1.0", (api) => {
     return true;
   }
 
-  // Timeline is a section on the homepage/category pages, not a dialog —
-  // "opening" it means scrolling to it if it's already on the current page,
-  // or navigating to the homepage first if it isn't. Reuses
+  // Browse Archive is a section on the homepage/category pages, not a
+  // dialog — "opening" it means scrolling to it if it's already on the
+  // current page, or navigating to the homepage first if it isn't. Reuses
   // DiscourseURL.routeTo() (the same navigation already used for every
   // other entry) rather than a new routing mechanism; the actual scroll
-  // after navigating is deferred to api.onPageChange() below.
-  function openTimeline() {
-    if (scrollToElement("ddi-timeline-view")) {
+  // after navigating is deferred to api.onPageChange() below. Targets
+  // #ddi-browse-archive — the merged Timeline/Index section's own id (see
+  // ddi-browse-archive.hbs) — since the Homepage UX cleanup folded the
+  // standalone Timeline card this used to scroll to into that section.
+  function openBrowseArchive() {
+    if (scrollToElement("ddi-browse-archive")) {
       return;
     }
 
-    pendingScrollId = "ddi-timeline-view";
+    pendingScrollId = "ddi-browse-archive";
     DiscourseURL.routeTo("/");
   }
 
@@ -454,13 +465,13 @@ export default apiInitializer("1.0", (api) => {
       case "system-status":
         api.container.lookup("service:ddi-system-status").open();
         return;
-      case "timeline":
-        openTimeline();
+      case "browse-archive":
+        openBrowseArchive();
         return;
       case "knowledge-graph":
         // Only ever offered as an entry while already on a topic route
         // (see isTopicRoute() above), so the anchor is always on the
-        // current page — no navigation needed, unlike Timeline.
+        // current page — no navigation needed, unlike Browse Archive.
         scrollToElement("ddi-knowledge-graph-viewer");
         return;
     }

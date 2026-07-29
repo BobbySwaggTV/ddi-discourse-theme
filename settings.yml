@@ -35,7 +35,7 @@ ddi_debug_mode_enabled:
 ddi_intelligence_index_enabled:
   type: bool
   default: true
-  description: "Show the alphabetical Intelligence Index of every archived document above the page content (hidden on document and admin pages) — disable if it doesn't suit a given route configuration"
+  description: "Enable the \"All Documents\" (alphabetical) tab of the Browse Archive section above the page content (hidden on document and admin pages) — disable if it doesn't suit a given route configuration. If ddi_timeline_view_enabled is also on, both appear as tabs of one section; if this is the only one on, Browse Archive shows just this view with no tab switcher"
 
 ddi_integrity_dashboard_enabled:
   type: bool
@@ -50,7 +50,7 @@ ddi_system_status_enabled:
 ddi_timeline_view_enabled:
   type: bool
   default: true
-  description: "Show the Intelligence Timeline (documents grouped by year, most recent first, expand/collapse per year) above the page content — disable if it doesn't suit a given route configuration"
+  description: "Enable the \"By Year\" tab of the Browse Archive section (documents grouped by year, most recent first, expand/collapse per year) above the page content — disable if it doesn't suit a given route configuration. If ddi_intelligence_index_enabled is also on, both appear as tabs of one section; if this is the only one on, Browse Archive shows just this view with no tab switcher"
 
 ddi_knowledge_graph_viewer_enabled:
   type: bool
