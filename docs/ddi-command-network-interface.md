@@ -10,7 +10,7 @@ Transform Discourse from a forum-led UI into the DDI Command Network interface w
 
 The target user impression is:
 
-Dagger Defense Corporation
+Dagger Defense Industries
 Command Network
 Authorized Personnel Access
 
@@ -137,7 +137,7 @@ Each block renders as a command module section with:
 
 ### Footer Block
 
-- Dagger Defense Corporation
+- Dagger Defense Industries
 - Command Network
 - Strength Through Precision
 

@@ -80,7 +80,7 @@ All topic-page components follow the pattern above. In render order:
    untouched rather than adding a new tag as part of a display task, so "Approved" cannot currently
    appear; it would require a genuine vocabulary change (new admin tag), out of scope here.
 2. **Document Breadcrumb** (`connectors/topic-above-post-stream/ddi-document-breadcrumb.*`) — a
-   lightweight trail: `DDC Intelligence Archive → Department → Document Type → (current title)`.
+   lightweight trail: `DDI Intelligence Archive → Department → Document Type → (current title)`.
    Department is `metadata.department`/`metadata.departmentDisplay` (both already resolved by the
    Metadata Engine from `topic.category`) — falls back to `"Unknown Department"` when
    `metadata.department` is `null` (category isn't one of the six recognized divisions), reusing that
@@ -108,22 +108,29 @@ All topic-page components follow the pattern above. In render order:
 5. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
    first post's cooked HTML, parses it with `DOMParser`, and shows the text of the first `<p>`
    element. This is a simple extraction, not a generated summary.
-6. **Document Intelligence** (`connectors/topic-above-posts/ddi-document-intelligence.*`) — reading
-   time (word count ÷ 200, min 1 minute), word count, category name, reply count, view count, and a
-   revision label derived from the first post's version.
+6. **Document Intelligence Header** (`connectors/topic-above-posts/ddi-document-intelligence-header.*`,
+   v1.3) — replaced the old "Document Intelligence" card (same outlet, same filename-ordering
+   position — `ddi-document-intelligence-header` still sorts between `ddi-executive-summary` and
+   `ddi-document-revision-history`/`ddi-document-toc`, re-verified after the rename, see below). A
+   prominent document title plus a compact two-column metadata grid: Document Number, Classification,
+   Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related Documents count.
+   See **Document Intelligence Header (v1.3)** below for the full reasoning.
 7. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
    post's rendered `<h2>` elements after render (`requestAnimationFrame`), assigns each an `id`, and
    lists them as anchor links.
 8. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
    Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
    synchronously from the first post — no service, since nothing here needs async I/O or
-   cross-component reuse. Positioned directly below Document Intelligence via filename-based outlet
-   ordering (see `docs/ddi-intelligence-network.md` for the same technique applied elsewhere). RC
-   cleanup re-verified the sort arithmetic itself is correct (`ddi-document-intelligence` <
-   `ddi-document-revision-history` < `ddi-document-toc`, confirmed against the live directory
-   listing) — what remains genuinely unverified is the underlying assumption that Discourse renders
-   same-outlet connectors in filename order at all, which requires a running instance to confirm and
-   wasn't something this cleanup pass had access to.
+   cross-component reuse. Positioned directly below the Document Intelligence Header via
+   filename-based outlet ordering (see `docs/ddi-intelligence-network.md` for the same technique
+   applied elsewhere). RC cleanup re-verified the sort arithmetic itself is correct
+   (`ddi-document-intelligence` < `ddi-document-revision-history` < `ddi-document-toc`, confirmed
+   against the live directory listing); re-verified again after the v1.3 rename
+   (`ddi-document-intelligence-header` sorts identically relative to both, since the shared prefix
+   `ddi-document-i` still precedes `ddi-document-r`/`ddi-document-t`) — what remains genuinely
+   unverified is the underlying assumption that Discourse renders same-outlet connectors in filename
+   order at all, which requires a running instance to confirm and wasn't something either pass had
+   access to.
 9. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
    chronologically-ordered list of lifecycle events (Created, Approved, Revised, Reviewed,
    Deprecated, Archived), synchronous, derived entirely from `ddi-document-metadata.js`'s existing
@@ -180,9 +187,11 @@ All topic-page components follow the pattern above. In render order:
 
 ## Archive-Wide Components
 
-Everything above is scoped to a single topic page (`args.model` is that topic). These two aren't:
-they render on every *non-document* route instead of one document, off a different Discourse outlet
-family.
+Everything above is scoped to a single topic page (`args.model` is that topic). These three aren't:
+they render off a different Discourse outlet family than any topic-page component. The first two
+render on every *non-document* discovery route (homepage, `/categories`, and individual division
+pages alike); the third (Homepage Hero) is scoped narrower still — the true homepage only, not
+`/categories` or a division page — see its own bullet for why.
 
 1. **Browse Archive** (`connectors/below-main-container/ddi-browse-archive.*` +
    `services/ddi-intelligence-index.js`) — an archive-wide document list, either alphabetical
@@ -208,6 +217,19 @@ family.
    the discovery/topic-list template specifically, which is the outlet family the native Search
    Banner and Topic List both render within. See **Intelligence Dashboard** below for the full
    reasoning and its confidence caveat.
+3. **Homepage Hero** and **Mission Briefing** (both `connectors/above-main-container/
+   ddi-homepage-hero.*` — one connector, two independently-toggleable sections; see that file's own
+   section below for why they share a connector) — a full-bleed cinematic banner (background image,
+   dark gradient overlay, DDI logo, archive title, optional subtitle, headline archive statistics,
+   Browse Archive/View Divisions actions), immediately followed by a static Mission Briefing (a
+   welcome message, DDI's mission statement, all six official Operational Divisions as pillar cards
+   linking to their Division pages, and a Mission Objectives list) — above everything else on the
+   homepage. Gated by
+   `ddi_homepage_hero_enabled`/`ddi_mission_briefing_enabled` respectively, sharing a narrower route
+   guard than Browse Archive/Intelligence Dashboard use: hidden not just on `topic.*`/`admin` but
+   also on `/categories` and any specific division page, since Division Cards and Division Header
+   already fill the "orient the visitor" role there. See **Homepage Hero (v1.2)** and **Mission
+   Briefing (v1.2)** below for the full reasoning and confidence caveats.
 
 ## Backend-Only Services
 
@@ -334,7 +356,7 @@ copy of the same 4 slugs — it's deliberately consistent with what `getClassifi
 recognizes today, not the archive doc's proposed 5th (`public-release`) tag, which isn't wired into
 that function yet (see **Classification System** above). `isValidDepartment` checks a Discourse
 category **slug** (`topic.category?.slug`), not the display name shown elsewhere (`topic.category?.name`,
-used by Document Footer and Document Intelligence) — the two are different properties of the same
+used by Document Footer and the Document Intelligence Header) — the two are different properties of the same
 category object, and it's worth not confusing them.
 
 **Scope, stated plainly:** these are pure validity checks, not enforcement. A Discourse theme has no
@@ -508,7 +530,7 @@ only the data source and sort key changed.
 **Reuses the Metadata Engine for department identity, not a second resolution.**
 `services/ddi-archive-navigation.js` injects `ddi-document-metadata.js` and reads
 `metadata.departmentDisplay` for the department's display name — the same
-`UNCATEGORIZED_LABEL`-aware fallback Document Footer and Document Intelligence already get from the
+`UNCATEGORIZED_LABEL`-aware fallback Document Footer and the Document Intelligence Header already get from the
 metadata engine — rather than re-deriving `topic.category?.name` and its fallback a second time.
 Only the category's `slug`/`id` (native Discourse fields, not a classification/business concept the
 metadata engine owns) are read directly off `topic.category` to build the Department Home URL.
@@ -2408,7 +2430,7 @@ each preserves its function's exact public signature and return shape.
 **`ddi-document-metadata.js`'s cache was single-slot; it's now a `Map` keyed by topic id — the
 single highest-leverage fix in this pass.** `getMetadata(topic)` is called directly by 10+
 independent topic-page connectors (Dossier Header, Executive Summary, Document Footer, Verification
-Panel, Debug Panel, Document Timeline, Revision History, Document Intelligence) plus three services
+Panel, Debug Panel, Document Timeline, Revision History, the Document Intelligence Header) plus three services
 (Archive Navigation, Knowledge Graph, Relationship) for the *same* current topic on every single
 topic page view, and once per document by Integrity Dashboard/System Status during an archive-wide
 scan. A single-slot cache only helps two calls that happen to run back-to-back; any archive scan
@@ -2952,6 +2974,334 @@ destruction. `check-unused-imports.py`/`check-orphan-exports.py` re-run clean; `
 on all 74 theme JS files; `settings.yml`'s new `ddi_document_author_assistant_enabled` re-validated
 as YAML; `sass` compiles `common/common.scss` cleanly.
 
+## Homepage Hero (v1.2)
+
+The first thing a visitor sees: a full-bleed, cinematic banner
+(`connectors/above-main-container/ddi-homepage-hero.*`) above the Search Banner, Intelligence
+Dashboard, and everything else on the true homepage. Background image, dark gradient overlay, the
+site's logo, "DDI Intelligence Archive" as the page's one `<h1>`, an optional subtitle, three
+headline archive statistics (Total Documents, Divisions, Classification Levels), and two actions
+(Browse Archive, View Divisions).
+
+**Same connector file as Mission Briefing (v1.2), by deliberate choice, not scope creep.** Discourse
+doesn't document (and this theme has never needed to rely on) a guaranteed render order between
+multiple connectors registered to the *same* outlet — and Mission Briefing's one hard requirement is
+rendering directly beneath the Hero. Rather than add a second `above-main-container` connector and
+trust an unconfirmed ordering assumption, Mission Briefing's markup lives in the same template,
+immediately after the Hero's own closing tag — plain sequential HTML, order guaranteed by
+construction. `shouldRender()` now mirrors `ddi-browse-archive.js`'s own two-setting shape (mount if
+*either* `ddi_homepage_hero_enabled` or `ddi_mission_briefing_enabled` is on); each section then
+gates itself independently via its own `show*` property, so either can be toggled off without
+affecting the other. This is the one place in the file this bends "one connector, one concern" — see
+**Mission Briefing (v1.2)** below for that section's own details.
+
+**Genuinely full-bleed by construction, not by a CSS override fighting a constrained parent.**
+`above-main-container` — the same outlet Reading Lists/Integrity Dashboard/System Status's trigger
+buttons already use — renders as a sibling *before* `#main-outlet` opens, not nested inside it, so
+it was never subject to `#main-outlet`'s own `max-width: 1700px`/20px padding to begin with. The
+`.ddi-hero`'s `width: 100vw; margin-left/right: calc(50% - 50vw)` is a defensive
+belt-and-suspenders measure for if that assumption about the surrounding markup is ever wrong, not
+evidence it's needed today.
+
+**Deliberately does not reuse `.ddi-card`.** Every other DDI panel is a bordered, padded "dossier
+document" box — the right metaphor for archive *content*, wrong for the one place this theme is
+explicitly asked to feel cinematic and edge-to-edge. `.ddi-hero` is new, purpose-built markup, but
+still pulls every color from the existing `:root` token scale (`--ddi-red`, `--ddi-red-75`,
+`--ddi-bg-primary`/`-secondary`, `--ddi-text-dim`/`-muted`, `--ddi-border`/`-strong`, `--ddi-white`)
+— no new literals, same internal consistency `.ddi-card` itself already has.
+
+**Scoped narrower than Browse Archive/Intelligence Dashboard on purpose — homepage only.** Both of
+those render on every non-document discovery route, including `/categories` and each individual
+division page. The Hero doesn't: it hides on `/categories` (`ddiCategoryContext.isCategoriesIndexRoute()`)
+and on any specific division (`ddiCategoryContext.getCurrentCategory()` truthy), reusing both checks
+unmodified rather than writing a new one. Reasoning: a division page already has its own immersive,
+category-specific header (**Division Header**, Division Command Center Phase 3) and `/categories`
+already has **Division Cards** — a second, generic "welcome to the archive" banner stacked on top of
+either would compete with content that already fills the identical "orient the visitor" role there.
+`isExcludedRoute()` (`lib/ddi-route-guard.js`) still applies underneath, same as every other
+archive-wide component, hiding the Hero on `topic.*`/`admin` regardless.
+
+**Reuses the intelligence-index/archive-statistics pipeline verbatim — no new data source.**
+`services/ddi-intelligence-index.js#getIndex()` (no department filter, since this only ever renders
+on the unscoped homepage) feeds `lib/ddi-archive-statistics.js#buildArchiveStatistics()`, the exact
+same function Intelligence Dashboard already calls; the Hero just reads 3 of its fields
+(`totalDocuments`, `departments.length`, `classifications.length`) instead of rendering the full
+breakdown. Since Intelligence Dashboard renders on the same homepage and calls `getIndex()` with
+the same (empty) filter, the two now share one cached build via the Performance Audit's `getIndex()`
+`Map` cache — whichever connector's promise resolves first pays the real cost, the other reuses it
+directly. Adding a second `getIndex()` consumer to the homepage would have reintroduced exactly the
+duplicate-archive-fetch problem that audit fixed, had that cache not already existed.
+
+**"Browse Archive" is a scroll-anchor, not navigation — the same technique already established
+twice.** `document.getElementById("ddi-browse-archive")?.scrollIntoView(...)` is the identical call
+Document Actions' "Open Knowledge Graph" and Command Palette's "Browse Archive" entry already make
+against their own respective targets; no new scroll mechanism was introduced. The button hides
+itself when neither `ddi_timeline_view_enabled` nor `ddi_intelligence_index_enabled` is on — the
+same gate Command Palette's own "Browse Archive" entry already uses — since Browse Archive itself
+wouldn't render at all in that case, and a button that scrolls to nothing is worse than no button.
+"View Divisions" is a real `<a href="/categories">`, not a click handler, so the standard browser
+navigation affordances (middle-click, Ctrl/Cmd-click, right-click "open in new tab") all keep
+working — "do not interfere with normal Discourse navigation" made literal rather than just avoided
+by omission.
+
+**Configurable without touching code, exactly as required.** `ddi_hero_background_image` (`type:
+upload`) is this theme's first upload-type setting — Discourse resolves it to the uploaded image's
+URL string when read via `settings.ddi_hero_background_image` in JS, no different in kind from how
+every other `settings.x` read in this codebase already works, just a different value type. Left
+empty by default: `.ddi-hero`'s own base gradient plus the overlay still render a fully intentional-
+looking dark cinematic banner with zero configuration, so an admin who never uploads an image still
+gets a complete, non-broken Hero — not a placeholder or a missing-image icon. `ddi_hero_subtitle`
+(`type: string`, a real but non-essential tagline provided as the default) hides itself entirely
+when cleared to empty, rather than rendering a blank paragraph.
+
+**Two confidence caveats**, the same class already carried elsewhere in this theme (Post's
+`toggleBookmark` feature-detection, Composer's `creatingTopic`/`editingPost` for Document Author
+Assistant): `service:site-settings` is a real, long-standing Discourse service, but this is the
+first time this theme has looked it up, so `siteSettings.logo_url` is unconfirmed against a live
+instance — absent or falsy just hides the logo `<img>` entirely, no broken image, no crash. The
+`type: upload` → resolved-URL-string behavior itself is the more solidly-established half of this
+feature (a long-standing, widely-used Discourse theme mechanism, not a guess), so it's treated with
+higher confidence than the site-settings lookup, not lumped in as equally uncertain.
+
+**Lazy loading, verified as a real browser feature, not simulated.** Both the background and logo
+are real `<img loading="lazy" decoding="async">` elements — not a CSS `background-image`, which has
+no native lazy-loading mechanism at all and would have needed a hand-built `IntersectionObserver`
+to get the same effect, exactly the kind of "unnecessary observer" this project's own audits
+explicitly watch for. Using `<img>` instead sidesteps that complexity entirely: the browser's native
+lazy-loading heuristic already handles "already near the viewport at load" images (this one) by
+loading them without a meaningful delay, so there's no real risk to LCP from an above-the-fold image
+carrying the attribute, while still making the attribute concretely present and inspectable in the
+rendered markup rather than a claim with nothing to verify. Both images are decorative
+(`alt="" aria-hidden="true"`) — the archive title `<h1>` and subtitle `<p>` carry the actual content
+a screen reader needs, not the images.
+
+**Collapses cleanly on mobile, not just shrinks in place.** At ≤600px (this theme's one established
+breakpoint, used consistently rather than introducing a second one): `min-height` drops from 480px
+to 320px so the Hero doesn't push most of a phone's viewport below the fold before any real content,
+title/subtitle font sizes step down, and the 3-item stats row and 2-button action row both switch
+from horizontal to stacked — a horizontal row doesn't fit labels like "Classification Levels" at
+320-375px without mid-label wrapping, the same reasoning behind every other stacked-on-mobile
+pattern already established in this file (Command Palette's result rows, Browse Archive's tab bar).
+
+**Verified directly.** Route-guard matrix (topic route, admin route, `/categories`, a specific
+division, and the true homepage) exercised against a mocked `setupComponent`, confirming the Hero
+shows only in the last case. Graceful handling confirmed for: `site-settings.logo_url` absent
+entirely, an empty archive (zero documents — stats render as 0s, not a crash), an empty background
+image setting (no broken image), and an explicitly-cleared subtitle (hidden, not a blank paragraph).
+`showBrowseArchiveButton`'s gate verified against both Browse Archive settings off. The
+`isDestroying`/`isDestroyed` guard verified to block a stats update if the connector is torn down
+before `getIndex()` resolves. `node --check` clean on the new connector; `sass` compiles
+`common/common.scss` cleanly; `settings.yml` re-validated as YAML (17 settings at the time this
+section was written; see **Mission Briefing (v1.2)** below for the 18th); zero new event
+listeners, `MutationObserver`s, or `IntersectionObserver`s were added — the only interactivity is a
+single `{{on "click"}}` (framework-managed, auto-cleaned-up on destroy, the same pattern every other
+button in this codebase already uses).
+
+## Mission Briefing (v1.2)
+
+Directly beneath the Hero, in the same `connectors/above-main-container/ddi-homepage-hero.*`
+template: a static, non-dashboard introduction to the organization — an Executive Command Welcome
+message, DDI's mission statement, all six official Operational Divisions as pillar cards, and a
+Mission Objectives checklist. No fetch, no parsing, no service beyond `service:site` (for building
+each pillar's category URL) — genuinely static content with links, as required.
+
+**All six divisions, exactly as this theme has always recognized them — none invented, none
+renamed.** `MISSION_PILLARS` lists Executive Command, Fleet Security, Commerce/Industry/
+Manufacturing, Exploration & Survey, Contract Support Services, and Public Affairs, in that order —
+the same six slugs, names, and order as `lib/ddi-department.js`'s `DEPARTMENTS` array and
+`docs/ddi-archive-information-architecture.md`'s category table, verified directly by extracting
+the actual array from source and diffing it against `DEPARTMENTS` (equal as sets, equal in order,
+no duplicates). An earlier draft of this feature's spec named a "Personnel Services" pillar that
+isn't one of the six divisions this theme has ever recognized — resolved (Contract Support Services
+substituted) before any code was written for that draft, and superseded entirely once the
+respecified request supplied the correct, complete list of all six. Executive Command now appears
+twice in this section — once as the Welcome message's attributed source, once as its own pillar
+card — which is intentional: the task asked for both a dedicated "Executive Command Welcome" block
+and Executive Command as one of the six "Official Operational Divisions."
+
+**Pillar links resolve real category URLs, with a graceful fallback — not a hardcoded guess, and
+never a placeholder category.** Categories are admin-provisioned, never theme-created
+(`docs/ddi-archive-information-architecture.md`'s own standing caveat) — a fresh install may not
+have them yet. Each pillar's `/c/{slug}/{id}` is built from `service:site`'s `categories` list, the
+exact same lookup Division Cards and Command Palette already do; a pillar whose category isn't
+provisioned yet links to `/categories` instead of a 404, verified directly (unprovisioned,
+partially-provisioned, and fully-provisioned scenarios all produce correct, non-broken links, for
+all six divisions individually).
+
+**Reuses `.ddi-card`/`.ddi-card-title`/`.ddi-card-body`/`.ddi-nav-link`/`.ddi-division-cards-grid`/
+`.ddi-integrity-pass` verbatim — deliberately, unlike the Hero.** Where the Hero explicitly avoids
+`.ddi-card` (a cinematic banner, not a document), Mission Briefing is exactly the "dossier document"
+content that shell was built for, and the task asked for it by name ("reuse existing DDI card
+styling"). The welcome message, mission statement, and each pillar are all plain `.ddi-card`s; the
+pillar grid reuses Division Cards' own `.ddi-division-cards-grid` unmodified (including its existing
+mobile single-column breakpoint, and its `auto-fit`/`minmax(300px, 1fr)` column logic, which needed
+no change to go from 4 cards to 6) but *without* that component's stats grid — showing document
+counts here would duplicate the Dashboard, which the task explicitly ruled out — leaving just
+title/description/link, a strict subset of Division Cards' own markup. The Mission Objectives
+checkmarks reuse `.ddi-integrity-pass` (the Verification Panel/Document Author Assistant's existing
+green-checkmark color utility) rather than a new color rule.
+
+**Glassmorphism and hover states reuse this theme's own existing techniques, not new ones.** The
+welcome, mission-statement, pillar, and objectives cards use `--ddi-bg-panel` +
+`backdrop-filter: blur(4px)` + `--ddi-shadow-lg` in place of `.ddi-card`'s own near-opaque
+background — the identical translucent-panel treatment `.panel`/`.topic-list`/`.search-menu`
+already carry (see "DISCOURSE SURFACE PANELS"), just applied to DDI's own cards for the first time,
+tying this section visually to the Hero's cinematic backdrop rather than the fully-opaque cards used
+throughout the rest of the archive. Pillar cards get a hover state — `--ddi-red-65` border plus
+`--ddi-shadow-glow` — reusing the exact pair `.ddi-reading-list-card:hover` and
+`.select-kit.is-expanded .select-kit-header` already use; no transform/lift was added, since no
+existing hover rule in this codebase uses one. Only the full-bleed outer wrapper, the content
+column, the glass/hover rules, and the pillar icon are new CSS — everything else is reuse, checked
+directly (a repository-wide duplicate-selector scan after implementation found nothing new).
+
+**Real `<h2>`/`<h3>` headings, not `.ddi-card-title` `<div>`s — a deliberate, scoped exception to
+this codebase's own div-only title convention**, extending the same reasoning the Hero's own `<h1>`
+already established: this section is genuinely narrative, content-heavy "immersive introduction," not
+a compact UI panel label, so real heading structure gives screen-reader users actual navigation value
+here that it wouldn't for, say, a stat tile's label. `<h2>` for each top-level block ("Executive
+Command Welcome," "DDI Mission Statement," "Official Operational Divisions," "Mission Objectives")
+nests under the Hero's own `<h1>`; `<h3>` for each pillar name nests under "Official Operational
+Divisions." Every heading still carries the exact `.ddi-card-title` class — same visual result,
+corrected semantics, zero new CSS for the change. Icons (`★ ⚓ ⚙ ✦ ⚖ ✉`, one per pillar) and
+objective checkmarks are `aria-hidden="true"`; the heading text and objective text are what a
+screen reader actually announces.
+
+**"Support dark mode"/"verify dark mode" means "look correct within this theme's existing all-dark
+design system," not a light/dark toggle.** This theme has never implemented a light variant anywhere
+— no `prefers-color-scheme` branch, no toggle, a single fixed dark aesthetic throughout. Building an
+actual light mode would be a new, unrelated feature far outside "static organizational content."
+Mission Briefing satisfies the requirement the way every other DDI panel already does: every color
+comes from the existing `:root` dark-token scale, nothing hardcoded outside it.
+
+**Shares the Hero's exact route guard, not a separate one.** Both `isVisible` (the shared route
+guard) and each section's own `show*` flag gate independently — see the connector-sharing note in
+**Homepage Hero (v1.2)** above. Mission Briefing renders only where the Hero does: the true
+homepage, never `/categories`, a division page, a topic page, or admin.
+
+**Lighthouse was not run — no browser tooling is available in this environment — reasoned about
+directly instead of claimed.** Zero new network requests: the glassmorphism is CSS already compiled
+into the same stylesheet every page already loads, not a new asset. Zero new JS cost beyond a
+`.find()` over 6 static array entries, reusing the same cached `getIndex()` call the Hero already
+makes on this page. The one real, non-zero cost worth stating plainly rather than glossing over:
+`backdrop-filter: blur(4px)` is a GPU-composited effect, and this adds it to 9 elements on the
+homepage specifically (the welcome card, the mission-statement card, all 6 pillar cards, and the
+objectives card) that didn't carry it before — a genuine, if modest, tradeoff for the requested
+visual treatment, not a literally free one.
+
+**Verified directly.** Extracted `MISSION_PILLARS`/`MISSION_OBJECTIVES` from the actual source file
+(not a reimplementation) and confirmed: 6 pillars matching `lib/ddi-department.js`'s `DEPARTMENTS`
+exactly (as a set and in order, no duplicates, none missing); 6 objectives matching the requested
+text exactly; all 6 pillar URLs correct against fully/partially/un-provisioned `site.categories`
+mocks. `shouldRender()`'s either-setting-on logic and each section's independent `show*` gating both
+verified, including hero-off/briefing-on and hero-on/briefing-off combinations; the shared route
+guard re-verified to hide both sections together on topic/admin/`/categories`/division-page routes.
+`node --check` clean; `sass` compiles `common/common.scss` cleanly; `settings.yml` re-validated as
+YAML (18 settings); a repository-wide exact-selector duplicate scan (re-run after adding the
+glassmorphism/hover rules) found nothing new introduced beyond what's documented above. No new
+service, fetch, or archive parsing was added — the only data read is `service:site`'s already-loaded
+`categories` list.
+
+## Document Intelligence Header (v1.3)
+
+A standardized header above every document's body
+(`connectors/topic-above-posts/ddi-document-intelligence-header.*`): a prominent title plus a
+compact two-column metadata grid — Document Number, Classification, Department, Lifecycle,
+Revision, Last Reviewed, Estimated Reading Time, Related Documents count.
+
+**Replaces the old "Document Intelligence" card outright, not an addition alongside it.** That
+card (same outlet, same filename-ordering position) already showed Reading Time, Word Count,
+Department, Replies, Views, and a "Last Revision" date — substantial overlap with this task's
+field list. Surfaced and confirmed before writing any code (not discovered as duplication
+afterward): showing Reading Time and Department in two places on the same page would have
+reintroduced exactly the "feels like duplicate information" problem the Homepage UX Cleanup (v1.1)
+was built to eliminate on the homepage, now on the topic page instead. Word Count, Replies, and
+Views are dropped — none were requested, and Replies/Views duplicate counts Discourse's own native
+topic-list/post-stream chrome already shows elsewhere on the same page. `git rm`'d, not just
+stopped being referenced.
+
+**Deliberately did not touch Document Footer, despite carrying nearly the same field list
+(Document Number, Classification, Revision, Department, Last Updated, Author).** This is a genuine
+bookend pair by design, not an oversight: Document Footer renders on `topic-below-post-stream`
+*after* the entire post stream, closing with a static "End of Document" marker — a closing stamp,
+not a second header. The old "Document Intelligence" card had no such distinct role (a mid-page
+stats card with no positional or narrative purpose of its own), which is what made it the one
+actually redundant with this new header, not Document Footer.
+
+**Every field reuses an existing resolver — nothing was re-derived.** `service:ddi-document-
+metadata`'s already-cached `getMetadata(topic)` supplies Document Number, Classification,
+Department, Revision (via the existing `formatRevision()`, which already defaults a missing
+`post.version` to `"R01"` rather than crashing), and Reading Time directly. Lifecycle reuses
+`lib/ddi-lifecycle.js#getLifecycleLabel()` with the identical `"ACTIVE"` fallback Dossier Header
+already uses for an untagged document — the same literal value kept in both files rather than
+extracted to `lib/` for one shared default string (this codebase's own threshold for extraction is
+multi-step derived logic, not a single fallback literal — see **Debug Mode**'s `analyzeReadingTime`
+extraction for the actual bar). Related Documents count calls `service:ddi-related-intelligence`'s
+already-cached `findRelated(topic)` — the exact same call Intelligence Network already makes for
+this topic — and reads `.length`; no second scoring pass, no new fetch.
+
+**"Last Reviewed" has no field of its own, and this doesn't invent one.**
+`docs/ddi-document-metadata-standard.md` §4.8 documents it as optional and "not yet stored," an
+open question needing a real design decision (topic custom field vs. body convention) this task
+was never asked to make. `ddi-timeline.js`'s own "Reviewed" lifecycle event already faced this
+identical gap and resolved it the same way: reuse `metadata.updatedDate` as the best available
+proxy, stated as a known simplification rather than hidden. This header does the same, for the
+same reason — not a new decision, the existing one applied a second time.
+
+**Compact two-column grid, not `.ddi-intel-grid`'s own 3-column default.** Reuses
+`.ddi-intel-grid`'s item typography (`div`/`span`/`strong`) verbatim — the same pattern Verification
+Panel, Debug Panel, Document Footer, and Revision History already use, deliberately not switched to
+`<dl>`/`<dt>`/`<dd>` despite that being what Mission Briefing's new "Primary Function" metadata
+uses, since here an established, already-shared pattern exists and matching it is the more
+consistent reuse. Only the column count needed to change: `grid-template-columns: repeat(2, 1fr)`
+is scoped to `@media (min-width: 601px)` specifically, so it overrides the 3-column desktop default
+without touching `.ddi-intel-grid`'s own existing 600px single-column mobile collapse, which stays
+exactly as-is and is reused rather than re-specified.
+
+**Real `<h2>` for the title, not `<h1>` — the opposite call from the Homepage Hero, for a concrete
+reason.** The Hero's own title is a real `<h1>` because the homepage had no other one. A topic page
+already has one: Discourse's native topic title (`.topic-title h1`, confirmed directly in
+`common.scss`). A second `<h1>` repeating the same title text would be a real duplicate-heading
+problem, not a style choice — `<h2>` avoids it while still giving screen-reader users a genuine,
+navigable heading for this section.
+
+**Classification color reused, not re-derived.** The classification class (`{{classificationClass}}`)
+sits on the same root element as `.ddi-card`, so its already-established `border-left` accent
+applies for free, the same mechanism Dossier Header already relies on. The Classification field's
+own value text additionally picks up `color: var(--ddi-accent, #b51d1d)` — the identical custom
+property the classification class already sets, with the same fallback `.ddi-card`'s own
+`border-left` rule uses, so there's no risk of unstyled text if `--ddi-accent` is ever unset.
+
+**Glass panel reused from Mission Briefing, not Discourse's own native chrome directly.** Uses the
+same `--ddi-bg-panel` + `backdrop-filter: blur(4px)` + `--ddi-shadow-lg` combination Mission
+Briefing (v1.2) established for DDI's own cards, rather than the raw `.panel`/`.search-menu`
+treatment those values were originally lifted from — this theme's own "reuse existing DDI glass
+panels" is now that DDI-flavored variant specifically, not the underlying Discourse-chrome source.
+
+**Related Documents count has a real loading state, distinguished from a genuine zero — caught
+before shipping, not after.** An earlier draft used the count's own truthiness
+(`{{if this.relatedCount ...}}`) to decide whether it had loaded yet, which would have shown "—"
+forever for any document with zero related documents (a real, common case — the count is `0`,
+which is falsy) rather than correctly showing `0`. Fixed by splitting into `relatedCount` (a real
+number, defaults to `0`) and a separate `isRelatedCountLoaded` boolean the template actually
+branches on, so "still loading" and "zero, confirmed" are never conflated.
+
+**Verified directly.** Five scenarios exercised against the actual `setupComponent` logic: a fully
+populated document (every field renders correctly, `Related Documents` count matches
+`findRelated()`'s result length); missing topic/metadata (hides gracefully, sets nothing but
+`isVisible: false`); an untagged document (Lifecycle falls back to `"ACTIVE"`, Department falls
+back to `"Uncategorized"`); a document with genuinely zero related documents (displays `0`, not the
+loading placeholder — the bug above, re-verified fixed); and a component destroyed before
+`findRelated()` resolves (`isDestroying`/`isDestroyed` guard blocks the late update, matching the
+guard pattern used throughout this codebase). Metadata rendering is independent of `documentType`
+entirely — no field this header displays reads or branches on it, so "verify metadata renders
+correctly for all supported document types" holds by construction rather than needing a per-type
+test. Filename-sort ordering re-verified after the rename (see **Topic Page Components** above).
+`node --check` clean on all touched files; `sass` compiles `common/common.scss` cleanly;
+`settings.yml` re-validated as YAML (19 settings); a repository-wide exact-selector duplicate scan
+found nothing new beyond the two intentional reuse points documented above; `.ddi-intel-grid`
+confirmed still used by its other four existing consumers (Debug Panel, Verification Panel,
+Document Footer, Revision History), none of which were touched.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
@@ -2990,25 +3340,31 @@ was verified by grepping for references — not assumed.
   which were never valid filenames at all), so there's nothing broken about it; it's just unpopulated.
   Deleting a valid-but-empty file provides no runtime benefit, since present-and-empty and
   absent-entirely compile identically.
-- **`settings.yml` — 14 settings, 10 wired, 4 reserved. (Corrected during the Version 1.0 RC audit,
-  then again during the Version 1.1 release audit —
+- **`settings.yml` — 19 settings, 15 wired, 4 reserved. (Corrected during the Version 1.0 RC audit,
+  the Version 1.1 release audit, and again as of the Homepage Hero, Mission Briefing, and Document
+  Intelligence Header (v1.2/v1.3) —
   this bullet previously described a 6-settings/1-wired snapshot from before Intelligence Index,
   Timeline, Knowledge Graph Viewer, Reading Lists, Integrity Dashboard, and System Status existed;
   each of those six shipped with its own settings gate, and this summary was never updated to match.
   The per-feature sections elsewhere in this document were kept accurate as each shipped — only this
-  cross-cutting summary had drifted, both times.)** `ddi_header_enabled` and `ddi_interface_mode_enabled`
-  were removed in the original RC cleanup: neither ever had a documented design describing what
-  conditional behavior they'd control, and the behavior they name (the header shell, "v0.2.0
-  interface overrides") is unconditionally active today with no described "off" state anywhere in
-  this repo's history.
-  - **Wired (10):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
+  cross-cutting summary had drifted, every time — which is exactly why it's called out again here
+  rather than trusted to have been kept current automatically.)** `ddi_header_enabled` and
+  `ddi_interface_mode_enabled` were removed in the original RC cleanup: neither ever had a documented
+  design describing what conditional behavior they'd control, and the behavior they name (the header
+  shell, "v0.2.0 interface overrides") is unconditionally active today with no described "off" state
+  anywhere in this repo's history.
+  - **Wired (15):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
     (Intelligence Dashboard), `ddi_intelligence_index_enabled` (Browse Archive's "All Documents"
     tab), `ddi_timeline_view_enabled` (Browse Archive's "By Year" tab), `ddi_knowledge_graph_viewer_enabled`
     (Knowledge Graph Viewer), `ddi_reading_lists_enabled` (Reading Lists),
     `ddi_integrity_dashboard_enabled` (Document Integrity Dashboard trigger — staff/admin status is
     still gated in code regardless of this setting, see that section), `ddi_system_status_enabled`
     (System Status trigger, same staff/admin caveat), `ddi_document_actions_enabled` (Document
-    Actions, v1.1), `ddi_document_author_assistant_enabled` (Document Author Assistant, v1.1).
+    Actions, v1.1), `ddi_document_author_assistant_enabled` (Document Author Assistant, v1.1),
+    `ddi_homepage_hero_enabled`, `ddi_hero_background_image`, `ddi_hero_subtitle` (Homepage Hero,
+    v1.2), `ddi_mission_briefing_enabled` (Mission Briefing, v1.2),
+    `ddi_document_intelligence_header_enabled` (Document Intelligence Header, v1.3 — see that
+    section below).
   - **Reserved, not wired (4):** `ddi_compact_density` and `ddi_red_glow_strength` —
     `docs/ddi-intelligence-archive-dashboard.md`'s Phase 6 explicitly names both for the dashboard's
     "new section styling," a concrete, specific tie to planned work, not a vague aspiration.

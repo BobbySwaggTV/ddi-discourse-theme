@@ -1,0 +1,51 @@
+{{#if this.isVisible}}
+  <div class="ddi-card ddi-document-intelligence-header {{this.classificationClass}}">
+
+    <h2 class="ddi-document-intelligence-header-title">{{this.title}}</h2>
+
+    <div class="ddi-intel-grid ddi-document-intelligence-header-grid">
+
+      <div>
+        <span>Document Number</span>
+        <strong>{{this.documentNumber}}</strong>
+      </div>
+
+      <div>
+        <span>Classification</span>
+        <strong class="ddi-document-intelligence-header-classification">{{this.classification}}</strong>
+      </div>
+
+      <div>
+        <span>Department</span>
+        <strong>{{this.department}}</strong>
+      </div>
+
+      <div>
+        <span>Lifecycle</span>
+        <strong>{{this.lifecycleLabel}}</strong>
+      </div>
+
+      <div>
+        <span>Revision</span>
+        <strong>{{this.revision}}</strong>
+      </div>
+
+      <div>
+        <span>Last Reviewed</span>
+        <strong>{{this.lastReviewed}}</strong>
+      </div>
+
+      <div>
+        <span>Estimated Reading Time</span>
+        <strong>{{this.readingTime}} min</strong>
+      </div>
+
+      <div>
+        <span>Related Documents</span>
+        <strong>{{if this.isRelatedCountLoaded this.relatedCount "—"}}</strong>
+      </div>
+
+    </div>
+
+  </div>
+{{/if}}

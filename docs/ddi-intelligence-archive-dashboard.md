@@ -3,7 +3,7 @@
 Version: v0.4.0 (proposed)
 Repository: ddi-discourse-theme
 Scope: Replace the default Discourse homepage with a custom Intelligence Archive dashboard —
-the DDC Intelligence Dashboard, intended as the future homepage. Now covers 7 sections (grew from
+the DDI Intelligence Dashboard, intended as the future homepage. Now covers 7 sections (grew from
 5); the 2 new ones and 2 renames are additive to the design below, not a rewrite of it.
 
 ## Root Cause: Why The Homepage Still Looks Default

@@ -635,6 +635,469 @@ a:hover {
 }
 
 /* =========================================
+   DDI Homepage Hero (v1.2)
+   connectors/above-main-container/ddi-homepage-hero.* — renders as a
+   sibling before #main-outlet (the same outlet family Reading Lists/
+   Integrity Dashboard/System Status's trigger buttons already use), so it
+   is genuinely full-bleed by default, not nested inside #main-outlet's own
+   1700px max-width/padding. The `calc(50% - 50vw)` margin trick below is a
+   defensive belt-and-suspenders measure in case that assumption about the
+   surrounding markup is ever wrong, not evidence it's needed today.
+   ========================================= */
+
+.ddi-hero {
+  position: relative;
+  overflow: hidden;
+
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+
+  min-height: 480px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(
+    180deg,
+    var(--ddi-bg-secondary),
+    var(--ddi-bg-primary)
+  );
+
+  border-bottom: 1px solid var(--ddi-border-strong);
+}
+
+/* Decorative only (alt="" + aria-hidden, see the template) — object-fit
+   keeps an admin-uploaded image of any aspect ratio filling the hero
+   without distortion, the same purpose object-fit already serves for
+   Discourse's own avatar/thumbnail images elsewhere in core. */
+.ddi-hero-background {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+  object-position: center;
+}
+
+/* The dark gradient overlay — ensures the title/subtitle/stats stay
+   legible over an admin-uploaded photo of any brightness, and is what
+   gives the hero its dark, cinematic tone even with a bright source image.
+   Present (and doing real work) even when no background image is
+   configured, since .ddi-hero's own base gradient behind it is lighter
+   than this overlay's darkest stop. */
+.ddi-hero-overlay {
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    180deg,
+    rgba(5,7,11,.55) 0%,
+    rgba(5,7,11,.80) 60%,
+    rgba(5,7,11,.95) 100%
+  );
+}
+
+.ddi-hero-content {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  max-width: 760px;
+  padding: 64px 32px;
+
+  text-align: center;
+}
+
+.ddi-hero-logo {
+  width: 64px;
+  height: 64px;
+
+  margin-bottom: 24px;
+
+  object-fit: contain;
+}
+
+.ddi-hero-title {
+  margin: 0 0 16px;
+
+  color: var(--ddi-white);
+
+  font-size: 2.6rem;
+  font-weight: 800;
+
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.ddi-hero-subtitle {
+  margin: 0 0 36px;
+
+  max-width: 560px;
+
+  color: var(--ddi-text-dim);
+
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+.ddi-hero-stats {
+  display: flex;
+  gap: 40px;
+
+  margin-bottom: 36px;
+}
+
+.ddi-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ddi-hero-stat strong {
+  color: var(--ddi-white);
+
+  font-size: 1.7rem;
+  font-weight: 700;
+
+  font-variant-numeric: tabular-nums;
+}
+
+.ddi-hero-stat span {
+  margin-top: 4px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+
+.ddi-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+.ddi-hero-button {
+  padding: 14px 28px;
+
+  color: var(--ddi-white);
+  text-decoration: none;
+
+  font: inherit;
+  font-weight: 700;
+  font-size: .88rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+
+  border: 1px solid var(--ddi-border);
+  cursor: pointer;
+
+  transition: all .18s ease;
+}
+
+.ddi-hero-button-primary {
+  background: var(--ddi-red);
+  border-color: var(--ddi-red);
+}
+
+.ddi-hero-button-primary:hover {
+  background: var(--ddi-red-75);
+}
+
+.ddi-hero-button-secondary {
+  background: rgba(255,255,255,.04);
+}
+
+.ddi-hero-button-secondary:hover {
+  background: rgba(255,255,255,.09);
+  border-color: var(--ddi-border-strong);
+}
+
+/* Collapse cleanly rather than just shrinking in place: shorter min-height
+   (a 480px hero would push most of a phone's viewport height below the
+   fold before any real content), smaller type, and the stats row stacked
+   vertically — three items with labels like "Classification Levels" don't
+   fit a horizontal row at 320-375px without wrapping mid-label. */
+@media (max-width: 600px) {
+  .ddi-hero {
+    min-height: 320px;
+  }
+
+  .ddi-hero-content {
+    padding: 40px 20px;
+  }
+
+  .ddi-hero-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .ddi-hero-title {
+    font-size: 1.7rem;
+  }
+
+  .ddi-hero-subtitle {
+    font-size: .96rem;
+  }
+
+  .ddi-hero-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .ddi-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .ddi-hero-button {
+    text-align: center;
+  }
+}
+
+/* =========================================
+   DDI Mission Briefing (v1.2)
+   connectors/above-main-container/ddi-homepage-hero.* — same connector as
+   the Hero, not a separate one (see ARCHITECTURE.md for why: it guarantees
+   this section renders directly after the Hero via plain DOM order, rather
+   than relying on unconfirmed same-outlet connector ordering). Reuses
+   .ddi-card, .ddi-card-title, .ddi-card-body, .ddi-nav-link,
+   .ddi-division-cards-grid, and .ddi-integrity-pass verbatim for the
+   welcome/mission-statement/objectives cards, the pillar grid, and the
+   objective checkmarks; only the full-bleed wrapper, content column, glass
+   treatment, pillar icon, and hover state below are new.
+   ========================================= */
+
+.ddi-mission-briefing {
+  position: relative;
+
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+
+  background: var(--ddi-bg-primary);
+}
+
+/* v1.2.1: top padding cut roughly in half (56px -> 32px) — the Hero's own
+   border-bottom already marks the boundary, so the two now read as one
+   continuous landing experience instead of two stacked-but-separate
+   blocks. Bottom padding is unchanged: that space is before the next,
+   unrelated section (Search Banner), not part of the Hero/Briefing
+   relationship this release is about. */
+.ddi-mission-briefing-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 32px 64px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Glassmorphism — reuses the exact translucent-panel + blur treatment
+   Discourse's own native surface panels already carry (.panel/.topic-list/
+   .search-menu, see "DISCOURSE SURFACE PANELS" above: --ddi-bg-panel +
+   backdrop-filter: blur(4px) + --ddi-shadow-lg), applied to Mission
+   Briefing's cards instead of .ddi-card's own nearly-opaque background —
+   ties this section visually to the Hero's cinematic backdrop rather than
+   the fully-opaque cards used throughout the rest of the archive. No new
+   token or blur value introduced.
+
+   margin: 0 (v1.2.1) — .ddi-card's own margin: 24px 0 doesn't collapse
+   against a flex/grid gap the way block-level sibling margins collapse
+   against each other, so every one of these cards was silently adding its
+   own 24px on top of the 32px flex gap above and the pillar grid's 16px
+   gap below — an un-audited double-spacing bug from when Mission Briefing
+   first shipped, not a deliberate choice. Resetting it makes gap the one
+   source of truth for spacing here, the fix "improve visual rhythm" /
+   "avoid unnecessary whitespace" actually asked for. */
+.ddi-mission-welcome,
+.ddi-mission-statement,
+.ddi-mission-pillar,
+.ddi-mission-objectives {
+  margin: 0;
+
+  background: var(--ddi-bg-panel);
+  box-shadow: var(--ddi-shadow-lg);
+  backdrop-filter: blur(4px);
+
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+/* v1.2.1 — the welcome card's "executive document" signature line. Reuses
+   the exact small-caps/muted-label typography already established by
+   .ddi-hero-stat span/.ddi-card-title (uppercase, letter-spacing, --ddi-
+   text-muted) rather than a new type scale value, plus the same
+   --ddi-border-soft hairline .ddi-card-title itself sits above elsewhere
+   in this file — no new token introduced. Copy above (the three <p>s) is
+   untouched, per "preserve the existing copy." */
+.ddi-mission-welcome-signature {
+  margin-top: 20px;
+  padding-top: 16px;
+
+  border-top: 1px solid var(--ddi-border-soft);
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: right;
+}
+
+/* v1.2.1 — Mission Statement becomes the section's visual centerpiece:
+   centered, a top accent instead of .ddi-card's usual left border (an
+   asymmetric border reads oddly on centered text), and noticeably larger
+   than .ddi-card-body's own 0.98rem. Still every color/spacing value from
+   the existing token scale — --ddi-red for the accent (already this
+   card's own left-border color before this change, just relocated),
+   --ddi-white for the now-prominent text (already used by .ddi-hero-title/
+   .ddi-hero-stat strong for the same "most important text on screen"
+   role). */
+.ddi-mission-statement {
+  border-left: none;
+  border-top: 3px solid var(--ddi-red);
+
+  padding: 40px 48px;
+
+  text-align: center;
+}
+
+.ddi-mission-statement .ddi-card-title {
+  margin-bottom: 20px;
+}
+
+.ddi-mission-statement-text {
+  margin: 0 auto;
+
+  max-width: 640px;
+
+  color: var(--ddi-white);
+
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.ddi-mission-pillar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Subtle hover animation — the same border-color + shadow-glow pair
+   already used for hover/active states elsewhere (.ddi-reading-list-card:
+   hover, .select-kit.is-expanded .select-kit-header), not a new
+   interaction vocabulary. */
+.ddi-mission-pillar:hover {
+  border-color: var(--ddi-red-65);
+  box-shadow: var(--ddi-shadow-glow);
+}
+
+.ddi-mission-pillar-icon {
+  margin-bottom: 12px;
+
+  color: var(--ddi-red);
+
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+/* v1.2.1 — "Primary Function" metadata, a <dl> (the semantically correct
+   element for a label/value pair) styled with the same uppercase-label +
+   bright-value pattern .ddi-hero-stat span/strong already uses for an
+   identical "small label above a short value" role — dt/dd's own default
+   browser margins/indent are reset since that spacing isn't part of this
+   theme's scale. Sits between the description and "View Division" for
+   every card, so it doesn't disturb the margin-top: auto push below. */
+.ddi-mission-pillar-role {
+  margin: 10px 0 0;
+}
+
+.ddi-mission-pillar-role dt {
+  margin: 0;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.ddi-mission-pillar-role dd {
+  margin: 4px 0 0;
+
+  color: var(--ddi-text-dim);
+
+  font-size: .88rem;
+  font-weight: 600;
+}
+
+/* Pushes "View Division" to the bottom of every pillar card regardless of
+   description length, so every card in a row stays aligned on desktop —
+   .ddi-mission-pillar's own flex-direction: column (above) is what makes
+   margin-top: auto meaningful here. */
+.ddi-mission-pillar .ddi-nav-link {
+  margin-top: auto;
+  width: 100%;
+}
+
+.ddi-mission-objectives-list {
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ddi-mission-objectives-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+
+  color: var(--ddi-text-dim);
+
+  font-size: 0.98rem;
+}
+
+@media (max-width: 600px) {
+  .ddi-mission-briefing-content {
+    padding: 24px 20px 40px;
+    gap: 20px;
+  }
+
+  .ddi-mission-welcome-signature {
+    text-align: center;
+  }
+
+  .ddi-mission-statement {
+    padding: 28px 24px;
+  }
+
+  .ddi-mission-statement-text {
+    font-size: 1.25rem;
+  }
+}
+
+/* =========================================
    DDI Command Network Header Panel
    ========================================= */
 
@@ -1918,6 +2381,52 @@ a:hover {
 @media (max-width: 600px) {
   .ddi-intel-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================
+   DDI DOCUMENT INTELLIGENCE HEADER (v1.3)
+   connectors/topic-above-posts/ddi-document-intelligence-header.* —
+   replaced the old, un-toggleable "Document Intelligence" mid-page card
+   (same outlet). Reuses .ddi-card (classification-colored border-left via
+   the existing {{classificationClass}} → --ddi-accent mechanism Dossier
+   Header already established), the Mission Briefing glass treatment
+   (--ddi-bg-panel + backdrop-filter: blur(4px) + --ddi-shadow-lg), and
+   .ddi-intel-grid's own item typography (span/strong) verbatim. Only the
+   prominent title, the classification value's accent color, and the
+   2-column override below are new.
+   ========================================== */
+
+.ddi-document-intelligence-header {
+  background: var(--ddi-bg-panel);
+  box-shadow: var(--ddi-shadow-lg);
+  backdrop-filter: blur(4px);
+}
+
+.ddi-document-intelligence-header-title {
+  margin-bottom: 20px;
+
+  color: var(--ddi-white);
+
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.ddi-document-intelligence-header-classification {
+  color: var(--ddi-accent, #b51d1d);
+}
+
+/* "Compact two-column grid," specifically — .ddi-intel-grid's own default
+   is 3 columns down to 900px, 2 from 900-600px, 1 below that. Scoping this
+   override to min-width: 601px (rather than leaving it unconditional)
+   means it only ever replaces the 3-column desktop default; .ddi-intel-
+   grid's own existing 600px single-column collapse is untouched and still
+   wins on mobile, reused rather than re-specified. */
+@media (min-width: 601px) {
+  .ddi-document-intelligence-header-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

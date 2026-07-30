@@ -1,7 +1,7 @@
 # DDI Discourse Theme
 
 A custom [Discourse](https://www.discourse.org/) theme that reskins a Discourse forum into the
-**DDC Intelligence Archive** — a corporate intelligence / document management interface rather
+**DDI Intelligence Archive** — a corporate intelligence / document management interface rather
 than a discussion forum. Topics are presented as classified documents ("dossiers"), categories are
 framed as operational divisions, and the visual language is a dark, red-accented "command network"
 aesthetic.
@@ -11,22 +11,34 @@ overrides, plugin outlet connectors, and API initializers) with no changes to Di
 
 ## Status
 
-Version 1.0 shipped; Version 1.1 is now complete and being prepared for release — see
+Version 1.0, 1.1, and 1.2 shipped; Version 1.3 is in progress — see
 [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for the precise, current list of what's
-implemented versus still planned, and [CHANGELOG.md](CHANGELOG.md) for the full v1.1 change list. In
+implemented versus still planned, and [CHANGELOG.md](CHANGELOG.md) for the full change history. In
 short:
 
-- The **topic page** transformation (dossier-style header, classification banner, summary,
-  document intelligence panel, table of contents, related-documents panel, Document Relationships,
-  Knowledge Graph Viewer, and a Document Actions bar — Add to Reading List, Favorite, Open Knowledge
-  Graph, Share) is implemented and live.
-- The **homepage/categories page** now has a real Intelligence Dashboard (archive statistics), a
+- The **homepage** now opens with a cinematic Hero (v1.2) — full-bleed background image (admin
+  configurable, no code changes needed), dark gradient overlay, archive title, optional subtitle,
+  headline archive statistics, and Browse Archive/View Divisions actions — followed immediately by
+  a Mission Briefing section (v1.2): an Executive Command Welcome message, DDI's mission statement,
+  all six official Operational Divisions as pillar cards (Executive Command, Fleet Security,
+  Commerce/Industry/Manufacturing, Exploration & Survey, Contract Support Services, Public Affairs)
+  each with an icon, description, and link to its Division page, and a Mission Objectives checklist.
+  Both are static content, independently toggleable, and both above the Intelligence Dashboard.
+  Homepage only; a specific division page or `/categories` keeps its own header instead (Division
+  Header / Division Cards).
+- The **topic page** transformation (dossier-style header, classification banner, summary, a
+  standardized Document Intelligence Header above the body — v1.3: title, Document Number,
+  Classification, Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related
+  Documents count, replacing the earlier mid-page card — table of contents, related-documents
+  panel, Document Relationships, Knowledge Graph Viewer, and a Document Actions bar — Add to
+  Reading List, Favorite, Open Knowledge Graph, Share) is implemented and live.
+- The **homepage/categories page** also has a real Intelligence Dashboard (archive statistics), a
   Browse Archive section (tabbed: alphabetical Intelligence Index / year-grouped Intelligence
   Timeline), and Division Cards/Header (per-category presentation) — all implemented and live. The
   **sidebar** redesign, and a few of the dashboard's originally-planned sections (Search
   Intelligence, Recent Revisions), are still unbuilt — see **Known Gaps / Unwired Code** in
   ARCHITECTURE.md for exactly what remains.
-- The **composer** (v1.1) now shows a Document Author Assistant panel while creating a new topic or
+- The **composer** (v1.1) shows a Document Author Assistant panel while creating a new topic or
   editing an existing document — real-time ✓/⚠ guidance on 9 metadata/structure items, read-only,
   never blocking publishing.
 - **Staff tools** — a Document Integrity Dashboard (archive-wide metadata/reference audit) and a
@@ -39,10 +51,12 @@ short:
 
 ## What's actually implemented
 
-On the **topic page**, in render order: Dossier Header, Security Banner, Executive Summary, Document
-Intelligence, Table of Contents, Document Relationships, Knowledge Graph Viewer, a Document Actions
-bar, and (staff/debug-only) a Verification Panel and Debug Panel. In the **composer**: a Document
-Author Assistant panel (v1.1). Archive-wide, on the homepage/category pages: Intelligence
+On the **homepage** specifically (not category/tag pages): a cinematic Hero (v1.2), then a Mission
+Briefing section (v1.2), above everything else. On the **topic page**, in render order: Dossier
+Header, Security Banner, Executive Summary, the Document Intelligence Header (v1.3), Table of
+Contents, Document Relationships, Knowledge Graph Viewer, a Document Actions bar, and
+(staff/debug-only) a Verification Panel and Debug Panel. In the **composer**: a
+Document Author Assistant panel (v1.1). Archive-wide, on the homepage/category pages: Intelligence
 Dashboard, Browse Archive (tabbed Intelligence Index / Intelligence Timeline), Division Cards,
 Division Header. Available from
 anywhere: Command Palette, Favorites, Reading Lists. Staff-only: Document Integrity Dashboard, System
@@ -91,7 +105,7 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml` — 14 settings, 10 of them read by real code, 4 still reserved for planned
+Declared in `settings.yml` — 19 settings, 15 of them read by real code, 4 still reserved for planned
 work (not orphaned — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan
 each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabled`,
 `ddi_interface_mode_enabled`) were removed in RC cleanup rather than kept as unaccountable toggles.
@@ -108,6 +122,11 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 | `ddi_debug_mode_enabled` | bool | `false` | ✅ | Show a diagnostic metadata panel on topic pages — off by default |
 | `ddi_document_actions_enabled` | bool | `true` | ✅ | Show the Document Actions bar (Reading List, Favorite, Knowledge Graph, Share) |
 | `ddi_document_author_assistant_enabled` | bool | `true` | ✅ | Show the composer-time Document Author Assistant panel |
+| `ddi_homepage_hero_enabled` | bool | `true` | ✅ | Show the cinematic homepage hero above the Dashboard |
+| `ddi_hero_background_image` | upload | *(none)* | ✅ | Homepage hero background image — upload to replace, no code change needed |
+| `ddi_hero_subtitle` | string | see `settings.yml` | ✅ | Optional homepage hero subtitle — empty hides it |
+| `ddi_mission_briefing_enabled` | bool | `true` | ✅ | Show the Mission Briefing section below the hero (welcome message, mission statement, pillars, objectives) |
+| `ddi_document_intelligence_header_enabled` | bool | `true` | ✅ | Show the standardized Document Intelligence Header above every document |
 | `ddi_compact_density` | bool | `true` | reserved | Use compact dashboard spacing density |
 | `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | reserved | Controls ambient red glow intensity |
 | `ddi_sidebar_command_panel_enabled` | bool | `true` | reserved | Enable command-panel sidebar presentation |
@@ -117,7 +136,7 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 
 ```
 about.json            Theme metadata (name, version, authors)
-settings.yml           Theme settings (see above — 10 of 14 wired)
+settings.yml           Theme settings (see above — 15 of 19 wired)
 common/                Styles and templates applied on all devices
   common.scss           Main stylesheet — the live CSS token system and all component styling
   footer.html            Empty, but a valid, recognized template target (see Known Gaps in

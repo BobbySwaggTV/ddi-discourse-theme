@@ -7,7 +7,7 @@ Reference Repository: ../ddi-command-network
 
 ## Purpose
 
-This document records the extracted visual system from the DDI Command Network prototype and defines the foundation mapping for the official Dagger Defense Corporation Discourse theme.
+This document records the extracted visual system from the DDI Command Network prototype and defines the foundation mapping for the official Dagger Defense Industries Discourse theme.
 
 The prototype is the single source of truth for visual language. This audit intentionally avoids introducing new visual direction.
 

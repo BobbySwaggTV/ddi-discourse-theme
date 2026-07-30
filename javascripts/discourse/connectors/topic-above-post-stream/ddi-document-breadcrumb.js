@@ -1,7 +1,7 @@
 import { getOwner } from "@ember/owner";
 import { getDocumentTypeLabel } from "../../lib/ddi-document-type";
 
-const ARCHIVE_LABEL = "DDC Intelligence Archive";
+const ARCHIVE_LABEL = "DDI Intelligence Archive";
 const FALLBACK_DEPARTMENT_LABEL = "Unknown Department";
 const FALLBACK_DOCUMENT_TYPE_LABEL = "Unknown Document Type";
 

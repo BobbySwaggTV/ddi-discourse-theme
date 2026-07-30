@@ -18,9 +18,20 @@ export default class DdiCategoryContextService extends Service {
   getCurrentCategory() {
     // controller:discovery/category is an Ember singleton — its .category can
     // still hold the last-viewed division after navigating (client-side, no
-    // full reload) to /categories, which has no single category of its own.
-    // The route check must win over whatever the controller happens to hold.
-    if (this.isCategoriesIndexRoute()) {
+    // full reload) away from a category page, whether to /categories (no
+    // single category of its own) or all the way back to the homepage
+    // (no category at all). The route check must win over whatever the
+    // controller happens to hold in both cases — checking only the first
+    // let the second slip through, since a category page's own route name
+    // (`discovery.category*`) was never actually confirmed before trusting
+    // the controller.
+    const currentRouteName = getOwner(this).lookup("service:router")
+      .currentRouteName;
+
+    if (
+      this.isCategoriesIndexRoute() ||
+      !currentRouteName?.startsWith("discovery.category")
+    ) {
       return null;
     }
 

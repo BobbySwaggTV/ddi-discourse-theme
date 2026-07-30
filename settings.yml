@@ -71,3 +71,28 @@ ddi_document_author_assistant_enabled:
   type: bool
   default: true
   description: "Show the Document Author Assistant panel in the composer (real-time ✓/⚠ guidance on Document Number, Classification, Department, Document Type, Lifecycle, Executive Summary, H2 Sections, Cross References, Related Documents) while composing a new topic or editing an existing document's first post — never shown for replies"
+
+ddi_homepage_hero_enabled:
+  type: bool
+  default: true
+  description: "Show the cinematic homepage hero (background image, archive title, subtitle, archive statistics, Browse Archive/View Divisions actions) above the Dashboard — homepage only, hidden on /categories and individual division pages, which have their own header treatment"
+
+ddi_hero_background_image:
+  type: upload
+  default: ""
+  description: "Background image for the homepage hero — replace without modifying code by uploading a new image here. Leave empty to show the hero's dark gradient with no photo"
+
+ddi_hero_subtitle:
+  type: string
+  default: "Six operational divisions. One command network."
+  description: "Optional subtitle shown under the homepage hero's title — leave empty to hide it entirely"
+
+ddi_mission_briefing_enabled:
+  type: bool
+  default: true
+  description: "Show the Mission Briefing section directly below the homepage hero (an Executive Command welcome message, DDI's mission statement, all six Operational Divisions as pillar links, and Mission Objectives) — homepage only, same scope as the hero. Independent of ddi_homepage_hero_enabled — either can be on without the other"
+
+ddi_document_intelligence_header_enabled:
+  type: bool
+  default: true
+  description: "Show the standardized Document Intelligence Header above every document (title, Document Number, Classification, Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related Documents count) — replaces the earlier mid-page Document Intelligence card"

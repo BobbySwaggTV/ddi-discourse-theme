@@ -1,0 +1,135 @@
+{{#if this.isVisible}}
+
+  {{#if this.showHero}}
+    <div class="ddi-hero">
+
+      {{#if this.backgroundImageUrl}}
+        <img
+          src={{this.backgroundImageUrl}}
+          alt=""
+          aria-hidden="true"
+          class="ddi-hero-background"
+          loading="lazy"
+          decoding="async"
+        />
+      {{/if}}
+
+      <div class="ddi-hero-overlay"></div>
+
+      <div class="ddi-hero-content">
+
+        {{#if this.logoUrl}}
+          <img
+            src={{this.logoUrl}}
+            alt=""
+            aria-hidden="true"
+            class="ddi-hero-logo"
+            loading="lazy"
+            decoding="async"
+          />
+        {{/if}}
+
+        <h1 class="ddi-hero-title">DDI Intelligence Archive</h1>
+
+        {{#if this.subtitle}}
+          <p class="ddi-hero-subtitle">{{this.subtitle}}</p>
+        {{/if}}
+
+        {{#if this.stats}}
+          <div class="ddi-hero-stats">
+            <div class="ddi-hero-stat">
+              <strong>{{this.stats.totalDocuments}}</strong>
+              <span>Documents</span>
+            </div>
+            <div class="ddi-hero-stat">
+              <strong>{{this.stats.departmentCount}}</strong>
+              <span>Divisions</span>
+            </div>
+            <div class="ddi-hero-stat">
+              <strong>{{this.stats.classificationCount}}</strong>
+              <span>Classification Levels</span>
+            </div>
+          </div>
+        {{/if}}
+
+        <div class="ddi-hero-actions">
+          {{#if this.showBrowseArchiveButton}}
+            <button
+              type="button"
+              class="ddi-hero-button ddi-hero-button-primary"
+              {{on "click" this.scrollToArchive}}
+            >
+              Browse Archive
+            </button>
+          {{/if}}
+          <a href="/categories" class="ddi-hero-button ddi-hero-button-secondary">
+            View Divisions
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  {{/if}}
+
+  {{#if this.showMissionBriefing}}
+    <div class="ddi-mission-briefing">
+      <div class="ddi-mission-briefing-content">
+
+        <div class="ddi-card ddi-mission-welcome">
+          <h2 class="ddi-card-title">Executive Command Welcome</h2>
+          <div class="ddi-card-body">
+            <p>Welcome to Dagger Defense Industries.</p>
+            <p>
+              Our mission is to build, protect, and expand a professional industrial organization
+              through disciplined operations, coordinated logistics, and strategic exploration.
+            </p>
+            <p>
+              Every document within this archive represents operational knowledge supporting that
+              mission.
+            </p>
+          </div>
+          <div class="ddi-mission-welcome-signature">Issued by Executive Command</div>
+        </div>
+
+        <div class="ddi-card ddi-mission-statement">
+          <h2 class="ddi-card-title">DDI Mission Statement</h2>
+          <p class="ddi-mission-statement-text">
+            Dagger Defense Industries delivers industrial capability through precision,
+            discipline, innovation, and operational excellence.
+          </p>
+        </div>
+
+        <h2 class="ddi-card-title">Official Operational Divisions</h2>
+        <div class="ddi-division-cards-grid">
+          {{#each this.pillars as |pillar|}}
+            <div class="ddi-card ddi-mission-pillar">
+              <span class="ddi-mission-pillar-icon" aria-hidden="true">{{pillar.icon}}</span>
+              <h3 class="ddi-card-title">{{pillar.name}}</h3>
+              <div class="ddi-card-body">{{pillar.description}}</div>
+              <dl class="ddi-mission-pillar-role">
+                <dt>Primary Function</dt>
+                <dd>{{pillar.role}}</dd>
+              </dl>
+              <a class="ddi-nav-link" href="{{pillar.url}}">
+                <span>View Division</span>
+                <strong>{{pillar.name}}</strong>
+              </a>
+            </div>
+          {{/each}}
+        </div>
+
+        <div class="ddi-card ddi-mission-objectives">
+          <h2 class="ddi-card-title">Mission Objectives</h2>
+          <ul class="ddi-mission-objectives-list">
+            {{#each this.objectives as |objective|}}
+              <li><span class="ddi-integrity-pass" aria-hidden="true">✓</span> {{objective}}</li>
+            {{/each}}
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  {{/if}}
+
+{{/if}}

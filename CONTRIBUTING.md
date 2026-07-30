@@ -29,7 +29,7 @@ both desktop and mobile breakpoints, before opening a PR.
 ## Before You Start
 
 Read [ARCHITECTURE.md](ARCHITECTURE.md), especially **Known Gaps / Unwired Code**. Most settings in
-`settings.yml` (10 of 14) are read by real code; the remaining 4 are intentionally reserved for
+`settings.yml` (13 of 17) are read by real code; the remaining 4 are intentionally reserved for
 planned work, documented as such — confirm which before assuming a given setting does something.
 Three genuinely dead files (`common/homepage.html`, `common/sidebar.html`, `common/variables.scss`)
 were removed in RC cleanup — if you're reading this in an older checkout, they no longer exist on the

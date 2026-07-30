@@ -2,7 +2,7 @@
 
 Version: v0.1.0
 Repository: ddi-discourse-theme
-Scope: Category structure, tag taxonomy, and document placement rules for the DDC Intelligence Archive.
+Scope: Category structure, tag taxonomy, and document placement rules for the DDI Intelligence Archive.
 
 ## Purpose
 
@@ -17,19 +17,19 @@ This document defines structure only. No theme code is introduced here; the Cate
 
 ## 1. Category Structure
 
-One top-level category, six subcategories. Subcategories are divisions of the DDC; a topic's category is the primary "who owns this document" signal.
+One top-level category, six subcategories. Subcategories are divisions of the DDI; a topic's category is the primary "who owns this document" signal.
 
 | Category | Slug | Parent |
 |---|---|---|
-| DDC Intelligence Archive | `ddc-intelligence-archive` | — (top-level) |
-| Executive Command | `executive-command` | DDC Intelligence Archive |
-| Fleet Security | `fleet-security` | DDC Intelligence Archive |
-| Commerce, Industry & Manufacturing (CIM) | `commerce-industry-manufacturing` | DDC Intelligence Archive |
-| Exploration & Survey (E&S) | `exploration-survey` | DDC Intelligence Archive |
-| Contract Support Services (CSS) | `contract-support-services` | DDC Intelligence Archive |
-| Public Affairs | `public-affairs` | DDC Intelligence Archive |
+| DDI Intelligence Archive | `ddi-intelligence-archive` | — (top-level) |
+| Executive Command | `executive-command` | DDI Intelligence Archive |
+| Fleet Security | `fleet-security` | DDI Intelligence Archive |
+| Commerce, Industry & Manufacturing (CIM) | `commerce-industry-manufacturing` | DDI Intelligence Archive |
+| Exploration & Survey (E&S) | `exploration-survey` | DDI Intelligence Archive |
+| Contract Support Services (CSS) | `contract-support-services` | DDI Intelligence Archive |
+| Public Affairs | `public-affairs` | DDI Intelligence Archive |
 
-The top-level category is a container only — do not post documents directly into `ddc-intelligence-archive`. Every document belongs in exactly one of the six subcategories.
+The top-level category is a container only — do not post documents directly into `ddi-intelligence-archive`. Every document belongs in exactly one of the six subcategories.
 
 ### Division Scope
 

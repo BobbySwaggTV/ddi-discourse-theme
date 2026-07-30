@@ -2,7 +2,7 @@
 
 Version: v1.0 (proposed)
 Repository: ddi-discourse-theme
-Scope: A formal metadata specification for every document filed in the DDC Intelligence Archive.
+Scope: A formal metadata specification for every document filed in the DDI Intelligence Archive.
 
 ## 1. Purpose
 
@@ -86,7 +86,7 @@ for deliberate classification.
 
 **Source of truth:** Discourse's native category system. A document's Department is its Discourse
 category — every topic belongs to exactly one category, so this field is enforced by the platform
-itself, not by DDI-specific logic. A document must not be filed in the top-level `ddc-intelligence-archive`
+itself, not by DDI-specific logic. A document must not be filed in the top-level `ddi-intelligence-archive`
 category directly (per `docs/ddi-archive-information-architecture.md`) — it must be in one of the
 6 divisional subcategories.
 
