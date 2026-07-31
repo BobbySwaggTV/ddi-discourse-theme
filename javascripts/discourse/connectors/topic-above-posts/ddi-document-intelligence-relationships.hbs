@@ -1,0 +1,37 @@
+{{#if this.isVisible}}
+  <div class="ddi-card ddi-intelligence-relationships">
+
+    <h2 class="ddi-card-title">INTELLIGENCE RELATIONSHIPS</h2>
+
+    {{#each this.groups as |group|}}
+      <div class="ddi-intelligence-relationships-group">
+
+        <h3 class="ddi-nav-section-label">{{group.label}}</h3>
+
+        <div class="ddi-card-body">
+          {{#each group.items as |item|}}
+            <a
+              class="ddi-toc-item {{item.classificationClass}}"
+              href={{item.url}}
+              aria-label={{item.ariaLabel}}
+            >
+              <div>
+                <span class="ddi-toc-title">{{item.title}}</span>
+
+                <div class="ddi-search-badges">
+                  {{#if item.documentNumber}}
+                    <span class="ddi-search-badge">{{item.documentNumber}}</span>
+                  {{/if}}
+                  <span class="ddi-search-badge {{item.classificationClass}}">{{item.classification}}</span>
+                  <span class="ddi-search-badge">{{item.department}}</span>
+                </div>
+              </div>
+            </a>
+          {{/each}}
+        </div>
+
+      </div>
+    {{/each}}
+
+  </div>
+{{/if}}

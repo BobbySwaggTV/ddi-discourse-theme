@@ -753,11 +753,11 @@ export default apiInitializer("1.0", (api) => {
       pendingScrollId = null;
 
       // Waits one frame for the new route's connectors to render — the
-      // same reason ddi-document-toc.js defers its own post-render DOM
-      // work with requestAnimationFrame ("wait until Discourse has
-      // rendered the cooked post"); the target element's wrapper renders
-      // synchronously once its connector mounts, but that mount itself
-      // happens as part of this same page-change cycle.
+      // same reason ddi-document-navigation-sidebar.js defers its own
+      // post-render DOM work with requestAnimationFrame ("wait until
+      // Discourse has rendered the cooked post"); the target element's
+      // wrapper renders synchronously once its connector mounts, but that
+      // mount itself happens as part of this same page-change cycle.
       requestAnimationFrame(() => scrollToElement(id));
     }
 

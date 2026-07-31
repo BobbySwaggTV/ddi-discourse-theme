@@ -57,8 +57,9 @@ function checkExecutiveSummary(raw) {
 }
 
 // "## " is the same Markdown-to-h2 convention
-// connectors/topic-above-posts/ddi-document-toc.js already relies on
-// (`.cooked h2`) to build the table of contents from a published document.
+// connectors/topic-above-post-stream/ddi-document-navigation-sidebar.js
+// already relies on (`.cooked h2`) to build its outline from a published
+// document.
 function checkH2Sections(raw) {
   return result(
     "H2 Sections",

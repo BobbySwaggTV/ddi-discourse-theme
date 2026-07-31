@@ -9,6 +9,128 @@ read the early ad hoc labels as an authoritative release history — this change
 that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
 the entry below; every entry before it predates that field meaning anything.
 
+## 2026-07-31 — v1.5: Intelligence Relationships
+
+- New consolidated relationships panel directly below the Document Intelligence Header
+  (`connectors/topic-above-posts/ddi-document-intelligence-relationships.*`, gated by new
+  `ddi_intelligence_relationships_enabled`, default on): declared and discovered relationships,
+  organized into labeled groups instead of a flat list — References, Supersedes, Superseded By,
+  Related Intelligence, Required Reading, Supporting Documentation, Same Department, and Same
+  Classification. Only groups with data render; if every group is empty, the panel doesn't render
+  at all.
+- **Replaces the old Document Relationships and Intelligence Network cards outright** (both
+  `git rm`'d) rather than adding a third view alongside them — same replace-not-duplicate call
+  already made for the Document Intelligence Header (v1.3) and Document Navigation Sidebar (v1.4).
+  The services behind both cards are unchanged; only the connectors that rendered them are gone.
+- Zero new data sources. Declared groups (References through Supporting Documentation) are
+  `services/ddi-relationship.js#getRelationships()`'s existing resolved result, grouped by
+  `lib/ddi-relationship.js#RELATIONSHIP_TYPES` (imported, not re-declared). The two derived groups —
+  Same Department, Same Classification — are client-side filters over
+  `services/ddi-related-intelligence.js#findRelated()`'s already-ranked candidates, compared against
+  the current document's own already-resolved metadata. Both service calls are the exact ones the
+  retired cards already made, still cached per topic id, so this introduces no new fetch and no new
+  scoring pass; any other connector on the page (Knowledge Graph Viewer included) hits the same
+  cache.
+- `department` added to `ddi-relationship.js`'s per-relationship shape (`_resolve()` and
+  `_citationFromMetadata()`) — forwards an already-computed field
+  (`ddi-citation-preview.js#_buildCitation()`'s `department` / `ddi-document-metadata.js`'s
+  `departmentDisplay`) through for display; purely additive, every existing consumer of
+  `getRelationships()` is unaffected.
+- **Two categories from the original spec were deliberately not built, by explicit decision, not
+  oversight.** "Referenced By" was omitted entirely — there's no reverse index anywhere of which
+  documents cite a given one, and building one would mean scanning every other document's body
+  archive-wide rather than reusing an existing service. "Parent Document"/"Child Documents" were not
+  added as separate groups — `Supersedes`/`Superseded By` render under their own existing
+  `RELATIONSHIP_TYPES` labels instead of being remapped onto a Parent/Child vocabulary that doesn't
+  otherwise exist in this codebase.
+- Presentation reuses existing components throughout: `.ddi-card` for the panel shell (the same
+  glass-panel treatment — `--ddi-bg-panel` + `backdrop-filter: blur(4px)` + `--ddi-shadow-lg` — the
+  Document Intelligence Header and Document Navigation Sidebar already use, picked up automatically
+  via `.ddi-card`'s own base spacing for consistency with its neighbors), `.ddi-nav-section-label`
+  (Command Palette's own group-heading style) for each group's heading, `.ddi-toc-item`/
+  `.ddi-toc-title` (Document Navigation Sidebar's own list styling) for each relationship link, and
+  `.ddi-search-badges`/`.ddi-search-badge` (Document Quick Preview's own metadata badge) for
+  document number/classification/department. The only new CSS is the gap between two stacked
+  groups — nothing existing already provided that specific spacing.
+- Accessibility: real `<a href>` elements throughout (keyboard access and "opens normally" both fall
+  out of the correct native element), `<h2>` panel title / `<h3>` group headings (no level skipped),
+  and a precomputed `aria-label` per item (`"{title}, {relationship type}, {document number},
+  {classification}, {department}"`, built in JS, not `{{concat}}` in the template) so a screen reader
+  hears one coherent sentence per link rather than a title followed by unlabeled badges.
+- Verified directly: extracted the actual `buildRelationshipGroups()` from source (not a
+  reimplementation) and exercised a mixed input covering all 8 possible groups (correct labels,
+  order, item shape, `aria-label` text), an all-empty input (confirms the panel-hide condition), and
+  a candidate matching both Same Department and Same Classification correctly appearing in both
+  groups (intentional — different relationship types, not deduplicated). `node --check` clean on the
+  connector, the new `lib/` file, and the modified `services/ddi-relationship.js`; `sass` compiles
+  cleanly; `settings.yml` re-validated as YAML (21 settings); a repository-wide duplicate-selector
+  scan and an unused-import/orphan-export sweep found nothing new. Desktop/tablet/mobile layout is
+  reasoning-based, not confirmed against a live instance (no running Discourse instance was available
+  for this pass): the panel introduces no new layout mechanism — no grid, no fixed positioning, no
+  new breakpoint — only the same `.ddi-toc-item`/`.ddi-search-badges` shapes already verified
+  responsive by the two retired cards. No new backend API, no new topic custom field.
+
+## 2026-07-31 — v1.4: Document Navigation Sidebar
+
+- New live outline sidebar above every document
+  (`connectors/topic-above-post-stream/ddi-document-navigation-sidebar.*`, gated by new
+  `ddi_document_navigation_sidebar_enabled`, default on): every H2 and nested H3, active-section
+  highlighting via `IntersectionObserver`, smooth scroll on click, docked/sticky at wide viewports
+  (`min-width: 1400px`), a tap-to-expand disclosure below that, and hidden entirely on documents
+  with no headings.
+- **Replaces the old "Table of Contents" card outright** (`git rm`'d) rather than adding a second
+  list of the same headings beside it — that card already scanned the same H2s; this is a strict
+  superset (adds H3 nesting, active tracking, smooth scroll, sticky positioning) of the identical
+  underlying data. Same call already made for the Document Intelligence Header (v1.3), same
+  reasoning: "do not introduce duplicate heading parsing if a heading parser already exists" is an
+  instruction to reuse what's there, not build a second one next to it.
+- Heading scan reuses the retired TOC's exact algorithm (selector, `requestAnimationFrame`
+  wait-for-render technique, slug generation) extended to also match `h3`. Closed a real latent bug
+  while rewriting it: two identically-titled sections used to collide silently on the same `#id` —
+  now gets a numeric uniqueness suffix (`overview`, `overview-2`, …), more likely to matter once H3s
+  multiply the heading count per document.
+- Outline is built exactly once, inside the same `requestAnimationFrame` callback the old TOC used
+  — nothing after that re-queries the DOM. Active-section tracking uses `IntersectionObserver` (a
+  real browser API this theme had never used before) instead of a hand-rolled scroll-position
+  calculation; `rootMargin: "0px 0px -70% 0px"` treats a heading as "current" once it's in the top
+  30% of the viewport, the standard technique for this UX. Active-state changes recompute only the
+  outline's `isActive` booleans (the same "derived booleans, not template-level `eq` comparisons"
+  pattern Browse Archive/Command Palette already use — `eq`'s availability via
+  `ember-truth-helpers` has been treated as unconfirmed all session) — never re-touches the DOM or
+  re-runs the heading scan.
+- Smooth scroll respects `prefers-reduced-motion` (falls back to instant `scrollIntoView`), and
+  every link keeps a real `href="#id"` so it still works with JS disabled or opened in a new tab.
+  The existing `scroll-margin-top: 110px` rule that keeps a scrolled-to heading from landing behind
+  Discourse's fixed site header gained `h3` alongside its existing `h2` — the same value, not a new
+  one — so no JS-side scroll offset math was needed anywhere.
+- Positioning (`fixed`, `top: 120px`, `right: 24px`, shown only above `1400px`) is a stated
+  confidence caveat, not a verified fact: `#main-outlet`'s own 1700px max-width leaves little to no
+  free horizontal gutter below roughly that viewport width, and this wasn't checked against a live
+  Discourse instance's actual rendered page width. A real deployment should verify at its own common
+  widths and adjust `common.scss` if needed.
+- Below the 1400px breakpoint (covering tablet and mobile together, deliberately — this feature's
+  "no free gutter" constraint doesn't meaningfully differ between the two the way content-reflow
+  concerns elsewhere in this theme do): a plain `aria-expanded`/`aria-controls` disclosure widget,
+  not the heavier `ddi-modal.js` focus-trap/backdrop machinery built for actual dialogs, since
+  there's no backdrop or focus trap needed here.
+- Reuses this theme's existing navigation typography/hover style (`.ddi-toc-item`/
+  `.ddi-toc-item-number`/`.ddi-toc-title`, the same `translateX(6px)` + red hover already
+  established) for every top-level link, and the same glass-panel treatment (`--ddi-bg-panel` +
+  `backdrop-filter: blur(4px)` + `.ddi-card`'s own border/shadow/padding) Mission Briefing and the
+  Document Intelligence Header already established, matched to the Header's own spacing as required.
+  The active-state selector uses two classes specifically to win on specificity over the reused base
+  classes regardless of source order — no `!important` anywhere.
+- Verified directly: extracted the actual heading-scan/active-state functions from source (not
+  reimplementations) and exercised H2/H3 nesting, duplicate-title id collisions, an orphan H3 before
+  any H2, and zero headings. A second pass exercised the real `setupComponent` against a mocked
+  `IntersectionObserver` — full lifecycle, topmost-intersecting-entry selection, zero-headings (no
+  observer created), destroyed-before-render, teardown actually disconnecting the observer, and
+  destroyed-mid-scroll guards. A third pass verified the click handler's `preventDefault`,
+  reduced-motion branching, and graceful no-op on a missing target. `node --check` clean; `sass`
+  compiles cleanly; `settings.yml` re-validated as YAML (20 settings); a repository-wide
+  duplicate-selector scan found nothing new. No new backend API, service, or document-metadata
+  field — the only data used is the already-rendered post's own heading elements.
+
 ## 2026-07-30 — v1.3: Document Intelligence Header
 
 - New standardized header above every document's body

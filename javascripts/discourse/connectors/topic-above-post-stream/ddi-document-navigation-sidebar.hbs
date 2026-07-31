@@ -1,0 +1,52 @@
+{{#if this.isVisible}}
+  <nav
+    class="ddi-document-nav {{if this.isMobileExpanded "ddi-document-nav-expanded"}}"
+    aria-label="Document navigation"
+    {{will-destroy this.teardownObserver}}
+  >
+
+    <button
+      type="button"
+      class="ddi-document-nav-toggle"
+      aria-expanded={{if this.isMobileExpanded "true" "false"}}
+      aria-controls="ddi-document-nav-list"
+      {{on "click" this.toggleMobileExpanded}}
+    >
+      <span class="ddi-card-title">Document Outline</span>
+    </button>
+
+    <ul id="ddi-document-nav-list" class="ddi-document-nav-list">
+      {{#each this.outline as |section|}}
+        <li>
+          <a
+            href="#{{section.id}}"
+            class="ddi-toc-item ddi-document-nav-link {{if section.isActive "ddi-document-nav-active"}}"
+            aria-current={{if section.isActive "location"}}
+            {{on "click" (fn this.handleHeadingClick section.id)}}
+          >
+            <span class="ddi-toc-item-number">{{section.number}}</span>
+            <span class="ddi-toc-title">{{section.title}}</span>
+          </a>
+
+          {{#if section.subheadings.length}}
+            <ul class="ddi-document-nav-sublist">
+              {{#each section.subheadings as |sub|}}
+                <li>
+                  <a
+                    href="#{{sub.id}}"
+                    class="ddi-document-nav-sublink {{if sub.isActive "ddi-document-nav-active"}}"
+                    aria-current={{if sub.isActive "location"}}
+                    {{on "click" (fn this.handleHeadingClick sub.id)}}
+                  >
+                    {{sub.title}}
+                  </a>
+                </li>
+              {{/each}}
+            </ul>
+          {{/if}}
+        </li>
+      {{/each}}
+    </ul>
+
+  </nav>
+{{/if}}

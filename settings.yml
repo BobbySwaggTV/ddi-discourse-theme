@@ -96,3 +96,13 @@ ddi_document_intelligence_header_enabled:
   type: bool
   default: true
   description: "Show the standardized Document Intelligence Header above every document (title, Document Number, Classification, Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related Documents count) — replaces the earlier mid-page Document Intelligence card"
+
+ddi_document_navigation_sidebar_enabled:
+  type: bool
+  default: true
+  description: "Show the live Document Navigation sidebar (auto-built outline of every H2/H3 section, active-section highlighting, smooth-scroll) on documents that have headings — replaces the earlier static Table of Contents card. Hides automatically on documents with no headings"
+
+ddi_intelligence_relationships_enabled:
+  type: bool
+  default: true
+  description: "Show the Intelligence Relationships panel below the Document Intelligence Header (References, Supersedes, Superseded By, Related Intelligence, Required Reading, Supporting Documentation, Same Department, Same Classification, grouped by type) — replaces the earlier separate Document Relationships and Intelligence Network cards. Hides automatically on documents with no relationships in any group"

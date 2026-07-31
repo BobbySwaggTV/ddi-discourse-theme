@@ -993,10 +993,27 @@ a:hover {
   line-height: 1.5;
 }
 
-.ddi-mission-pillar {
+/* v1.2.2 — Division Card Layout Stabilization. Scoped by grid position
+   (".ddi-division-cards-grid > .ddi-card"), not a component-specific
+   class, so this one rule covers every per-division card inside this
+   grid — both Division Cards' own cards
+   (connectors/discovery-list-container-top/ddi-division-cards.hbs, plain
+   .ddi-card, no prior flex treatment at all — this is the actual bug:
+   variable description length left "View Division" at a different height
+   on every card) and Mission Briefing's .ddi-mission-pillar cards (which
+   already had their own, near-identical rule here — consolidated into
+   this one instead of keeping two, per "no duplicate CSS"). Deliberately
+   no `align-items` override (stretch, the flex default, applies): Division
+   Cards' own .ddi-stat-grid is itself a `display: grid` with `auto-fit`
+   columns, which needs to actually receive the card's full width to lay
+   its 3 tiles out correctly — align-items: flex-start would have left it
+   sized to content instead, a real layout regression this fix doesn't
+   introduce. Every child (title, description, stat grid, nav link) was
+   already meant to span the card, so stretch is correct, not a new
+   default being introduced casually. */
+.ddi-division-cards-grid > .ddi-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
 }
 
 /* Subtle hover animation — the same border-color + shadow-glow pair
@@ -1048,13 +1065,16 @@ a:hover {
   font-weight: 600;
 }
 
-/* Pushes "View Division" to the bottom of every pillar card regardless of
-   description length, so every card in a row stays aligned on desktop —
-   .ddi-mission-pillar's own flex-direction: column (above) is what makes
-   margin-top: auto meaningful here. */
-.ddi-mission-pillar .ddi-nav-link {
+/* Pushes "View Division" to the bottom of every per-division card
+   regardless of description length, so every card in a row stays aligned
+   — the same shared ".ddi-division-cards-grid > .ddi-card" flex-column
+   above is what makes margin-top: auto meaningful here. No explicit width
+   needed: align-items' stretch default (that rule doesn't override it)
+   already makes every child, including this link, full width — an
+   explicit `width: 100%` here would just be restating what stretch
+   already guarantees. */
+.ddi-division-cards-grid > .ddi-card .ddi-nav-link {
   margin-top: auto;
-  width: 100%;
 }
 
 .ddi-mission-objectives-list {
@@ -2431,6 +2451,30 @@ a:hover {
 }
 
 /* ==========================================
+   DDI INTELLIGENCE RELATIONSHIPS (v1.5)
+   connectors/topic-above-posts/ddi-document-intelligence-relationships.* —
+   replaces the retired Document Relationships and Intelligence Network
+   cards (same reused services, now grouped by relationship type instead of
+   shown as two separate flat lists). Reuses .ddi-card (glass panel), the
+   .ddi-card-title/.ddi-card-body pair, .ddi-toc-item/.ddi-toc-title
+   (Document Navigation Sidebar's own list styling), .ddi-search-badge/
+   .ddi-search-badges (Document Quick Preview's own metadata badge), and
+   .ddi-nav-section-label (Command Palette's own group-heading style)
+   verbatim. The only new rule is the gap between two stacked groups —
+   nothing already provides that specific spacing.
+   ========================================== */
+
+.ddi-intelligence-relationships {
+  background: var(--ddi-bg-panel);
+  box-shadow: var(--ddi-shadow-lg);
+  backdrop-filter: blur(4px);
+}
+
+.ddi-intelligence-relationships-group + .ddi-intelligence-relationships-group {
+  margin-top: 20px;
+}
+
+/* ==========================================
    DDI CLASSIFICATION LEVELS
 ========================================== */
 
@@ -2717,10 +2761,180 @@ a:hover {
   text-transform: uppercase;
 }
 
-/* Offset scrolling for DDI headings */
-
-.topic-post:first-child .cooked h2 {
+/* Offset scrolling for DDI headings — h3 added (v1.4) alongside the
+   existing h2 rule so the Document Navigation Sidebar's smooth-scroll
+   clears Discourse's own fixed site header for nested subsection targets
+   too, the same already-established 110px value, not a new one. Native
+   scrollIntoView() already respects scroll-margin-top, so this single CSS
+   rule is what keeps every scroll target — clicked from the sidebar or a
+   plain #anchor link — out from behind the header, with no JS-side offset
+   math needed anywhere. */
+.topic-post:first-child .cooked h2,
+.topic-post:first-child .cooked h3 {
   scroll-margin-top: 110px;
+}
+
+/* ============================================================
+   DDI DOCUMENT NAVIGATION SIDEBAR (v1.4)
+   connectors/topic-above-post-stream/ddi-document-navigation-sidebar.* —
+   replaces the retired Table of Contents card. Reuses .ddi-toc-item/
+   .ddi-toc-item-number/.ddi-toc-title verbatim for every top-level link's
+   typography and hover state (this theme's own established "navigation
+   styling"), and the same --ddi-bg-panel + backdrop-filter: blur(4px) +
+   --ddi-shadow-lg glass treatment Mission Briefing/Document Intelligence
+   Header already established, at the same padding scale (24px/28px via
+   .ddi-card, matched here directly) for consistent spacing with the
+   Header as required.
+
+   Confidence caveat: the 1400px "wide enough to dock outside the reading
+   column" threshold and the 120px top offset are reasoned estimates, not
+   verified against a live Discourse instance's actual rendered
+   #main-outlet/header width — #main-outlet's own 1700px max-width leaves
+   little to no free horizontal margin below roughly that viewport width,
+   so this is deliberately conservative rather than assumed correct; a
+   real deployment should confirm no overlap at its own common widths and
+   adjust these two values if needed.
+
+   Mobile-first: the base rules below are the collapsed/inline disclosure
+   widget (shown at any width narrower than 1400px, covering both tablet
+   and phone — verified as its own explicit tier below, not lumped in by
+   accident); the min-width: 1400px block turns it into the fixed sidebar.
+   ========================================== */
+
+.ddi-document-nav {
+  margin: 24px 0;
+  padding: 20px 24px;
+
+  background: var(--ddi-bg-panel);
+  border: 1px solid rgba(180, 30, 30, 0.18);
+  border-left: 4px solid var(--ddi-accent, #b51d1d);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.02),
+    var(--ddi-shadow-xs);
+  backdrop-filter: blur(4px);
+}
+
+.ddi-document-nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+
+  padding: 0;
+
+  background: none;
+  border: none;
+
+  cursor: pointer;
+  text-align: left;
+}
+
+/* The toggle's own arrow indicator — a plain CSS rotation, not a second
+   icon asset. Respects reduced motion below. */
+.ddi-document-nav-toggle::after {
+  content: "▾";
+
+  color: var(--ddi-text-muted);
+
+  transition: transform .18s ease;
+}
+
+.ddi-document-nav-expanded .ddi-document-nav-toggle::after {
+  transform: rotate(180deg);
+}
+
+.ddi-document-nav-list {
+  margin: 18px 0 0;
+  padding: 0;
+
+  list-style: none;
+
+  display: none;
+}
+
+.ddi-document-nav-expanded .ddi-document-nav-list {
+  display: block;
+}
+
+.ddi-document-nav-sublist {
+  margin: 0 0 0 42px;
+  padding: 0;
+
+  list-style: none;
+}
+
+.ddi-document-nav-sublink {
+  display: block;
+
+  padding: .4rem 0;
+
+  color: var(--ddi-text-muted);
+  text-decoration: none;
+
+  font-size: .82rem;
+  letter-spacing: .02em;
+
+  border-bottom: 1px solid rgba(255,255,255,.05);
+
+  transition: all .18s ease;
+}
+
+.ddi-document-nav-sublink:hover {
+  color: var(--ddi-red);
+  transform: translateX(6px);
+}
+
+.ddi-document-nav-list > li:last-child > .ddi-toc-item,
+.ddi-document-nav-sublist li:last-child .ddi-document-nav-sublink {
+  border-bottom: none;
+}
+
+/* Higher specificity than .ddi-toc-item/.ddi-document-nav-sublink alone
+   (two classes, not one) so the active accent always wins regardless of
+   source order — no !important needed. */
+.ddi-document-nav-link.ddi-document-nav-active,
+.ddi-document-nav-sublink.ddi-document-nav-active {
+  color: var(--ddi-red);
+  border-left: 2px solid var(--ddi-red);
+  padding-left: .5rem;
+}
+
+.ddi-document-nav-sublink.ddi-document-nav-active {
+  padding-left: calc(.5rem - 2px);
+}
+
+@media (min-width: 1400px) {
+  .ddi-document-nav {
+    position: fixed;
+    top: 120px;
+    right: 24px;
+
+    width: 240px;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+
+    margin: 0;
+
+    z-index: 900;
+  }
+
+  .ddi-document-nav-toggle {
+    display: none;
+  }
+
+  .ddi-document-nav-list {
+    display: block;
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ddi-toc-item.ddi-document-nav-link,
+  .ddi-document-nav-sublink,
+  .ddi-document-nav-toggle::after {
+    transition: none;
+  }
 }
 
 /* ============================================================

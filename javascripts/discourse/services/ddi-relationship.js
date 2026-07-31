@@ -78,6 +78,7 @@ export default class DdiRelationshipService extends Service {
       title: citation.title,
       classification: citation.classification,
       classificationClass: citation.classificationClass,
+      department: citation.department,
       revision: citation.revision,
       url: citation.url,
     };
@@ -95,6 +96,7 @@ export default class DdiRelationshipService extends Service {
       title: metadata.title,
       classification: metadata.classification,
       classificationClass: metadata.classificationClass,
+      department: metadata.departmentDisplay,
       revision: metadata.revision,
       url: `/t/${topic.id}`,
     };

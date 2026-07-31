@@ -11,7 +11,7 @@ overrides, plugin outlet connectors, and API initializers) with no changes to Di
 
 ## Status
 
-Version 1.0, 1.1, and 1.2 shipped; Version 1.3 is in progress — see
+Version 1.0 through 1.5 shipped — see
 [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for the precise, current list of what's
 implemented versus still planned, and [CHANGELOG.md](CHANGELOG.md) for the full change history. In
 short:
@@ -29,9 +29,15 @@ short:
 - The **topic page** transformation (dossier-style header, classification banner, summary, a
   standardized Document Intelligence Header above the body — v1.3: title, Document Number,
   Classification, Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related
-  Documents count, replacing the earlier mid-page card — table of contents, related-documents
-  panel, Document Relationships, Knowledge Graph Viewer, and a Document Actions bar — Add to
-  Reading List, Favorite, Open Knowledge Graph, Share) is implemented and live.
+  Documents count, replacing the earlier mid-page card — a live Document Navigation Sidebar (v1.4:
+  a right-docked, auto-built outline of every H2/H3 section with active-section highlighting and
+  smooth scroll, replacing the earlier static Table of Contents card; collapses into a tap-to-expand
+  list on narrower screens, hides entirely on documents with no headings), an Intelligence
+  Relationships panel directly below the header (v1.5: References, Supersedes, Superseded By,
+  Related Intelligence, Required Reading, Supporting Documentation, Same Department, and Same
+  Classification, grouped by type and shown only when data exists, replacing the earlier separate
+  Document Relationships and Intelligence Network cards), Knowledge Graph Viewer, and a Document
+  Actions bar — Add to Reading List, Favorite, Open Knowledge Graph, Share) is implemented and live.
 - The **homepage/categories page** also has a real Intelligence Dashboard (archive statistics), a
   Browse Archive section (tabbed: alphabetical Intelligence Index / year-grouped Intelligence
   Timeline), and Division Cards/Header (per-category presentation) — all implemented and live. The
@@ -53,9 +59,9 @@ short:
 
 On the **homepage** specifically (not category/tag pages): a cinematic Hero (v1.2), then a Mission
 Briefing section (v1.2), above everything else. On the **topic page**, in render order: Dossier
-Header, Security Banner, Executive Summary, the Document Intelligence Header (v1.3), Table of
-Contents, Document Relationships, Knowledge Graph Viewer, a Document Actions bar, and
-(staff/debug-only) a Verification Panel and Debug Panel. In the **composer**: a
+Header, a Document Navigation Sidebar (v1.4), Security Banner, Executive Summary, the Document
+Intelligence Header (v1.3), Intelligence Relationships (v1.5), Knowledge Graph Viewer, a Document
+Actions bar, and (staff/debug-only) a Verification Panel and Debug Panel. In the **composer**: a
 Document Author Assistant panel (v1.1). Archive-wide, on the homepage/category pages: Intelligence
 Dashboard, Browse Archive (tabbed Intelligence Index / Intelligence Timeline), Division Cards,
 Division Header. Available from
@@ -105,7 +111,7 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml` — 19 settings, 15 of them read by real code, 4 still reserved for planned
+Declared in `settings.yml` — 21 settings, 17 of them read by real code, 4 still reserved for planned
 work (not orphaned — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan
 each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabled`,
 `ddi_interface_mode_enabled`) were removed in RC cleanup rather than kept as unaccountable toggles.
@@ -127,6 +133,8 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 | `ddi_hero_subtitle` | string | see `settings.yml` | ✅ | Optional homepage hero subtitle — empty hides it |
 | `ddi_mission_briefing_enabled` | bool | `true` | ✅ | Show the Mission Briefing section below the hero (welcome message, mission statement, pillars, objectives) |
 | `ddi_document_intelligence_header_enabled` | bool | `true` | ✅ | Show the standardized Document Intelligence Header above every document |
+| `ddi_document_navigation_sidebar_enabled` | bool | `true` | ✅ | Show the live Document Navigation Sidebar (outline, active-section highlighting) on documents with headings |
+| `ddi_intelligence_relationships_enabled` | bool | `true` | ✅ | Show the Intelligence Relationships panel (grouped References/Supersedes/Superseded By/Related Intelligence/Required Reading/Supporting Documentation/Same Department/Same Classification) below the Document Intelligence Header |
 | `ddi_compact_density` | bool | `true` | reserved | Use compact dashboard spacing density |
 | `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | reserved | Controls ambient red glow intensity |
 | `ddi_sidebar_command_panel_enabled` | bool | `true` | reserved | Enable command-panel sidebar presentation |
@@ -136,7 +144,7 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 
 ```
 about.json            Theme metadata (name, version, authors)
-settings.yml           Theme settings (see above — 15 of 19 wired)
+settings.yml           Theme settings (see above — 17 of 21 wired)
 common/                Styles and templates applied on all devices
   common.scss           Main stylesheet — the live CSS token system and all component styling
   footer.html            Empty, but a valid, recognized template target (see Known Gaps in

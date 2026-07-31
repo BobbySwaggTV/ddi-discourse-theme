@@ -32,8 +32,8 @@ explain why the existing structure didn't fit.
 
 **Files** — kebab-case, `ddi-` prefixed, for every theme-authored JS file in `lib/`, `services/`,
 `connectors/*/`, and `api-initializers/`: `ddi-classification.js`, `ddi-related-intelligence.js`,
-`ddi-intelligence-network.js`. This is consistent across the entire current codebase — no
-exceptions to work around.
+`ddi-document-intelligence-relationships.js`. This is consistent across the entire current
+codebase — no exceptions to work around.
 
 **Connector folders** — named after the exact Discourse plugin outlet they attach to
 (`topic-above-posts`, `topic-below-post-stream`), not an abbreviation or a DDI-specific name. If

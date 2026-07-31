@@ -79,7 +79,17 @@ All topic-page components follow the pattern above. In render order:
    `LIFECYCLE_STATES` — by explicit choice (see `CHANGELOG.md`), the vocabulary itself was left
    untouched rather than adding a new tag as part of a display task, so "Approved" cannot currently
    appear; it would require a genuine vocabulary change (new admin tag), out of scope here.
-2. **Document Breadcrumb** (`connectors/topic-above-post-stream/ddi-document-breadcrumb.*`) — a
+2. **Document Navigation Sidebar** (`connectors/topic-above-post-stream/
+   ddi-document-navigation-sidebar.*`, v1.4) — replaced the old "Table of Contents" card (retired —
+   H2-only, inline, no active-section tracking) with a live, auto-built outline of every H2 and
+   nested H3, active-section highlighting via `IntersectionObserver`, smooth scroll, and a
+   right-docked sticky panel at wide viewports that collapses to a tap-to-expand disclosure at
+   narrower ones. Hides entirely on documents with no headings. Shares `topic-above-post-stream`
+   with Dossier Header/Breadcrumb/Watermark, `position: fixed` at its wide-viewport breakpoint, so
+   its DOM position within that outlet doesn't matter, the same reasoning Classification Watermark
+   below already established for the identical reason. See **Document Navigation Sidebar (v1.4)**
+   below for the full reasoning and confidence caveats.
+3. **Document Breadcrumb** (`connectors/topic-above-post-stream/ddi-document-breadcrumb.*`) — a
    lightweight trail: `DDI Intelligence Archive → Department → Document Type → (current title)`.
    Department is `metadata.department`/`metadata.departmentDisplay` (both already resolved by the
    Metadata Engine from `topic.category`) — falls back to `"Unknown Department"` when
@@ -98,87 +108,89 @@ All topic-page components follow the pattern above. In render order:
    of below, the fix is a `topic-above-post-stream`-only concern (e.g. an explicit render priority or
    moving Breadcrumb to `topic-above-posts` ahead of Security Banner) and does not touch any other
    component. Flagging this the same way the homepage reorder's manual-testing caveat was flagged.
-3. **Classification Watermark** (`connectors/topic-above-post-stream/ddi-classification-watermark.*`)
+4. **Classification Watermark** (`connectors/topic-above-post-stream/ddi-classification-watermark.*`)
    — a fixed, full-viewport, low-opacity classification label rendered behind the document while its
    topic page is mounted. Shares the `topic-above-post-stream` outlet with Dossier Header and
    Breadcrumb; DOM order among the three doesn't matter for the watermark since it's removed from
    normal flow (`position: fixed`). See **Classification Watermark** below.
-4. **Security Banner** (`connectors/topic-above-posts/ddi-security-banner.*`) — classification name
+5. **Security Banner** (`connectors/topic-above-posts/ddi-security-banner.*`) — classification name
    and message, via `lib/ddi-classification.js`.
-5. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
+6. **Executive Summary** (`connectors/topic-above-posts/ddi-executive-summary.*`) — takes the
    first post's cooked HTML, parses it with `DOMParser`, and shows the text of the first `<p>`
    element. This is a simple extraction, not a generated summary.
-6. **Document Intelligence Header** (`connectors/topic-above-posts/ddi-document-intelligence-header.*`,
+7. **Document Intelligence Header** (`connectors/topic-above-posts/ddi-document-intelligence-header.*`,
    v1.3) — replaced the old "Document Intelligence" card (same outlet, same filename-ordering
    position — `ddi-document-intelligence-header` still sorts between `ddi-executive-summary` and
-   `ddi-document-revision-history`/`ddi-document-toc`, re-verified after the rename, see below). A
+   `ddi-document-revision-history`, re-verified after the rename, see below). A
    prominent document title plus a compact two-column metadata grid: Document Number, Classification,
    Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related Documents count.
    See **Document Intelligence Header (v1.3)** below for the full reasoning.
-7. **Table of Contents** (`connectors/topic-above-posts/ddi-document-toc.*`) — scans the first
-   post's rendered `<h2>` elements after render (`requestAnimationFrame`), assigns each an `id`, and
-   lists them as anchor links.
-8. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
+8. **Intelligence Relationships** (`connectors/topic-above-posts/
+   ddi-document-intelligence-relationships.*`, v1.5) — replaced the old, separate Document
+   Relationships and Intelligence Network cards (both retired — see items 12/13 removed from this
+   list) with one consolidated panel directly below the Document Intelligence Header, grouped by
+   relationship type: References, Supersedes, Superseded By, Related Intelligence, Required Reading,
+   Supporting Documentation (all from `services/ddi-relationship.js#getRelationships()`, unchanged),
+   plus two new derived groups, Same Department and Same Classification (client-side filters over
+   `services/ddi-related-intelligence.js#findRelated()`'s own already-ranked candidates — no new
+   fetch, no new scoring pass). Only groups with data render; the whole panel hides on documents with
+   no relationships in any group. Filename deliberately sorts directly after
+   `ddi-document-intelligence-header` and before `ddi-document-revision-history` (shared prefix
+   `ddi-document-i` still precedes `ddi-document-r`), the same filename-ordering technique used
+   throughout this outlet. See **Intelligence Relationships (v1.5)** below for the full reasoning and
+   confidence caveats.
+9. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
    Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
    synchronously from the first post — no service, since nothing here needs async I/O or
    cross-component reuse. Positioned directly below the Document Intelligence Header via
    filename-based outlet ordering (see `docs/ddi-intelligence-network.md` for the same technique
    applied elsewhere). RC cleanup re-verified the sort arithmetic itself is correct
-   (`ddi-document-intelligence` < `ddi-document-revision-history` < `ddi-document-toc`, confirmed
+   (`ddi-document-intelligence` < `ddi-document-revision-history`, confirmed
    against the live directory listing); re-verified again after the v1.3 rename
-   (`ddi-document-intelligence-header` sorts identically relative to both, since the shared prefix
-   `ddi-document-i` still precedes `ddi-document-r`/`ddi-document-t`) — what remains genuinely
+   (`ddi-document-intelligence-header` sorts identically relative to it, since the shared prefix
+   `ddi-document-i` still precedes `ddi-document-r`) — what remains genuinely
    unverified is the underlying assumption that Discourse renders same-outlet connectors in filename
    order at all, which requires a running instance to confirm and wasn't something either pass had
-   access to.
-9. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
+   access to. (The old "Table of Contents" card that used to sort last in this chain,
+   `ddi-document-toc`, was retired in v1.4 — see item 2 above and **Document Navigation Sidebar
+   (v1.4)** below — so this chain no longer has a third link.)
+10. **Intelligence Timeline** (`connectors/topic-above-posts/ddi-document-timeline.*`) — a vertical,
    chronologically-ordered list of lifecycle events (Created, Approved, Revised, Reviewed,
    Deprecated, Archived), synchronous, derived entirely from `ddi-document-metadata.js`'s existing
    fields (no new fetch, no new tag, no new topic custom field). Filename sorts directly after
-   Revision History and before Table of Contents (`ddi-document-revision-history` <
-   `ddi-document-timeline` < `ddi-document-toc`), same filename-ordering technique and the same
-   unverified-against-a-live-instance caveat noted for Revision History above. See **Intelligence
-   Timeline** below.
-10. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
+   Revision History (`ddi-document-revision-history` < `ddi-document-timeline`), same
+   filename-ordering technique and the same unverified-against-a-live-instance caveat noted for
+   Revision History above. See **Intelligence Timeline** below.
+11. **Document Footer** (`connectors/topic-below-post-stream/ddi-document-footer.*`) — Document
    Number, Classification, Revision, Department, Last Updated, Author, and a static "End of
-   Document" marker. Synchronous, same reasoning as Revision History (no service needed). Ordered
-   before Intelligence Network within the same outlet (filename-based, same caveat as above,
-   re-verified the same way) so the document's own closing metadata appears before the secondary
-   "related documents" panel. `ddi-debug-panel` also shares this outlet and sorts before both — no
-   ordering requirement was ever set for it, so there's nothing to verify there.
-11. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-document-navigation.*` +
+   Document" marker. Synchronous, same reasoning as Revision History (no service needed).
+   `ddi-debug-panel` also shares this outlet and sorts before it — no ordering requirement was ever
+   set for it, so there's nothing to verify there.
+12. **Archive Navigation** (`connectors/topic-below-post-stream/ddi-document-navigation.*` +
     `services/ddi-archive-navigation.js`) — Previous Document, Next Document, Department Home, and
     up to 5 Recent Documents in Department. Previous/Next/Recent are ordered by Document Number
     (`lib/ddi-document-order.js`, parsed via `lib/ddi-document-id.js`'s existing `parseDocumentId()` —
     reused rather than re-implemented), not creation date. The connector was renamed from
-    `ddi-navigation` to `ddi-document-navigation` specifically so its filename sorts between
-    `ddi-document-footer` and `ddi-document-relationships`, placing it directly beneath Document
-    Footer using the same deliberate filename-ordering mechanism described above — the service class
-    and its file (`ddi-archive-navigation.js`) were kept as-is since only the connector's outlet
-    position needed to change. See **Archive Navigation** below.
-12. **Document Relationships** (`connectors/topic-below-post-stream/ddi-document-relationships.*` +
-    `services/ddi-relationship.js`) — up to N declared relationships (References, Supersedes,
-    Superseded By, Related Intelligence, Required Reading, Supporting Documentation) to other
-    documents, parsed from the current document's own body text. Sorts immediately after Archive
-    Navigation in the same outlet (previously immediately after Document Footer, before Archive
-    Navigation's connector was relocated here — see previous item). See **Document Relationships**
-    below.
-13. **Intelligence Network** (`connectors/topic-below-post-stream/ddi-intelligence-network.*` +
-    `services/ddi-related-intelligence.js`) — up to 5 related topics, scored by: same category
-    (+100), same classification (+50, see caveat below), and +25 per shared tag. See
-    `docs/ddi-intelligence-network.md` for the full design rationale.
-14. **Cross References** (`api-initializers/ddi-cross-references.js` +
+    `ddi-navigation` to `ddi-document-navigation` specifically so its filename sorts directly after
+    `ddi-document-footer`, placing it directly beneath Document Footer using the same deliberate
+    filename-ordering mechanism described above — the service class and its file
+    (`ddi-archive-navigation.js`) were kept as-is since only the connector's outlet position needed to
+    change. (Previously this also had to sort ahead of `ddi-document-relationships`; that connector,
+    along with `ddi-intelligence-network`, was retired in v1.5 — see item 8 above and **Intelligence
+    Relationships (v1.5)** below — so this outlet's own ordering constraint is simpler than it used
+    to be.) See **Archive Navigation** below.
+13. **Cross References** (`api-initializers/ddi-cross-references.js` +
     `lib/ddi-cross-reference.js`) — detects `DDI-NNNNNN` patterns in the first post's rendered text
     and converts them into links to the referenced document. Not a plugin-outlet connector, unlike
     everything else in this list — `decorateCookedElement` is the correct Discourse API for mutating
     already-rendered post HTML, and this project already has one precedent for that class of work
     (`api-initializers/ddi-dossier-refresh.js`). See **Cross References** below for the full split
     between the pure detection/parsing library and this DOM-mutation layer.
-15. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
+14. **Debug Mode** (`connectors/topic-below-post-stream/ddi-debug-panel.*` +
     `lib/ddi-debug.js`) — an opt-in diagnostic panel (Document ID, Topic ID, Category,
     Classification, Detected Tags, Revision, Word Count, Reading Time), gated entirely off by
     default. See **Debug Mode** below.
-16. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
+15. **Document Integrity Verification** (`connectors/topic-below-post-stream/ddi-verification-panel.*`
     + `lib/ddi-integrity.js`) — five PASS/WARN checks (Classification, Department, Document Type,
     Lifecycle, Metadata) against the current document's already-resolved metadata. Gated by the same
     `ddi_debug_mode_enabled` setting as Debug Mode, not a new one. Filename (`ddi-verification-panel`)
@@ -301,7 +313,14 @@ in this document: `decorateCookedElement`'s `{ onlyStream: true }` option and `h
 are standard, well-established patterns, but haven't been confirmed against this project's actual
 target Discourse core version.
 
-## Document Relationships
+## Document Relationship Service
+
+**Renamed from "Document Relationships" (v1.5).** This section used to describe a dedicated
+`connectors/topic-below-post-stream/ddi-document-relationships.*` card; that card was retired in
+v1.5 and its data now renders as part of the consolidated Intelligence Relationships panel (see
+**Intelligence Relationships (v1.5)** below). Everything below is unchanged and still accurate —
+`services/ddi-relationship.js` itself, and the reasoning behind it, weren't touched, only which
+connector consumes it.
 
 A document declares relationships to other documents by writing a labeled line in its own body
 text — e.g. `Supersedes: DDI-000123` or `References: DDI-000456, DDI-000789` — one of the 6 types in
@@ -325,14 +344,23 @@ exactly the class of bug already caught once this session (a cache-key type mism
 citation-preview file); reusing the service that's already correct for this shape avoids repeating
 it.
 
-**Fails gracefully per-reference, not per-card.** If a declared reference can't be resolved (deleted
+**Fails gracefully per-reference, not per-group.** If a declared reference can't be resolved (deleted
 topic, no access, bad ID), `getCitationById` already resolves to `null` — `_resolve()` passes that
-through, and the caller filters `null`s out. A card with 3 declared relationships where 1 is broken
-simply shows the other 2; it doesn't show an error row, matching how Intelligence Network already
-handles individual fetch failures.
+through, and the caller filters `null`s out. A group with 3 declared relationships where 1 is broken
+simply shows the other 2; it doesn't show an error row, matching how `services/ddi-related-
+intelligence.js` already handles individual fetch failures.
 
 **Designed for expansion, concretely:** the 6 relationship types are a single array
 (`RELATIONSHIP_TYPES`) the regex is built from — adding a 7th type is a one-line change, nothing else.
+
+**`department` added to both `_resolve()` and `_citationFromMetadata()`'s returned shape (v1.5).**
+Neither previously exposed it, even though the underlying citation data always had it —
+`ddi-citation-preview.js#_buildCitation()` already computes `department`, and
+`ddi-document-metadata.js#_resolve()` already computes `departmentDisplay`; this only forwards an
+already-derived field through, added for the Intelligence Relationships panel's per-item department
+display. Purely additive — every existing consumer of `getRelationships()` (this connector's old
+card, and Knowledge Graph via `getDocumentGraph()`) reads the same fields it already read and is
+unaffected by the new one.
 
 **`isValidRelationshipType()` was removed in the v1.0 RC cleanup, not kept as forward-looking API
 surface.** An earlier version of this doc defended keeping it exported on the same reasoning as
@@ -1262,12 +1290,14 @@ edge-building step, so the center node never has an edge to itself.
 **Node de-duplication fills gaps rather than picking one source and discarding the rest.**
 `lib/ddi-graph.js`'s `mergeNodes()` is new, small, and pure: the same target document can be
 discovered by more than one signal (declared as a Relationship *and* independently surfaced by
-Intelligence Network, say) with slightly different field completeness — Relationship-sourced nodes
-don't carry `department`, since `getRelationships()`'s resolved shape doesn't include it. Rather than
-whichever source ran first silently winning, `mergeNodes()` keeps the first-seen node and backfills
-any `null`/`undefined` field from later occurrences of the same ID — multiple *edges* to that ID
-still exist, one per signal that found it (this is a multigraph, not a simplified one), only the
-*node* is deduplicated.
+`findRelated()`, say) with slightly different field completeness. (Relationship-sourced nodes used to
+never carry `department`, since `getRelationships()`'s resolved shape didn't include it — v1.5 added
+that field, see **Document Relationship Service** above, so this specific gap no longer occurs
+between these two signals; `mergeNodes()`'s backfill still exists for signals where a genuine
+completeness gap remains.) Rather than whichever source ran first silently winning, `mergeNodes()`
+keeps the first-seen node and backfills any `null`/`undefined` field from later occurrences of the
+same ID — multiple *edges* to that ID still exist, one per signal that found it (this is a multigraph,
+not a simplified one), only the *node* is deduplicated.
 
 ### Architecture Review
 
@@ -3302,6 +3332,233 @@ found nothing new beyond the two intentional reuse points documented above; `.dd
 confirmed still used by its other four existing consumers (Debug Panel, Verification Panel,
 Document Footer, Revision History), none of which were touched.
 
+## Document Navigation Sidebar (v1.4)
+
+A live outline of the current document (`connectors/topic-above-post-stream/
+ddi-document-navigation-sidebar.*`): every H2 and nested H3, active-section highlighting, smooth
+scroll on click, sticky/docked at wide viewports, a tap-to-expand disclosure at narrower ones, and
+hidden entirely on documents with no headings.
+
+**Replaces the old "Table of Contents" card, not an addition alongside it.** That card (same
+render-order slot, see **Topic Page Components** above) already scanned the same H2 headings and
+listed them as anchor links — this component is a strict superset (adds H3 nesting, active
+tracking, smooth scroll, sticky positioning) of the exact same underlying data, so keeping both
+would have shown the same outline twice on one page. `git rm`'d outright, following the same
+replace-not-duplicate call already made for the Document Intelligence Header above and reasoned the
+same way: "do not introduce duplicate heading parsing if a heading parser already exists" is an
+explicit instruction to find and reuse what's there, not a hint to build a second one beside it.
+
+**Heading scan reuses the retired TOC's exact algorithm, extended rather than rewritten.** Same
+selector (`.topic-post:first-child .cooked h2`, now also `h3`), same `requestAnimationFrame`
+"wait for Discourse to finish rendering the cooked post" technique, same slug generation
+(lowercase, strip punctuation, spaces to hyphens). One real gap in the original closed while
+rewriting it: two identically-titled sections previously collided on the same `#id` silently; a
+numeric suffix (`overview`, `overview-2`, `overview-3`, …) now guarantees uniqueness — a latent bug
+made meaningfully more likely once H3s multiply the heading count per document, not a new feature.
+An H3 encountered before any H2 is skipped rather than guessed at, the same fail-gracefully
+convention used throughout this theme.
+
+**Builds the outline exactly once — verified directly, not just claimed.** `buildOutline()` runs a
+single time inside the same `requestAnimationFrame` callback that used to gate the old TOC; nothing
+after that re-queries `.cooked h2`/`h3`. Active-section tracking after that point is handled
+entirely by `IntersectionObserver` — a real browser API this theme had never used before, not an
+existing instance being "reused" in the literal sense, but the standard, correct tool for "which
+element is currently in view" instead of a hand-rolled scroll-position calculation, which is what
+"reuse `IntersectionObserver`" in the task's own Performance section actually asked for. A heading
+counts as "current" once it enters the top 30% of the viewport (`rootMargin: "0px 0px -70% 0px"`),
+the standard technique for this exact UX, not an arbitrary number. When multiple headings intersect
+at once (a short section fully on screen alongside a longer one it's overlapping), the physically
+highest one wins, picked by comparing `boundingClientRect.top` — verified directly against a mocked
+multi-entry callback.
+
+**Active-state changes never re-touch the DOM or re-run the heading scan.** `applyActiveState()`
+maps the *already-built* outline array with fresh `isActive` booleans and nothing else, called once
+at setup and once per `IntersectionObserver` callback — the same "recompute derived booleans, let
+Ember's classic-component reactivity re-render only what changed" pattern Browse Archive's
+`applyTab()` and Command Palette's various `show*` flags already established, chosen deliberately
+over comparing `section.id === activeId` directly in the template (which would need the `eq`
+helper — `ember-truth-helpers`'s availability in this bare theme has been treated as unconfirmed all
+session, so every conditional in this codebase already avoids it, this one included).
+
+**Smooth scroll respects `prefers-reduced-motion`, and reuses the exact scroll target/offset
+machinery already in place.** Every link keeps a real `href="#id"` (works with JS disabled, in a
+new tab, or via "copy link") — the click handler only calls `preventDefault()` and substitutes
+`scrollIntoView({ behavior, block: "start" })`, with `behavior` resolved from
+`window.matchMedia("(prefers-reduced-motion: reduce)")` at click time — `"auto"` (instant) instead
+of `"smooth"` when the user has that preference set, verified directly for both cases. The existing
+`.topic-post:first-child .cooked h2 { scroll-margin-top: 110px; }` rule (already in place so a
+plain `#anchor` link doesn't land a heading behind Discourse's fixed site header) gained `h3` in the
+same selector — the identical value, not a new one — so this needed zero new offset math anywhere:
+native `scrollIntoView()` already honors `scroll-margin-top` on its own.
+
+**Positioning is a stated confidence caveat, not a false claim of certainty.** `position: fixed`,
+docked at `top: 120px; right: 24px`, only above `min-width: 1400px`. `#main-outlet` has its own
+`max-width: 1700px` and fills nearly the entire viewport width below roughly that point (only 20px
+of margin on each side), so there's genuinely no free horizontal gutter for a docked panel to sit
+in without overlap risk at most common desktop widths — 1400px was chosen as a deliberately
+conservative floor, not a value confirmed against a live Discourse instance's actual rendered page
+width, which wasn't available for this pass. Documented here explicitly, the same way Document
+Breadcrumb's own untested render-order-within-an-outlet caveat is documented above, so a real
+deployment knows to verify at its own common widths and adjust `top`/`right`/the breakpoint in
+`common.scss` if overlap ever actually occurs.
+
+**Below that breakpoint, a disclosure widget, not a vanished feature.** "Collapse gracefully on
+mobile" is read as "still present, just compact" — distinct from "no headings," which hides the
+whole thing outright. A `<button aria-expanded>` toggles a `<ul id="ddi-document-nav-list"
+aria-controls="...">` open/closed; this is deliberately the plain WAI-ARIA disclosure pattern, not
+`lib/ddi-modal.js`'s full focus-trap/backdrop dialog machinery, since there's no backdrop, no focus
+trap, and no separate open/close-anywhere requirement here — pulling in the heavier mechanism built
+for actual modal dialogs would be more machinery than a simple collapsible list needs. Verified this
+tier covers both "tablet" and "mobile" together, deliberately, rather than by omission — this
+feature's constraint (no free horizontal gutter) doesn't meaningfully differ between the two the way
+content-reflow concerns elsewhere in this theme do, which is why it doesn't reuse this theme's usual
+600px/900px breakpoints for anything here.
+
+**Reuses this theme's own navigation typography and hover style, not the card/tile vocabulary.**
+Top-level links keep the exact `.ddi-toc-item`/`.ddi-toc-item-number`/`.ddi-toc-title` classes (and
+hover state — `color: var(--ddi-red); transform: translateX(6px);`) the retired TOC already used,
+satisfying "hover states should reuse existing navigation styling" literally; H3 sublinks are new,
+smaller (`.ddi-document-nav-sublink`) but styled with the identical hover technique, not a
+different one. The panel shell reuses `.ddi-card`'s own border/shadow/padding values directly
+(matched to the Document Intelligence Header's spacing as required) plus the same
+`--ddi-bg-panel` + `backdrop-filter: blur(4px)` glass treatment Mission Briefing/the Header already
+established. The active accent (`--ddi-red` text plus a 2px left border) uses a two-class selector
+(`.ddi-document-nav-link.ddi-document-nav-active`) specifically so it wins on specificity over the
+reused base classes regardless of source order — no `!important` anywhere in this file.
+
+**Verified directly.** Extracted the actual `buildOutline`/`assignUniqueId`/`slugify`/
+`applyActiveState`/`prefersReducedMotion` functions from the real source file (not reimplementations)
+and exercised: H2/H3 nesting and numbering; duplicate heading text producing unique, non-colliding
+ids; an H3 encountered before any H2 (skipped, not mis-nested); zero headings (empty outline). A
+second pass evaluated the actual `setupComponent` against a mocked `IntersectionObserver`,
+`requestAnimationFrame`, and DOM: full lifecycle (outline builds, every heading observed, topmost
+intersecting entry correctly wins); zero headings (stays hidden, no observer ever created); a
+component destroyed before the `requestAnimationFrame` callback fires (no crash, no observer
+created); `teardownObserver()` actually disconnecting the real observer; and a component destroyed
+mid-scroll (the intersection callback correctly no-ops rather than updating a torn-down component).
+A third pass verified the click handler: `preventDefault()` always called, `"smooth"` under normal
+motion preference, `"auto"` under `prefers-reduced-motion: reduce`, and a click on a stale/missing
+id doing nothing rather than throwing. `node --check` clean; `sass` compiles `common/common.scss`
+cleanly; `settings.yml` re-validated as YAML (20 settings); a repository-wide exact-selector
+duplicate scan found nothing new. No new backend API, service, or document-metadata field — the
+only data used is the already-rendered post's own heading elements.
+
+## Intelligence Relationships (v1.5)
+
+A contextual panel directly below the Document Intelligence Header
+(`connectors/topic-above-posts/ddi-document-intelligence-relationships.*`) explaining how the
+current document relates to the rest of the archive — declared relationships and algorithmically
+discovered ones, organized into labeled groups, not a flat list.
+
+**Replaces two separate cards, not an addition alongside them.** The old Document Relationships card
+(declared relationships only) and Intelligence Network card (up to 5 algorithmically-related topics)
+both lived on `topic-below-post-stream`, each with its own "RESOLVING…"/"SCANNING…" loading state and
+its own empty-state message. This panel consolidates both into one grouped view immediately below the
+header, following the same replace-not-duplicate call already made for the Document Intelligence
+Header and Document Navigation Sidebar above. `git rm`'d outright: `ddi-document-relationships.*` and
+`ddi-intelligence-network.*` are gone. The services behind them are not — `services/ddi-relationship.js`
+(see **Document Relationship Service** above) and `services/ddi-related-intelligence.js` are unchanged
+and still the only source of this data; only the presentation layer moved.
+
+**Zero new data sources — every group is either the existing service's result, grouped, or a
+client-side filter over it.** `setupComponent` calls exactly two things for the current topic:
+`ddi-relationship.js#getRelationships(topic)` and `ddi-related-intelligence.js#findRelated(topic)` —
+the same two calls Document Relationships and Intelligence Network already made, each still cached by
+topic id in its own service (see **Performance Audit** below for why that caching exists). Any other
+connector on the same page requesting the same topic's relationships or related documents — Knowledge
+Graph Viewer included — hits the same cache; this panel adds no new fetch and no new scoring pass.
+`lib/ddi-intelligence-relationships.js#buildRelationshipGroups(relationships, related, metadata)` is
+pure grouping logic over those two already-resolved arrays plus the current document's own already-
+resolved metadata (`ddi-document-metadata.js#getMetadata()`, likewise cached and already called by
+the Document Intelligence Header on the same page).
+
+**Eight possible groups, declared groups first:** References, Supersedes, Superseded By, Related
+Intelligence, Required Reading, Supporting Documentation — `RELATIONSHIP_TYPES`
+(`lib/ddi-relationship.js`) imported and iterated directly, not re-declared, so a group's item set is
+just `relationships.filter((r) => r.type === type)`. Then two derived groups, Same Department and Same
+Classification — `related.filter((c) => c.department === metadata.departmentDisplay)` and
+`related.filter((c) => c.classification === metadata.classification)` respectively. Both sides of
+each comparison resolve through the identical underlying logic (`ddi-citation-preview.js
+#_buildCitation()`'s `department` is `site.categories.find((c) => c.id === topic.category_id)?.name`;
+`ddi-document-metadata.js#_resolve()`'s `departmentDisplay` is `topic.category?.name` — the same
+category's display name either way, both falling back to the same `UNCATEGORIZED_LABEL`), so this is
+a safe string-equality filter, not an approximation. **Only groups with at least one item render; if
+every group is empty, `isVisible` stays `false` and the whole panel doesn't render at all** — no
+"NO RELATIONSHIPS FOUND" placeholder text, a deliberate difference from the two retired cards' own
+empty states, per this feature's own requirement to "hide the panel entirely" rather than show an
+empty one.
+
+**Two categories the task's own spec named were deliberately not built, by explicit user decision,
+not an oversight:**
+- **"Referenced By"** — there is no reverse index anywhere in this codebase of which documents cite a
+  given one; `findDocumentReferences()`/`findDocumentRelationships()` only ever parse the *current*
+  document's own body for outgoing references. Building a "what points at me" index would mean
+  scanning every other document's body archive-wide — new, unbounded backend-shaped work, not a reuse
+  of an existing service. Omitted outright rather than approximated.
+- **"Parent Document"/"Child Documents"** — no such concept exists anywhere else in this theme; the
+  closest analogues are the already-declared `Supersedes`/`Superseded By` types. Rather than remap
+  those onto a Parent/Child vocabulary that doesn't otherwise exist, they render under their own
+  original labels, exactly as `RELATIONSHIP_TYPES` already names them — "keep original labels" was
+  the explicit choice made over the alternative (`Supersedes` → "Parent Document",
+  `Superseded By` → "Child Documents").
+
+**Presentation reuses this theme's own established components, not new ones.** The panel shell is
+`.ddi-card` (the same glass panel — `--ddi-bg-panel` + `backdrop-filter: blur(4px)` +
+`--ddi-shadow-lg` — the Document Intelligence Header and Document Navigation Sidebar both already use,
+picked up automatically via `.ddi-card`'s own base `margin: 24px 0` for spacing consistency with its
+neighbors, no new spacing rule needed). Each group heading is `.ddi-nav-section-label` — the exact
+class Command Palette already uses for grouping results under a caption, reused rather than
+duplicated. Each relationship is a real `<a href>` (an `.ddi-toc-item`, this theme's established
+navigation-list styling, hover state included) wrapping `.ddi-toc-title` for the document title and
+`.ddi-search-badges`/`.ddi-search-badge` — Document Quick Preview's own metadata badge — for document
+number, classification (colored via the existing `classificationClass` → `--ddi-accent` mechanism),
+and department. Relationship type is not repeated a third time per item since it's already the group's
+own heading; it's still present per item for a screen reader reading link-by-link, via each item's
+precomputed `aria-label` (see below). The only genuinely new CSS is the gap between two stacked
+groups inside one card — nothing existing already provided that specific spacing.
+
+**Accessibility, verified by inspection, not assumed.** Real `<a href>` elements throughout — no
+`<div>`/`onClick` pattern anywhere, so keyboard access (`Tab`, `Enter`) and "clicking a document opens
+it normally" both fall out of using the correct native element rather than needing separate handling.
+Heading hierarchy is `<h2>` for the panel title (matching the Document Intelligence Header's own `<h2>`
+choice, both below Discourse's native `.topic-title h1`) and `<h3>` for each group label — no level is
+skipped. Each item's `aria-label` (`"{title}, {relationship type}, {document number}, {classification},
+{department}"`, built in `lib/ddi-intelligence-relationships.js`, not `{{concat}}` in the template) is
+a deliberately meaningful link name distinct from the visually adjacent badge row, so a screen reader
+user hears one coherent sentence per link rather than a title followed by four unlabeled badge
+fragments. Color is never the only signal: classification is still spelled out as badge text, the
+accent color is a reinforcement, not the only way to read it — same convention as every other
+classification badge in this theme.
+
+**Verified directly, not just claimed.** `lib/ddi-intelligence-relationships.js#buildRelationshipGroups`
+was extracted from the real source file (not a reimplementation) and exercised against: a mixed input
+covering all 8 possible groups at once (correct group labels, correct order, correct item shape,
+correct `aria-label` text); an all-empty input (`groups.length === 0`, confirming the panel-hide
+condition); and cross-checked that a candidate matching both Same Department and Same Classification
+correctly appears in both groups rather than being deduplicated away (an intentional design choice —
+these are different relationship types, not the same fact stated twice). `node --check` clean on the
+connector, the new `lib/` file, and the modified `services/ddi-relationship.js`; `sass` compiles
+`common/common.scss` cleanly with the new selectors present in the output; `settings.yml` re-validated
+as YAML (21 settings); a repository-wide exact-selector duplicate scan found nothing new beyond the
+one pre-existing legitimate case (`.timeline-footer-controls`); an unused-import/orphan-export sweep
+found nothing new. No new backend API, no new topic custom field, no new fetch — every verification
+above is exercising grouping/presentation logic over data two already-shipped services already
+provide.
+
+**Desktop/tablet/mobile — reasoning-based, not confirmed against a live instance (same caveat as
+Document Navigation Sidebar's own positioning claim above; no running Discourse instance was available
+for this pass either).** The panel adds no layout mechanism of its own — no grid, no fixed
+positioning, no new breakpoint — it's a `.ddi-card` containing stacked `.ddi-toc-item` rows and
+`.ddi-search-badges`, exactly the same DOM shapes the two retired cards already shipped at every
+breakpoint from 320px up, plus `.ddi-nav-section-label` group headings, already responsive by the same
+inheritance. There is nothing breakpoint-specific in this feature for that same reason: nothing new
+needed reasoning about how it reflows, because nothing new reflows differently than components already
+verified at those widths.
+
+**Gated by `ddi_intelligence_relationships_enabled` (`settings.yml`, default `true`)**, the same
+one-toggle-per-feature convention every prior release in this theme has followed — see **Known Gaps /
+Unwired Code** below for the updated settings count.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
@@ -3340,9 +3597,9 @@ was verified by grepping for references — not assumed.
   which were never valid filenames at all), so there's nothing broken about it; it's just unpopulated.
   Deleting a valid-but-empty file provides no runtime benefit, since present-and-empty and
   absent-entirely compile identically.
-- **`settings.yml` — 19 settings, 15 wired, 4 reserved. (Corrected during the Version 1.0 RC audit,
-  the Version 1.1 release audit, and again as of the Homepage Hero, Mission Briefing, and Document
-  Intelligence Header (v1.2/v1.3) —
+- **`settings.yml` — 21 settings, 17 wired, 4 reserved. (Corrected during the Version 1.0 RC audit,
+  the Version 1.1 release audit, and again as of the Homepage Hero, Mission Briefing, Document
+  Intelligence Header, Document Navigation Sidebar, and Intelligence Relationships (v1.2–v1.5) —
   this bullet previously described a 6-settings/1-wired snapshot from before Intelligence Index,
   Timeline, Knowledge Graph Viewer, Reading Lists, Integrity Dashboard, and System Status existed;
   each of those six shipped with its own settings gate, and this summary was never updated to match.
@@ -3353,7 +3610,7 @@ was verified by grepping for references — not assumed.
   design describing what conditional behavior they'd control, and the behavior they name (the header
   shell, "v0.2.0 interface overrides") is unconditionally active today with no described "off" state
   anywhere in this repo's history.
-  - **Wired (15):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
+  - **Wired (17):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
     (Intelligence Dashboard), `ddi_intelligence_index_enabled` (Browse Archive's "All Documents"
     tab), `ddi_timeline_view_enabled` (Browse Archive's "By Year" tab), `ddi_knowledge_graph_viewer_enabled`
     (Knowledge Graph Viewer), `ddi_reading_lists_enabled` (Reading Lists),
@@ -3363,8 +3620,10 @@ was verified by grepping for references — not assumed.
     Actions, v1.1), `ddi_document_author_assistant_enabled` (Document Author Assistant, v1.1),
     `ddi_homepage_hero_enabled`, `ddi_hero_background_image`, `ddi_hero_subtitle` (Homepage Hero,
     v1.2), `ddi_mission_briefing_enabled` (Mission Briefing, v1.2),
-    `ddi_document_intelligence_header_enabled` (Document Intelligence Header, v1.3 — see that
-    section below).
+    `ddi_document_intelligence_header_enabled` (Document Intelligence Header, v1.3),
+    `ddi_document_navigation_sidebar_enabled` (Document Navigation Sidebar, v1.4),
+    `ddi_intelligence_relationships_enabled` (Intelligence Relationships, v1.5 — see that
+    section above).
   - **Reserved, not wired (4):** `ddi_compact_density` and `ddi_red_glow_strength` —
     `docs/ddi-intelligence-archive-dashboard.md`'s Phase 6 explicitly names both for the dashboard's
     "new section styling," a concrete, specific tie to planned work, not a vague aspiration.
