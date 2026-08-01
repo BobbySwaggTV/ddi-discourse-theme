@@ -9,6 +9,200 @@ read the early ad hoc labels as an authoritative release history — this change
 that instead, since those are verifiable. `about.json`'s `version`/`theme_version` is `1.0.0` as of
 the entry below; every entry before it predates that field meaning anything.
 
+## 2026-08-01 — v1.10: Stabilization (final Version 1.x release)
+
+Feature freeze. Fixes exactly the confirmed findings from the v1.9 repository audit
+(`docs/ddi-v1.10-stabilization-audit.md`) — no new panels, no new user-facing functionality.
+
+- **Heading hierarchy**: every remaining `.ddi-card-title` `<div>` promoted to a real `<h2>` (or
+  `<h3>` where a component nests, per its own internal structure) across 17 components — Debug
+  Panel, Document Footer, Archive Navigation, Knowledge Graph Viewer, Verification Panel, Browse
+  Archive, Executive Summary, Intelligence Timeline, Revision History, Document Template Library,
+  Document Author Assistant, Intelligence Dashboard, Division Header, Document Integrity Dashboard,
+  System Status Dashboard, Reading Lists, and Division Cards. Same `ddi-card-title` class throughout
+  — visual result unchanged, only the element tag changed. Division Cards and Reading Lists each
+  needed a nested `<h2>`/`<h3>` structure rather than a flat heading, reasoned through per their own
+  actual DOM nesting rather than applied uniformly. The two dialogs with an `aria-labelledby`
+  dependency (Document Integrity Dashboard, System Status Dashboard) kept their exact `id` attribute
+  on the new heading element.
+- **Dialog-connector wiring**: the duplicated `setupModal`/`onOpenChange`/`teardownModal` boilerplate
+  in all 4 dialog connectors (Document Integrity Dashboard, System Status Dashboard, Document
+  Lifecycle Dashboard, Reading Lists) extracted into new `lib/ddi-dialog-connector.js#buildDialogHandlers()`.
+  `createModal()` itself (`lib/ddi-modal.js`) is unchanged — this only removes the duplicated wiring
+  around it. Reading Lists' one real behavioral difference (its service's `isOpen` can already be
+  `true` at insert time, from a shared-list URL) is now an unconditional check inside the shared
+  helper, proven a no-op for the other three services rather than a per-dialog special case.
+- **Topic adapter**: the duplicated `_adaptTopic()` in `services/ddi-integrity-dashboard.js` and
+  `services/ddi-reading-lists.js` extracted into new `lib/ddi-document-metadata-adapter.js#adaptRawTopic()`.
+  Output shape unchanged — verified directly against the real function.
+- **Badge factory**: the duplicated `createBadge()` in `api-initializers/ddi-search-results.js` and
+  `ddi-document-preview.js` extracted into new `lib/ddi-badge.js`. Generated markup unchanged —
+  verified byte-identical against the real function.
+- **Reduced motion**: `prefers-reduced-motion` coverage extended from 3 of 16 `transition`/`animation`
+  declarations (all Document Navigation Sidebar-specific) to every `.ddi-*` transition in the
+  stylesheet — `.ddi-hero-button`, `.ddi-mission-objectives`, the base `.ddi-toc-item` (used across
+  7+ templates, the highest-impact gap), `.ddi-nav-link`, `.ddi-document-preview`, and
+  `.ddi-browse-archive-tab` added to the existing `@media (prefers-reduced-motion: reduce)` block —
+  same mechanism, same block, no new strategy. Discourse's own native selectors this stylesheet
+  themes were deliberately left out of scope.
+- **`about.json`**: `version`/`theme_version` updated from a stale `"1.1.0"` to `"1.10.0"` — the
+  version Discourse's admin panel displays for this theme. No release tag created; only the
+  displayed version was synchronized.
+- **`CONTRIBUTING.md`**: corrected "13 of 17 settings" (stale since roughly v1.2) to the current,
+  verified "20 of 24."
+- Verified directly: a full repository-wide `node --check` sweep (every JS file), a clean `sass`
+  compile with the extended reduced-motion block present in the output, `settings.yml` re-validated
+  as YAML (24 settings, unchanged), a repository-wide duplicate-CSS-selector scan (nothing new beyond
+  the one pre-existing legitimate case), and an unused-import/orphan-export sweep (clean) — plus
+  direct greps confirming zero remaining instances of each eliminated duplicate pattern
+  (`_adaptTopic`, a second `createBadge`, any inline `createModal(element` call left in a connector).
+  No new backend plugin, no new APIs, no behavior change to any dialog, adapter, or badge output.
+
+## 2026-08-01 — v1.9: Document Lifecycle Dashboard
+
+- New staff-only dialog (`connectors/above-main-container/ddi-lifecycle-dashboard.*` +
+  `services/ddi-lifecycle-dashboard.js`, gated by new `ddi_lifecycle_dashboard_enabled`, default on)
+  consolidating the archive into 8 grouped maintenance views for Executive Command: Draft Documents,
+  Pending Review, Recently Updated, Superseded Documents, Archived Documents, Missing Approval
+  State, Missing Revision History, Documents with Integrity Warnings. Each row shows Document
+  Number, Title, Department, Approval State, Revision, and Last Updated, plus an Open Document link
+  — no editing, no approval buttons, no workflow automation, fully read-only.
+- Filterable by Department, Approval State, Lifecycle, and Classification —
+  `lib/ddi-document-index.js#filterDocuments()` gained a `lifecycle` key alongside its existing
+  `department`/`classification`/`approvalState` keys (the same function v1.1/v1.8 already use), and
+  every section is derived from one filtered document list, so all 8 stay consistent with each other
+  under any combination of the 4 filters.
+- **Deliberately consumes only the Integrity Dashboard's own archive scan, not Citation Preview or
+  Browse Archive's indexing directly — a reasoned deviation from the task's own wording, not an
+  oversight.** Both alternatives maintain their own independent per-topic `/t/{id}.json` fetch
+  pipeline; using them alongside the Integrity Dashboard's scan would have meant fetching every
+  document's full JSON twice. New `services/ddi-integrity-dashboard.js#getDocuments()` exposes
+  exactly what that service's scan already produces; this dashboard builds its display rows locally
+  from the same metadata/revision data, reusing those services' *fields* and *vocabulary* rather than
+  re-invoking them.
+- **`services/ddi-integrity-dashboard.js#_scanArchive()` is now Promise-cached for the session.**
+  Previously, every call to `getIssues()`/`getSummary()` re-triggered a full per-topic-JSON re-scan
+  from scratch — opening the Integrity Dashboard, then System Status, then this new dashboard (or
+  reopening any of them) used to mean up to 3 independent full-archive scans in one session. Now
+  they all share one. Purely additive; none of their own behavior changed.
+- New `lib/ddi-lifecycle-dashboard.js`: `toLifecycleDocument()` reshapes a scanned document into a
+  display row (Metadata Engine + `lib/ddi-approval-state.js#getCurrentApprovalState()` reuse, no new
+  parsing); `buildLifecycleSections()` groups by approval state (Draft/Pending Review/Superseded/
+  Archived), by `lib/ddi-archive-statistics.js#selectRecentlyUpdated()` (reused verbatim, the same
+  function the Intelligence Dashboard's own "Recently Updated" summary already uses), and by
+  `services/ddi-integrity-dashboard.js#getIssues()`'s already-computed issue types (Missing Approval
+  State, Missing Revision History, and "any issue at all" for Integrity Warnings) — no new validation
+  logic anywhere. The 3 issue-derived sections and Draft Documents necessarily overlap (a document
+  with no revision table is simultaneously Draft, missing its approval state, and missing its
+  revision history) — accurate, not a bug.
+- `services/ddi-document-metadata.js#_resolve()` gained a raw, sortable `updatedAt` field (alongside
+  the existing formatted `updatedDate`) — needed for "Recently Updated" sorting, purely additive.
+  `lib/ddi-classification.js#CLASSIFICATIONS` is now exported (previously private) so filter options
+  can list every classification value — the same closed-vocabulary-export pattern `DOCUMENT_TYPES`/
+  `LIFECYCLE_STATES`/`DEPARTMENTS`/`RELATIONSHIP_TYPES` already use in their own files.
+- **Bug fix: `services/ddi-citation-preview.js`'s `_resolveRevision()` fetched a topic's full JSON
+  when needed but discarded everything except the revision number, including the cooked content
+  `_buildCitation()` needed for `approvalState`/`executiveSummary` — which it was instead reading
+  from the original, `post_stream`-less topic argument and silently getting nothing.** This meant
+  Browse Archive's approval badges (v1.8) showed "Draft" for nearly every document, and executive
+  summaries were silently blank, for any topic reached without its own `post_stream` (i.e. anything
+  sourced from the archive's paginated topic list — Browse Archive, Intelligence Index, Archive
+  Navigation, Knowledge Graph, Document Quick Preview). Renamed to `_resolvePost()` and fixed to
+  return both fields from whichever fetch actually has them — no new fetch, the existing one is
+  simply no longer wasted. Found and fixed while verifying this dashboard's own approval-state data.
+- Design entirely reused from the Integrity/System Status Dashboards: `.ddi-command-palette-backdrop`/
+  `-open`, `lib/ddi-modal.js#createModal()`, `.ddi-integrity-trigger` (stacked a third time, `bottom:
+  108px`, continuing the same convention), `.ddi-integrity-table`/`-table-wrap` per section,
+  `.ddi-search-badge` for Approval State, `.ddi-select`/`.ddi-nav-section-label` for the 4 filters
+  (the same pair Browse Archive's v1.8 filter introduced), `.ddi-nav-link`/`.ddi-favorites-actions`
+  for Open Document/Close. Only new CSS: a wider panel, the filter grid, and section spacing.
+- Accessibility: real `<h2>`/`<h3>` headings (a deliberate improvement over the Integrity/System
+  Status Dashboards' own plain title `<div>`, since this task explicitly asked for proper headings),
+  real `<table>` markup per section, native `<label for>`/`<select id>` filter controls, the same
+  focus-trap/Escape/scroll-lock behavior every DDI dialog already gets from `createModal()`.
+- Verified directly: the `_resolvePost()` fix exercised against a mocked `ajax` for both branches (a
+  topic with `post_stream` — zero fetches, unchanged output; a topic without — one fetch, now
+  correctly recovers `cooked`). The scan-caching fix verified with a minimal reimplementation
+  confirming concurrent and later calls share one build. `lib/ddi-lifecycle-dashboard.js` exercised
+  against 6 hand-built documents and 3 hand-built issues: all 8 sections correct; department and
+  lifecycle filtering each correctly narrowed every section; an empty archive produced 8 empty
+  sections, not an error; filter options correct for all 4 dimensions. `node --check` clean on the
+  full repository; `sass` compiles cleanly; `settings.yml` re-validated as YAML (24 settings); a
+  repository-wide duplicate-selector scan and an unused-import/orphan-export sweep found nothing new,
+  confirming both new exports (`getDocuments()`, `CLASSIFICATIONS`) have real consumers. No new
+  backend plugin, no new API, no duplicate archive scan, no duplicate validation.
+
+## 2026-08-01 — v1.8: Document Approval Workflow
+
+- Surfaces one derived field — a document's current approval state (Draft, Pending Review, Approved,
+  Superseded, or Archived) — throughout the archive, everywhere an existing DDI feature already
+  shows a document's other metadata. Not a new approval system: no new source of truth, no change to
+  Discourse's own permissions — the state is read from the same Revision History table (v1.7) a
+  document already has, specifically its latest revision's Approval Status column.
+- New `lib/ddi-approval-state.js`: `getCurrentApprovalState(rows)` is the one function every surface
+  calls — reuses `lib/ddi-revision-table.js#getRevisionsNewestFirst()` (v1.7) to find the latest
+  revision, then normalizes its Approval Status to one of the 5 recognized states, defaulting any
+  unknown, empty, or missing value to Draft. A separate `isValidApprovalState()` is the stricter
+  check Author Assistant/Integrity Dashboard use to WARN when a value needs correcting — display
+  always shows a sane Draft default even for a document those checks are actively flagging.
+- **`services/ddi-citation-preview.js#_buildCitation()` now computes `approvalState` once, for
+  every citation this theme builds — the single addition that makes this "everywhere," not a
+  per-surface integration.** Reuses the same cooked-HTML string `getShortDescription()` already
+  parses immediately above it (a cache hit via `lib/ddi-cooked-parser.js`'s existing LRU cache, not
+  a second parse). Every existing citation consumer — Browse Archive, Intelligence Index, Archive
+  Navigation, Knowledge Graph, Document Quick Preview, `findRelated()` — now carries approval state
+  with zero changes to any of those files, the same "add one field to the shared builder" technique
+  v1.5 used for `department`.
+- `services/ddi-relationship.js` needed one small addition of its own: `_citationFromMetadata()`
+  (the self-referencing-relationship special case, which doesn't go through Citation Preview) now
+  independently computes `approvalState` from the current topic's own already-parsed cooked HTML —
+  a cache hit, not a new parsing path.
+- **Document Intelligence Header**: new Approval State field, rendered as a `.ddi-search-badge`
+  rather than the plain text every other field in that grid uses — a deliberate exception, per this
+  feature's own explicit "reuse existing badge styling" instruction for this surface specifically.
+- **Intelligence Relationships**: each entry now shows an Approval State badge — a straight
+  copy-through of the field the source relationship/citation object already carries, no new parsing,
+  folded into each item's existing `aria-label` too.
+- **Browse Archive**: every document row (both tabs) now shows an Approval State badge, plus a new
+  optional filter `<select>` above the tabs. `lib/ddi-document-index.js#filterDocuments()` gained an
+  `approvalState` key alongside its existing `department`/`classification` keys — the filter applies
+  it as a second, synchronous, client-side pass over the one array `getIndex()` already fetched; no
+  new fetch, no change to that service's own caching.
+- **Author Assistant**: 2 more conditional checks — "Approval State" (does the latest revision have
+  any value) always shows once a revision table exists; "Approval Value" (is that value recognized)
+  only shows once a value is actually present, the same nesting v1.7's other conditional checks
+  already established.
+- **Integrity Dashboard**: 3 more "Low"-severity informational checks — Missing Approval State,
+  Invalid Approval Value, and Multiple Current Approved Revisions (the one check with no Author
+  Assistant counterpart, since it compares every revision row, not just the latest) — reusing the
+  exact `doc.revisions` array v1.7's own checks already read from `_toDocument()`'s single parse.
+- **Search results deliberately do not get a visual badge — explained, not silently skipped.**
+  `api-initializers/ddi-search-results.js` reads only DOM Discourse already rendered and never
+  fetches a topic's full JSON; adding approval state there would mean a new per-result network
+  request purely to backfill one badge, which is exactly what "no duplicate indexing"/"no additional
+  requests" argues against. "Include approval state in search metadata" is satisfied without any
+  code change: the Approval Status text is part of the post body, which Discourse's own native
+  full-text search already indexes.
+- CSS: renamed the Template Library's (v1.6) single-purpose `.ddi-document-template-library-select`
+  to a generic `.ddi-select`, now reused by both it and Browse Archive's new filter — avoids a
+  near-duplicate rule under a second feature-specific class name. No color-coding was added to
+  approval badges — text is always present regardless of color, satisfying "no color-only meaning"
+  without new per-state color logic beyond what `.ddi-search-badge` already provides.
+- No new setting: approval state is a field within 5 already-toggled features
+  (Document Intelligence Header, Intelligence Relationships, Browse Archive, Author Assistant,
+  Integrity Dashboard), not a new standalone panel, so there's nothing new to independently gate.
+- Verified directly: `lib/ddi-approval-state.js` exercised standalone for all 5 states, case/
+  whitespace-insensitivity, unknown-value defaulting, a document with no revision rows, and a
+  document whose latest row is unknown even when an earlier row is valid. The real
+  `buildAuthorAssistantChecks()` and the Integrity Dashboard's real `_approvalIssues()` re-verified
+  against missing/invalid/valid/multiple-approved mocked inputs. Browse Archive's filter logic
+  re-verified against real `filterDocuments()`/`groupDocumentsByYear()` for unfiltered, partially-
+  matching, and zero-matching filters. A full repository-wide `node --check` sweep (every JS file,
+  not just touched ones) is clean; `sass` compiles cleanly; `settings.yml` re-validated as YAML (23
+  settings, unchanged); a repository-wide duplicate-selector scan and an unused-import/orphan-export
+  sweep found nothing new, confirming the `.ddi-select` rename left no orphaned reference. No new
+  backend plugin, no new API, no archive rescan, no duplicate approval parsing.
+
 ## 2026-08-01 — v1.7: Document Revision Management
 
 - New structured revision table — Revision Number, Date, Author, Summary, Approval Status —

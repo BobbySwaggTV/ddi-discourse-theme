@@ -1,0 +1,123 @@
+<button
+  type="button"
+  class="ddi-integrity-trigger ddi-lifecycle-dashboard-trigger"
+  {{on "click" this.open}}
+>
+  Lifecycle Dashboard
+</button>
+
+<div class="ddi-command-palette-backdrop ddi-lifecycle-dashboard {{if this.ddiLifecycleDashboard.isOpen "ddi-command-palette-open"}}">
+  <div
+    class="ddi-card ddi-lifecycle-dashboard-panel"
+    {{did-insert this.setupModal}}
+    {{did-update this.onOpenChange this.ddiLifecycleDashboard.isOpen}}
+    {{will-destroy this.teardownModal}}
+  >
+
+    <h2 class="ddi-card-title" id="ddi-lifecycle-dashboard-title">
+      DOCUMENT LIFECYCLE DASHBOARD
+    </h2>
+
+    <div class="ddi-lifecycle-dashboard-filters">
+
+      <div>
+        <label for="ddi-lifecycle-filter-department" class="ddi-nav-section-label">Department</label>
+        <select id="ddi-lifecycle-filter-department" class="ddi-select" {{on "change" this.setDepartmentFilter}}>
+          <option value="">All Departments</option>
+          {{#each this.ddiLifecycleDashboard.filterOptions.departments as |department|}}
+            <option value={{department}}>{{department}}</option>
+          {{/each}}
+        </select>
+      </div>
+
+      <div>
+        <label for="ddi-lifecycle-filter-approval" class="ddi-nav-section-label">Approval State</label>
+        <select id="ddi-lifecycle-filter-approval" class="ddi-select" {{on "change" this.setApprovalStateFilter}}>
+          <option value="">All Approval States</option>
+          {{#each this.ddiLifecycleDashboard.filterOptions.approvalStates as |state|}}
+            <option value={{state}}>{{state}}</option>
+          {{/each}}
+        </select>
+      </div>
+
+      <div>
+        <label for="ddi-lifecycle-filter-lifecycle" class="ddi-nav-section-label">Lifecycle</label>
+        <select id="ddi-lifecycle-filter-lifecycle" class="ddi-select" {{on "change" this.setLifecycleFilter}}>
+          <option value="">All Lifecycle States</option>
+          {{#each this.ddiLifecycleDashboard.filterOptions.lifecycles as |lifecycle|}}
+            <option value={{lifecycle.value}}>{{lifecycle.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+
+      <div>
+        <label for="ddi-lifecycle-filter-classification" class="ddi-nav-section-label">Classification</label>
+        <select id="ddi-lifecycle-filter-classification" class="ddi-select" {{on "change" this.setClassificationFilter}}>
+          <option value="">All Classifications</option>
+          {{#each this.ddiLifecycleDashboard.filterOptions.classifications as |classification|}}
+            <option value={{classification}}>{{classification}}</option>
+          {{/each}}
+        </select>
+      </div>
+
+    </div>
+
+    {{#if this.ddiLifecycleDashboard.isLoading}}
+      <div class="ddi-card-body">
+        SCANNING ARCHIVE…
+      </div>
+    {{else}}
+      {{#each this.ddiLifecycleDashboard.sections as |section|}}
+        <div class="ddi-lifecycle-dashboard-section">
+
+          <h3 class="ddi-nav-section-label">
+            {{section.label}} ({{section.documents.length}})
+          </h3>
+
+          {{#if section.documents.length}}
+            <div class="ddi-integrity-table-wrap">
+              <table class="ddi-integrity-table">
+                <thead>
+                  <tr>
+                    <th>Document Number</th>
+                    <th>Title</th>
+                    <th>Department</th>
+                    <th>Approval State</th>
+                    <th>Revision</th>
+                    <th>Last Updated</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{#each section.documents as |document|}}
+                    <tr>
+                      <td>{{document.documentNumber}}</td>
+                      <td>{{document.title}}</td>
+                      <td>{{document.department}}</td>
+                      <td><span class="ddi-search-badge">{{document.approvalState}}</span></td>
+                      <td>{{document.revision}}</td>
+                      <td>{{document.updatedDate}}</td>
+                      <td>
+                        <a class="ddi-nav-link" href="{{document.url}}">Open Document</a>
+                      </td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            </div>
+          {{else}}
+            <div class="ddi-card-body">
+              NO DOCUMENTS IN THIS CATEGORY
+            </div>
+          {{/if}}
+
+        </div>
+      {{/each}}
+    {{/if}}
+
+    <div class="ddi-favorites-actions">
+      <button type="button" class="ddi-nav-link" {{on "click" this.close}}>Close</button>
+    </div>
+
+  </div>
+</div>

@@ -6,6 +6,7 @@ import {
   getDocumentTypeLabel,
 } from "../lib/ddi-document-type";
 import { isValidDepartment } from "../lib/ddi-department";
+import { createBadge } from "../lib/ddi-badge";
 
 const RESULT_SELECTOR = ".fps-result";
 const TOPIC_LINK_SELECTOR = "a.search-link";
@@ -35,17 +36,6 @@ function extractDepartment(result) {
   }
 
   return badge.textContent.trim();
-}
-
-function createBadge(text, extraClass) {
-  const badge = document.createElement("span");
-
-  badge.className = extraClass
-    ? `ddi-search-badge ${extraClass}`
-    : "ddi-search-badge";
-  badge.textContent = text;
-
-  return badge;
 }
 
 function decorateResult(result) {

@@ -1,8 +1,28 @@
 {{#if this.isVisible}}
   <div class="ddi-card ddi-browse-archive" id="ddi-browse-archive">
 
-    <div class="ddi-card-title">
+    <h2 class="ddi-card-title">
       BROWSE ARCHIVE
+    </h2>
+
+    <div class="ddi-browse-archive-filter">
+      <label
+        for="ddi-browse-archive-approval-filter"
+        class="ddi-nav-section-label"
+      >
+        Filter by Approval State
+      </label>
+
+      <select
+        id="ddi-browse-archive-approval-filter"
+        class="ddi-select"
+        {{on "change" this.setApprovalStateFilter}}
+      >
+        <option value="">All Approval States</option>
+        {{#each this.approvalStateOptions as |state|}}
+          <option value={{state}}>{{state}}</option>
+        {{/each}}
+      </select>
     </div>
 
     {{#if this.showTabs}}
@@ -92,6 +112,11 @@
                           </div>
 
                           <div>
+                            <span>Approval State</span>
+                            <strong><span class="ddi-search-badge">{{doc.approvalState}}</span></strong>
+                          </div>
+
+                          <div>
                             <span>Last Updated</span>
                             <strong>{{doc.updatedDate}}</strong>
                           </div>
@@ -150,6 +175,11 @@
                   <div>
                     <span>Revision</span>
                     <strong>{{doc.revision}}</strong>
+                  </div>
+
+                  <div>
+                    <span>Approval State</span>
+                    <strong><span class="ddi-search-badge">{{doc.approvalState}}</span></strong>
                   </div>
 
                 </div>

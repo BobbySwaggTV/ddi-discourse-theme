@@ -1,5 +1,8 @@
 import { getOwner } from "@ember/owner";
 import { getLifecycleLabel } from "../../lib/ddi-lifecycle";
+import { parseCookedHtml } from "../../lib/ddi-cooked-parser";
+import { parseCookedRevisionTable } from "../../lib/ddi-revision-table";
+import { getCurrentApprovalState } from "../../lib/ddi-approval-state";
 
 // Same fallback Dossier Header already uses for an untagged document's
 // lifecycle — kept as the same literal value for consistency across the
@@ -26,6 +29,14 @@ export default {
       return;
     }
 
+    // parseCookedHtml() is the same LRU-cached parser the Revision History
+    // panel already calls for this exact post — reuses whatever's already
+    // in that cache rather than re-parsing the cooked HTML a second time.
+    const post = topic.postStream?.posts?.[0];
+    const revisionRows = parseCookedRevisionTable(
+      parseCookedHtml(post?.cooked)
+    );
+
     component.setProperties({
       isVisible: true,
       title: metadata.title,
@@ -36,6 +47,7 @@ export default {
       lifecycleLabel:
         getLifecycleLabel(metadata.lifecycle) || FALLBACK_LIFECYCLE_LABEL,
       revision: metadata.revision,
+      approvalState: getCurrentApprovalState(revisionRows),
       // "Last Reviewed" has no field of its own — docs/ddi-document-
       // metadata-standard.md §4.8 documents it as optional and "not yet
       // stored," the same open question ddi-timeline.js's own "Reviewed"

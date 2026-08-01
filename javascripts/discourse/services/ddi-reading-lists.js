@@ -11,6 +11,7 @@ import {
 } from "../lib/ddi-reading-list";
 import { readRecentlyViewed } from "../lib/ddi-recently-viewed";
 import { parseDocumentId, parseTopicIdFromUrl } from "../lib/ddi-document-id";
+import { adaptRawTopic } from "../lib/ddi-document-metadata-adapter";
 
 const STORAGE_KEY = "ddi-reading-lists";
 const SHARE_PARAM = "ddi-shared-list";
@@ -275,26 +276,9 @@ export default class DdiReadingListsService extends Service {
       return 0;
     }
 
-    return this.ddiDocumentMetadata.getMetadata(this._adaptTopic(topic))
-      ?.readingTime || 0;
-  }
-
-  // Adapts a raw /t/{id}.json payload into the shape
-  // ddiDocumentMetadata.getMetadata() expects from a live Ember Topic model
-  // — the same shape-translation-only technique the Integrity Dashboard
-  // service already uses for the same reason (see ARCHITECTURE.md).
-  _adaptTopic(topic) {
-    return {
-      id: topic.id,
-      title: topic.title,
-      tags: topic.tags || [],
-      created_at: topic.created_at,
-      closed: topic.closed,
-      category:
-        this.site.categories?.find((c) => c.id === topic.category_id) ||
-        null,
-      postStream: { posts: topic.post_stream?.posts || [] },
-    };
+    return this.ddiDocumentMetadata.getMetadata(
+      adaptRawTopic(topic, this.site.categories)
+    )?.readingTime || 0;
   }
 
   _readLists() {

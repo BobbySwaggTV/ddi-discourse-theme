@@ -6,11 +6,17 @@ import { verifyDocumentIntegrity } from "../lib/ddi-integrity";
 import { findDocumentReferences } from "../lib/ddi-cross-reference";
 import { findDocumentRelationships } from "../lib/ddi-relationship";
 import { formatDocumentId } from "../lib/ddi-document-id";
+import { adaptRawTopic } from "../lib/ddi-document-metadata-adapter";
 import {
   parseCookedRevisionTable,
   findDuplicateRevisionNumbers,
   isRevisionOrderValid,
 } from "../lib/ddi-revision-table";
+import {
+  getLatestRevision,
+  isValidApprovalState,
+  findApprovedRevisions,
+} from "../lib/ddi-approval-state";
 import {
   ISSUE_TYPES,
   buildIssue,
@@ -43,6 +49,9 @@ export default class DdiIntegrityDashboardService extends Service {
   @tracked isOpen = false;
   @tracked isLoading = false;
   @tracked issues = [];
+
+  // See _scanArchive() below for why this exists.
+  _scanPromise = null;
 
   async open() {
     this.isOpen = true;
@@ -79,6 +88,21 @@ export default class DdiIntegrityDashboardService extends Service {
     };
   }
 
+  // The Document Lifecycle Dashboard (v1.9) needs the scanned documents
+  // themselves, not just the issues derived from them — this exposes
+  // exactly what _scanArchive() already produces internally, unchanged,
+  // rather than that dashboard maintaining its own second archive-wide
+  // fetch. Combined with _scanArchive()'s own caching below, calling this
+  // alongside getIssues()/getSummary() in the same session (or the same
+  // page load) triggers the underlying per-topic fetches at most once.
+  async getDocuments() {
+    if (!this.currentUser?.staff) {
+      return [];
+    }
+
+    return this._scanArchive();
+  }
+
   async _buildIssues(documents) {
     const knownIds = new Set(documents.map((doc) => doc.topicId));
 
@@ -86,6 +110,7 @@ export default class DdiIntegrityDashboardService extends Service {
       ...documents.flatMap((doc) => this._metadataIssues(doc)),
       ...this._duplicateIssues(documents),
       ...documents.flatMap((doc) => this._revisionIssues(doc)),
+      ...documents.flatMap((doc) => this._approvalIssues(doc)),
     ];
 
     const [crossReferenceIssues, relationshipIssues] = await Promise.all([
@@ -118,12 +143,32 @@ export default class DdiIntegrityDashboardService extends Service {
     return counts;
   }
 
+  // Promise-cached for the life of the session (v1.9) — the same "store the
+  // in-flight/resolved Promise itself" technique ddi-archive.js#getTopics()
+  // already uses, applied one level up. Before this, getIssues()/getSummary()
+  // each triggered their own independent full-archive scan (every topic's
+  // own /t/{id}.json fetch) whenever called, so opening the Integrity
+  // Dashboard, then System Status, then this session's own Document
+  // Lifecycle Dashboard (v1.9, via the new getDocuments() above) — or even
+  // opening the same dashboard twice — re-fetched every document's full
+  // JSON from scratch each time. Never invalidated, matching every other
+  // "cache for the session" service in this theme; a stale result after an
+  // edit elsewhere is the same accepted tradeoff ddiArchive/ddiDocumentMetadata/
+  // ddiCitationPreview already make.
+  async _scanArchive() {
+    if (!this._scanPromise) {
+      this._scanPromise = this._buildScan();
+    }
+
+    return this._scanPromise;
+  }
+
   // The archive's full topic list comes from the shared, paginated,
   // session-cached ddi-archive.js service — see ARCHITECTURE.md's Archive
   // Pagination section. Each topic still needs its own full /t/{id}.json
   // fetch here (for cooked text + tags the list endpoint doesn't carry),
   // which is a different, unavoidable concern from listing the archive.
-  async _scanArchive() {
+  async _buildScan() {
     const topics = await this.ddiArchive.getTopics();
     const fullTopics = await Promise.all(
       topics.map((topic) => this._fetchFullTopic(topic.id))
@@ -138,7 +183,7 @@ export default class DdiIntegrityDashboardService extends Service {
 
   _toDocument(topic) {
     const metadata = this.ddiDocumentMetadata.getMetadata(
-      this._adaptTopic(topic)
+      adaptRawTopic(topic, this.site.categories)
     );
 
     // Parsed exactly once and reused for both .textContent (cross-
@@ -153,24 +198,6 @@ export default class DdiIntegrityDashboardService extends Service {
       metadata,
       text: parsed?.body?.textContent,
       revisions: parseCookedRevisionTable(parsed),
-    };
-  }
-
-  // Adapts a raw /t/{id}.json payload (snake_case, no resolved category
-  // object) into the shape ddiDocumentMetadata.getMetadata() expects from a
-  // live Ember Topic model — shape translation only, none of the Metadata
-  // Engine's own resolution/validation logic is reimplemented here.
-  _adaptTopic(topic) {
-    return {
-      id: topic.id,
-      title: topic.title,
-      tags: topic.tags || [],
-      created_at: topic.created_at,
-      closed: topic.closed,
-      category:
-        this.site.categories?.find((c) => c.id === topic.category_id) ||
-        null,
-      postStream: { posts: topic.post_stream?.posts || [] },
     };
   }
 
@@ -277,6 +304,65 @@ export default class DdiIntegrityDashboardService extends Service {
           title: doc.title,
           url: doc.url,
           issueType: ISSUE_TYPES.INVALID_REVISION_ORDER,
+        })
+      );
+    }
+
+    return issues;
+  }
+
+  // Reuses lib/ddi-approval-state.js's own getLatestRevision()/
+  // isValidApprovalState()/findApprovedRevisions() — the exact functions
+  // Author Assistant calls against a composer draft — against doc.revisions,
+  // the same already-parsed rows _revisionIssues() above reads. Skipped
+  // entirely when there are no rows at all: _revisionIssues() already
+  // raised Missing Revision History for that case, and there is no "latest
+  // revision" here to have an approval state one way or the other.
+  _approvalIssues(doc) {
+    const rows = doc.revisions || [];
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const documentNumber =
+      doc.metadata?.documentNumber || formatDocumentId(doc.topicId);
+    const issues = [];
+
+    const latest = getLatestRevision(rows);
+    const rawApprovalStatus = (latest?.approvalStatus || "").trim();
+
+    if (!rawApprovalStatus) {
+      issues.push(
+        buildIssue({
+          documentNumber,
+          title: doc.title,
+          url: doc.url,
+          issueType: ISSUE_TYPES.MISSING_APPROVAL_STATE,
+        })
+      );
+    } else if (!isValidApprovalState(rawApprovalStatus)) {
+      issues.push(
+        buildIssue({
+          documentNumber,
+          title: doc.title,
+          url: doc.url,
+          issueType: ISSUE_TYPES.INVALID_APPROVAL_VALUE,
+          detail: `Latest revision's Approval Status is "${rawApprovalStatus}", not one of the 5 recognized values.`,
+        })
+      );
+    }
+
+    const approvedRevisions = findApprovedRevisions(rows);
+
+    if (approvedRevisions.length > 1) {
+      issues.push(
+        buildIssue({
+          documentNumber,
+          title: doc.title,
+          url: doc.url,
+          issueType: ISSUE_TYPES.MULTIPLE_APPROVED_REVISIONS,
+          detail: `${approvedRevisions.length} revisions are marked Approved: ${approvedRevisions.map((row) => row.revisionNumber).join(", ")}.`,
         })
       );
     }

@@ -116,3 +116,8 @@ ddi_document_revision_history_enabled:
   type: bool
   default: true
   description: "Show the Revision History panel above every document — a parsed multi-row Revision Number/Date/Author/Summary/Approval Status table when the body has one, newest first, falling back to the system-derived single revision snapshot otherwise"
+
+ddi_lifecycle_dashboard_enabled:
+  type: bool
+  default: true
+  description: "Show the staff-only Document Lifecycle Dashboard trigger (grouped maintenance views: Draft, Pending Review, Recently Updated, Superseded, Archived, Missing Approval State, Missing Revision History, Integrity Warnings — filterable by Department/Approval State/Lifecycle/Classification) — staff/admin status is still gated in code regardless of this setting"

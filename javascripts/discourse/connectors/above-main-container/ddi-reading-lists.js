@@ -1,5 +1,5 @@
 import { getOwner } from "@ember/owner";
-import { createModal } from "../../lib/ddi-modal";
+import { buildDialogHandlers } from "../../lib/ddi-dialog-connector";
 
 export default {
   shouldRender() {
@@ -118,35 +118,13 @@ export default {
         ddiReadingLists.dismissSharedList();
       },
 
-      // Same free-function pattern as the Integrity Dashboard connector —
-      // see its setupModal for why these can't be `this`-bound methods.
-      setupModal: (element) => {
-        element._ddiModal = createModal(element, {
-          labelledBy: "ddi-reading-lists-title",
-          onClose: () => ddiReadingLists.close(),
-        });
-
-        // Unlike the other DDI dialogs, this one can already be open at
-        // insert time — a shared-list URL sets isOpen in the service's
-        // constructor, before this panel ever renders. did-update only
-        // fires on later changes, so the initial state has to be handled
-        // here too or the dialog would render open with no focus trap.
-        if (ddiReadingLists.isOpen) {
-          element._ddiModal.activate();
-        }
-      },
-
-      onOpenChange: (element, [isOpen]) => {
-        if (isOpen) {
-          element._ddiModal?.activate();
-        } else {
-          element._ddiModal?.deactivate();
-        }
-      },
-
-      teardownModal: (element) => {
-        element._ddiModal?.destroy();
-      },
+      // Shared dialog-connector wiring (lib/ddi-dialog-connector.js) —
+      // that file's own setupModal() already handles this dialog's one
+      // special case (isOpen can already be true at insert time, from a
+      // shared-list URL) as a general check safe for every dialog.
+      ...buildDialogHandlers(ddiReadingLists, {
+        labelledBy: "ddi-reading-lists-title",
+      }),
     });
   },
 };

@@ -79,6 +79,13 @@ export default class DdiDocumentMetadataService extends Service {
       author: formatDocumentAuthor(post?.username),
       createdDate: formatDocumentDate(topic.created_at),
       updatedDate: formatDocumentDate(post?.updated_at || post?.created_at),
+      // Raw ISO value alongside the already-existing formatted updatedDate
+      // above — added for the Document Lifecycle Dashboard's (v1.9) own
+      // "Recently Updated" sort, which needs a real Date-parseable value
+      // the way services/ddi-citation-preview.js#_buildCitation()'s own
+      // `updatedAt` already does. Purely additive; every existing consumer
+      // of getMetadata() reads only the fields it already read.
+      updatedAt: post?.updated_at || post?.created_at || topic.created_at || null,
       readingTime,
       wordCount,
       tags,

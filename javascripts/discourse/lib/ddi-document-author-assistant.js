@@ -11,6 +11,7 @@ import {
   isRevisionOrderValid,
   findRowsMissingSummary,
 } from "./ddi-revision-table";
+import { getLatestRevision, isValidApprovalState } from "./ddi-approval-state";
 import {
   result,
   checkClassification,
@@ -152,7 +153,43 @@ function checkRevisionHistory(raw) {
     `${missingSummaryRows.length} revision${missingSummaryRows.length === 1 ? "" : "s"} missing a summary.`
   );
 
-  return [tableCheck, duplicateCheck, orderCheck, summaryCheck];
+  // Version 1.8: reuses lib/ddi-approval-state.js's own getLatestRevision()/
+  // isValidApprovalState() — the same functions the Integrity Dashboard
+  // calls against a published document, run here against the draft's own
+  // parsed rows. "Approval Value" only shows once a value is actually
+  // present, the same nesting checkRevisionHistory's other conditional
+  // checks already use — an empty value is already covered by "Approval
+  // State" above, so checking its validity too would just repeat the same
+  // finding twice.
+  const latest = getLatestRevision(rows);
+  const rawApprovalStatus = (latest?.approvalStatus || "").trim();
+
+  const approvalStateCheck = result(
+    "Approval State",
+    Boolean(rawApprovalStatus),
+    `Latest revision approval state: ${rawApprovalStatus}.`,
+    "The latest revision has no Approval Status value — add one (Draft, Pending Review, Approved, Superseded, or Archived)."
+  );
+
+  if (!rawApprovalStatus) {
+    return [tableCheck, duplicateCheck, orderCheck, summaryCheck, approvalStateCheck];
+  }
+
+  const approvalValueCheck = result(
+    "Approval Value",
+    isValidApprovalState(rawApprovalStatus),
+    "Recognized approval state.",
+    `"${rawApprovalStatus}" is not a recognized approval state — expected Draft, Pending Review, Approved, Superseded, or Archived.`
+  );
+
+  return [
+    tableCheck,
+    duplicateCheck,
+    orderCheck,
+    summaryCheck,
+    approvalStateCheck,
+    approvalValueCheck,
+  ];
 }
 
 // Adapts composer draft state into the same { tags, classification,

@@ -10,13 +10,13 @@
     {{will-destroy this.teardownModal}}
   >
 
-    <div class="ddi-card-title" id="ddi-reading-lists-title">
+    <h2 class="ddi-card-title" id="ddi-reading-lists-title">
       READING LISTS
-    </div>
+    </h2>
 
     {{#if this.ddiReadingLists.sharedListPreview}}
       <div class="ddi-card ddi-restricted ddi-reading-list-shared-banner">
-        <div class="ddi-card-title">SHARED READING LIST</div>
+        <h3 class="ddi-card-title">SHARED READING LIST</h3>
         <div class="ddi-card-body">
           "{{this.ddiReadingLists.sharedListPreview.name}}" —
           {{this.ddiReadingLists.sharedListPreview.documentIds.length}} document(s)
@@ -39,9 +39,9 @@
           LOADING READING LIST…
         </div>
       {{else if this.ddiReadingLists.activeListDetails}}
-        <div class="ddi-card-title">
+        <h3 class="ddi-card-title">
           {{this.ddiReadingLists.activeListDetails.list.name}}
-        </div>
+        </h3>
 
         {{#if this.ddiReadingLists.activeListDetails.list.description}}
           <div class="ddi-card-body">
@@ -190,7 +190,7 @@
               class="ddi-card ddi-reading-list-card"
               {{on "click" (fn this.openList list.id)}}
             >
-              <div class="ddi-card-title">{{list.name}}</div>
+              <h3 class="ddi-card-title">{{list.name}}</h3>
 
               {{#if list.description}}
                 <div class="ddi-card-body">{{list.description}}</div>

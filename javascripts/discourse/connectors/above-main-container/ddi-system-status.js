@@ -1,5 +1,5 @@
 import { getOwner } from "@ember/owner";
-import { createModal } from "../../lib/ddi-modal";
+import { buildDialogHandlers } from "../../lib/ddi-dialog-connector";
 
 export default {
   shouldRender(args, component) {
@@ -37,29 +37,11 @@ export default {
         ddiIntegrityDashboard.open();
       },
 
-      // Same free-function pattern as the Integrity Dashboard connector —
-      // see its setupModal for why these can't be `this`-bound methods.
-      // isOpen now lives on the service (not this component), the same
-      // move Integrity Dashboard's own connector already made, so onClose
-      // closes it via the service rather than local component state.
-      setupModal: (element) => {
-        element._ddiModal = createModal(element, {
-          labelledBy: "ddi-system-status-title",
-          onClose: () => ddiSystemStatus.close(),
-        });
-      },
-
-      onOpenChange: (element, [isOpen]) => {
-        if (isOpen) {
-          element._ddiModal?.activate();
-        } else {
-          element._ddiModal?.deactivate();
-        }
-      },
-
-      teardownModal: (element) => {
-        element._ddiModal?.destroy();
-      },
+      // Shared dialog-connector wiring (lib/ddi-dialog-connector.js) —
+      // see that file for the reasoning behind each of these three.
+      ...buildDialogHandlers(ddiSystemStatus, {
+        labelledBy: "ddi-system-status-title",
+      }),
     });
   },
 };

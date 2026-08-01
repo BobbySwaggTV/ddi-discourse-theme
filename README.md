@@ -11,7 +11,7 @@ overrides, plugin outlet connectors, and API initializers) with no changes to Di
 
 ## Status
 
-Version 1.0 through 1.7 shipped — see
+Version 1.0 through 1.10 shipped — see
 [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for the precise, current list of what's
 implemented versus still planned, and [CHANGELOG.md](CHANGELOG.md) for the full change history. In
 short:
@@ -28,22 +28,41 @@ short:
   Header / Division Cards).
 - The **topic page** transformation (dossier-style header, classification banner, summary, a
   standardized Document Intelligence Header above the body — v1.3: title, Document Number,
-  Classification, Department, Lifecycle, Revision, Last Reviewed, Estimated Reading Time, Related
-  Documents count, replacing the earlier mid-page card — a live Document Navigation Sidebar (v1.4:
+  Classification, Department, Lifecycle, Revision, Approval State (v1.8, badge-styled), Last
+  Reviewed, Estimated Reading Time, Related Documents count, replacing the earlier mid-page card —
+  a live Document Navigation Sidebar (v1.4:
   a right-docked, auto-built outline of every H2/H3 section with active-section highlighting and
   smooth scroll, replacing the earlier static Table of Contents card; collapses into a tap-to-expand
   list on narrower screens, hides entirely on documents with no headings), an Intelligence
   Relationships panel directly below the header (v1.5: References, Supersedes, Superseded By,
   Related Intelligence, Required Reading, Supporting Documentation, Same Department, and Same
   Classification, grouped by type and shown only when data exists, replacing the earlier separate
-  Document Relationships and Intelligence Network cards), a Revision History panel (v1.7: a real
+  Document Relationships and Intelligence Network cards — each entry now also shows an Approval State
+  badge as of v1.8), a Revision History panel (v1.7: a real
   Revision Number/Date/Author/Summary/Approval Status table parsed from the document body, newest
   first, when one exists — falling back to the original single-revision snapshot for documents that
   don't have one), Knowledge Graph Viewer, and a Document
   Actions bar — Add to Reading List, Favorite, Open Knowledge Graph, Share) is implemented and live.
+- **Document approval status** (v1.8) — derived from each document's Revision History table (its
+  latest revision's Approval Status: Draft, Pending Review, Approved, Superseded, or Archived,
+  defaulting unknown values to Draft) — is now visible on the Document Intelligence Header,
+  Intelligence Relationships entries, and Browse Archive (which also gained an optional filter by
+  approval state). Discourse's own native search already indexes this text as part of the post body,
+  so no separate search-metadata change was needed; a visual badge was deliberately not added to
+  search results specifically, since nothing on that page is fetched beyond what Discourse already
+  renders and this field isn't part of it — see ARCHITECTURE.md for the full reasoning.
+- **Bug fix (v1.9):** Citation Preview's `getCitation(topic)` — used by Browse Archive, Intelligence
+  Index, Archive Navigation, Knowledge Graph, and Document Quick Preview — silently discarded a
+  document's cooked content after fetching it for any topic reached without its own `post_stream`
+  (every topic sourced from the archive's paginated topic list), so approval state and executive
+  summaries were wrong for exactly those documents since v1.8 shipped. Fixed by reusing the fetch
+  that already happens instead of a second, wasted one — see ARCHITECTURE.md's Document Lifecycle
+  Dashboard (v1.9) section for the full bug and fix.
 - The **homepage/categories page** also has a real Intelligence Dashboard (archive statistics), a
   Browse Archive section (tabbed: alphabetical Intelligence Index / year-grouped Intelligence
-  Timeline), and Division Cards/Header (per-category presentation) — all implemented and live. The
+  Timeline, each document row showing its Approval State as of v1.8, with an optional filter by
+  approval state above the tabs), and Division Cards/Header (per-category presentation) — all
+  implemented and live. The
   **sidebar** redesign, and a few of the dashboard's originally-planned sections (Search
   Intelligence, Recent Revisions), are still unbuilt — see **Known Gaps / Unwired Code** in
   ARCHITECTURE.md for exactly what remains.
@@ -56,9 +75,16 @@ short:
   Cross References, Related Documents, a Revision History table, Approval) is inserted — only into
   an empty document, never overwriting content an author has already started. The panel also warns
   (v1.7) if a document's Revision History table is missing, has duplicate or out-of-order revision
-  numbers, or is missing a revision's summary.
+  numbers, or is missing a revision's summary — and (v1.8) if the latest revision has no Approval
+  Status value or an unrecognized one.
 - **Staff tools** — a Document Integrity Dashboard (archive-wide metadata/reference audit, plus
-  non-blocking informational checks for missing/duplicate/misordered Revision History as of v1.7)
+  non-blocking informational checks for missing/duplicate/misordered Revision History as of v1.7,
+  and for missing/invalid/multiply-approved Approval State as of v1.8), a Document Lifecycle
+  Dashboard (v1.9: 8 grouped maintenance views — Draft, Pending Review, Recently Updated, Superseded,
+  Archived, Missing Approval State, Missing Revision History, Integrity Warnings — each showing
+  Document Number/Title/Department/Approval State/Revision/Last Updated, filterable by Department/
+  Approval State/Lifecycle/Classification, read-only with an Open Document link per row; consumes
+  the Integrity Dashboard's own archive scan rather than running a second one),
   and a System Status Dashboard (archive health summary) — are implemented, staff/admin-only.
 - **Member tools** — a global Command Palette (Ctrl+K/Cmd+K, expanded in v1.1 to reach Reading
   Lists, Favorites, Browse Archive, Knowledge Graph, and both staff dashboards), a Favorites panel
@@ -79,7 +105,7 @@ Document Author Assistant panel (v1.1) and, for new topics only, a Document Temp
 Dashboard, Browse Archive (tabbed Intelligence Index / Intelligence Timeline), Division Cards,
 Division Header. Available from
 anywhere: Command Palette, Favorites, Reading Lists. Staff-only: Document Integrity Dashboard, System
-Status Dashboard. Plus a full dark "command network" visual restyling of standard Discourse chrome
+Status Dashboard, Document Lifecycle Dashboard (v1.9). Plus a full dark "command network" visual restyling of standard Discourse chrome
 (header, sidebar, topic list, buttons, timeline, scrollbars, dialogs) in `common/common.scss`.
 
 This list is intentionally a summary, not a reference — **[ARCHITECTURE.md](ARCHITECTURE.md)** has a
@@ -125,7 +151,7 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml` — 23 settings, 19 of them read by real code, 4 still reserved for planned
+Declared in `settings.yml` — 24 settings, 20 of them read by real code, 4 still reserved for planned
 work (not orphaned — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan
 each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabled`,
 `ddi_interface_mode_enabled`) were removed in RC cleanup rather than kept as unaccountable toggles.
@@ -151,6 +177,7 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 | `ddi_intelligence_relationships_enabled` | bool | `true` | ✅ | Show the Intelligence Relationships panel (grouped References/Supersedes/Superseded By/Related Intelligence/Required Reading/Supporting Documentation/Same Department/Same Classification) below the Document Intelligence Header |
 | `ddi_document_template_library_enabled` | bool | `true` | ✅ | Show the composer-time Document Template Library picker (new topics only) |
 | `ddi_document_revision_history_enabled` | bool | `true` | ✅ | Show the Revision History panel (parsed table, or the fallback single-revision snapshot) above every document |
+| `ddi_lifecycle_dashboard_enabled` | bool | `true` | ✅ | Show the staff-only Document Lifecycle Dashboard trigger |
 | `ddi_compact_density` | bool | `true` | reserved | Use compact dashboard spacing density |
 | `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | reserved | Controls ambient red glow intensity |
 | `ddi_sidebar_command_panel_enabled` | bool | `true` | reserved | Enable command-panel sidebar presentation |
@@ -160,7 +187,7 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 
 ```
 about.json            Theme metadata (name, version, authors)
-settings.yml           Theme settings (see above — 19 of 23 wired)
+settings.yml           Theme settings (see above — 20 of 24 wired)
 common/                Styles and templates applied on all devices
   common.scss           Main stylesheet — the live CSS token system and all component styling
   footer.html            Empty, but a valid, recognized template target (see Known Gaps in

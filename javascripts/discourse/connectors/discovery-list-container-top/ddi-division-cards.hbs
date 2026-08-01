@@ -1,9 +1,9 @@
 {{#if this.isVisible}}
   <div class="ddi-card">
 
-    <div class="ddi-card-title">
+    <h2 class="ddi-card-title">
       Division Navigation
-    </div>
+    </h2>
 
     {{#if this.isLoading}}
       <div class="ddi-card-body">
@@ -14,9 +14,9 @@
         {{#each this.cards as |card|}}
           <div class="ddi-card">
 
-            <div class="ddi-card-title">
+            <h3 class="ddi-card-title">
               {{card.name}}
-            </div>
+            </h3>
 
             {{#if card.description}}
               <div class="ddi-card-body">

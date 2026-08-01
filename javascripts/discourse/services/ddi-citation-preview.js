@@ -7,6 +7,9 @@ import { formatDocumentDate } from "../lib/ddi-format-date";
 import { isValidDocumentType, getDocumentTypeLabel } from "../lib/ddi-document-type";
 import { getShortDescription } from "../lib/ddi-division-summary";
 import { UNCATEGORIZED_LABEL } from "../lib/ddi-category";
+import { parseCookedHtml } from "../lib/ddi-cooked-parser";
+import { parseCookedRevisionTable } from "../lib/ddi-revision-table";
+import { getCurrentApprovalState } from "../lib/ddi-approval-state";
 
 export default class DdiCitationPreviewService extends Service {
   @service site;
@@ -84,10 +87,20 @@ export default class DdiCitationPreviewService extends Service {
 
     const updatedAt = topic.bumped_at || topic.created_at || null;
 
-    const revision = await this._resolveRevision(topic);
+    const { revision, cooked } = await this._resolvePost(topic);
 
-    const executiveSummary = getShortDescription(
-      topic.post_stream?.posts?.[0]?.cooked
+    const executiveSummary = getShortDescription(cooked);
+
+    // parseCookedHtml() is LRU-cached by the exact cooked string —
+    // getShortDescription() above already parsed this same string, so this
+    // reuses that cached parse rather than re-parsing the cooked HTML a
+    // second time (see lib/ddi-cooked-parser.js). Adding this field here,
+    // once, is what makes every existing citation consumer (Intelligence
+    // Relationships, Browse Archive, Archive Navigation, Knowledge Graph,
+    // Document Quick Preview) able to show approval state without any of
+    // them fetching or parsing anything new themselves.
+    const approvalState = getCurrentApprovalState(
+      parseCookedRevisionTable(parseCookedHtml(cooked))
     );
 
     return {
@@ -100,6 +113,7 @@ export default class DdiCitationPreviewService extends Service {
       documentType,
       documentTypeLabel: getDocumentTypeLabel(documentType),
       revision,
+      approvalState,
       executiveSummary,
       updatedAt,
       updatedDate: formatDocumentDate(updatedAt),
@@ -107,14 +121,31 @@ export default class DdiCitationPreviewService extends Service {
     };
   }
 
-  async _resolveRevision(topic) {
-    let version = topic.post_stream?.posts?.[0]?.version;
+  // Bug fix (v1.9): this used to be _resolveRevision(), which fetched the
+  // full topic when `post_stream` was missing (true for every topic that
+  // reached getCitation() via ddiArchive.getTopics()'s /latest.json list,
+  // which never carries post_stream) but only ever kept `version` from
+  // that response, discarding the rest — including the exact cooked HTML
+  // _buildCitation() needed for executiveSummary/approvalState, which it
+  // was instead reading from the original (post_stream-less) `topic`
+  // argument and getting `undefined` every time. That meant Browse
+  // Archive's approval badges (v1.8) silently showed "Draft" for nearly
+  // every document, and executive summaries were silently blank, despite
+  // a full-topic fetch already having happened and paid for that data. Now
+  // returns both fields from whichever post actually has them — no new
+  // fetch, just no longer throwing away most of the response it already
+  // fetched.
+  async _resolvePost(topic) {
+    let post = topic.post_stream?.posts?.[0];
 
-    if (version == null) {
+    if (post?.version == null) {
       const response = await ajax(`/t/${topic.id}.json`).catch(() => null);
-      version = response?.post_stream?.posts?.[0]?.version;
+      post = response?.post_stream?.posts?.[0] || post;
     }
 
-    return version ? formatRevision(version) : "—";
+    return {
+      revision: post?.version ? formatRevision(post.version) : "—",
+      cooked: post?.cooked,
+    };
   }
 }

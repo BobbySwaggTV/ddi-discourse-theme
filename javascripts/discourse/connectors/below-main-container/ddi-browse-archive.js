@@ -1,6 +1,8 @@
 import { getOwner } from "@ember/owner";
 import { isExcludedRoute } from "../../lib/ddi-route-guard";
 import { groupDocumentsByYear } from "../../lib/ddi-timeline-view";
+import { filterDocuments } from "../../lib/ddi-document-index";
+import { APPROVAL_STATES } from "../../lib/ddi-approval-state";
 
 // Homepage UX cleanup (v1.1): merges what were two independent connectors
 // (Intelligence Timeline and Intelligence Index) into one "Browse Archive"
@@ -46,16 +48,43 @@ export default {
       });
     }
 
+    // Applies the approval-state filter client-side over the already-
+    // fetched, already-department-scoped document set, then re-derives
+    // both tabs' views from the result — reuses lib/ddi-document-index.js's
+    // own filterDocuments() (the same function department/classification
+    // scoping already goes through elsewhere) rather than a second,
+    // approval-specific filtering mechanism. Synchronous array filtering,
+    // not a new fetch: getIndex() itself is called exactly once, still.
+    function applyApprovalFilter(approvalState) {
+      const documents = filterDocuments(
+        component.allDocuments,
+        approvalState ? { approvalState } : {}
+      );
+
+      const years = groupDocumentsByYear(documents).map((entry, index) => ({
+        ...entry,
+        isExpanded: index === 0,
+      }));
+
+      component.setProperties({ selectedApprovalState: approvalState, documents, years });
+    }
+
     component.setProperties({
       isVisible: true,
       isLoading: true,
+      allDocuments: [],
       documents: [],
       years: [],
       yearViewEnabled,
       indexViewEnabled,
       showTabs: yearViewEnabled && indexViewEnabled,
+      approvalStateOptions: APPROVAL_STATES,
+      selectedApprovalState: "",
 
       setTab: (tab) => applyTab(tab),
+
+      setApprovalStateFilter: (event) =>
+        applyApprovalFilter(event.target.value),
 
       // {{on "click"}}, not {{action}} — see ARCHITECTURE.md's Deprecated
       // Template Actions section for why this closes over `component`
@@ -88,14 +117,10 @@ export default {
 
         // documents is already alphabetically sorted by getIndex() itself
         // — the "All Documents" tab uses it directly, unchanged from how
-        // ddi-intelligence-index.js always did. groupDocumentsByYear() is
-        // the exact same pure helper ddi-timeline-view.js always used.
-        const years = groupDocumentsByYear(documents).map((entry, index) => ({
-          ...entry,
-          isExpanded: index === 0,
-        }));
-
-        component.setProperties({ isLoading: false, documents, years });
+        // ddi-intelligence-index.js always did.
+        component.set("allDocuments", documents);
+        applyApprovalFilter("");
+        component.set("isLoading", false);
       });
   },
 };

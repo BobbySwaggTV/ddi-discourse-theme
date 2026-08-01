@@ -2929,10 +2929,26 @@ a:hover {
   }
 }
 
+/* Every .ddi-* transition in this stylesheet, in one place — audited and
+   extended (v1.10) from the Navigation Sidebar-only list this block
+   started as. .ddi-toc-item replaces the old, more specific
+   .ddi-toc-item.ddi-document-nav-link entry below it: the base class
+   already covers every element the combo selector matched, so keeping
+   both would have been redundant. Discourse's own native selectors this
+   stylesheet themes (`a`, `.latest-topic-list-item`, `.select-kit-header`,
+   `.tag-drop`, `.post-controls button`, etc.) are deliberately not
+   included here — their transitions are Discourse's own, not DDI's, the
+   same distinction already drawn for `!important` usage elsewhere in this
+   file. */
 @media (prefers-reduced-motion: reduce) {
-  .ddi-toc-item.ddi-document-nav-link,
+  .ddi-toc-item,
   .ddi-document-nav-sublink,
-  .ddi-document-nav-toggle::after {
+  .ddi-document-nav-toggle::after,
+  .ddi-hero-button,
+  .ddi-mission-objectives,
+  .ddi-nav-link,
+  .ddi-document-preview,
+  .ddi-browse-archive-tab {
     transition: none;
   }
 }
@@ -3538,6 +3554,54 @@ a:hover {
 }
 
 /* ============================================================
+   DDI DOCUMENT LIFECYCLE DASHBOARD (v1.9)
+   (staff-only maintenance views — see connectors/above-main-container/
+   ddi-lifecycle-dashboard.js. Reuses .ddi-integrity-trigger (stacked a
+   third time, continuing the same bottom-offset convention System Status
+   already established), .ddi-command-palette-backdrop/-open, .ddi-card,
+   .ddi-nav-section-label, .ddi-select, .ddi-integrity-table/-table-wrap,
+   .ddi-search-badge, .ddi-nav-link, and .ddi-favorites-actions verbatim —
+   only the stacked trigger position, the wider panel, the filter grid,
+   and the spacing between stacked sections are new)
+   ============================================================ */
+
+.ddi-lifecycle-dashboard-trigger {
+  bottom: 108px;
+}
+
+.ddi-lifecycle-dashboard-panel {
+  width: 100%;
+  max-width: 1100px;
+  max-height: 82vh;
+
+  overflow-y: auto;
+}
+
+.ddi-lifecycle-dashboard-filters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .ddi-lifecycle-dashboard-filters {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .ddi-lifecycle-dashboard-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ddi-lifecycle-dashboard-section + .ddi-lifecycle-dashboard-section {
+  margin-top: 28px;
+}
+
+/* ============================================================
    DDI BROWSE ARCHIVE
    (Homepage UX cleanup, v1.1 — merges what were two independent cards,
    Intelligence Timeline and Intelligence Index, into one tabbed section;
@@ -3547,6 +3611,25 @@ a:hover {
    5-column variant) verbatim, exactly as the two former cards already
    did; only the tab bar and the year toggle row's caret/count are new)
    ============================================================ */
+
+/* Approval-state filter (v1.8) — reuses .ddi-nav-section-label for the
+   label and .ddi-select for the control verbatim (see DDI DOCUMENT
+   TEMPLATE LIBRARY above); .ddi-select's own default width: 100% suits a
+   narrow composer field but would stretch edge-to-edge across this
+   full-width card, so it's capped here rather than overridden globally. */
+.ddi-browse-archive-filter {
+  margin-bottom: 20px;
+}
+
+.ddi-browse-archive-filter .ddi-select {
+  max-width: 320px;
+}
+
+@media (max-width: 480px) {
+  .ddi-browse-archive-filter .ddi-select {
+    max-width: none;
+  }
+}
 
 .ddi-browse-archive-tabs {
   display: flex;
@@ -3986,7 +4069,13 @@ a:hover {
   padding: 16px 18px;
 }
 
-.ddi-document-template-library-select {
+/* .ddi-select — generic native <select> styling, first introduced here for
+   the Template Library's own picker, since named specifically for that
+   feature originally. Renamed to this generic name in v1.8 when Browse
+   Archive's approval-state filter needed the exact same control — reused
+   directly rather than duplicating a near-identical rule under a second
+   feature-specific class name. */
+.ddi-select {
   width: 100%;
   padding: 10px 12px;
 
@@ -4001,7 +4090,7 @@ a:hover {
   font-family: inherit;
 }
 
-.ddi-document-template-library-select:focus-visible {
+.ddi-select:focus-visible {
   outline: 2px solid var(--ddi-red);
   outline-offset: 2px;
 }

@@ -1,6 +1,8 @@
 import Service, { service } from "@ember/service";
 import { parseCookedHtml } from "../lib/ddi-cooked-parser";
 import { findDocumentRelationships } from "../lib/ddi-relationship";
+import { parseCookedRevisionTable } from "../lib/ddi-revision-table";
+import { getCurrentApprovalState } from "../lib/ddi-approval-state";
 
 export default class DdiRelationshipService extends Service {
   @service ddiCitationPreview;
@@ -80,6 +82,7 @@ export default class DdiRelationshipService extends Service {
       classificationClass: citation.classificationClass,
       department: citation.department,
       revision: citation.revision,
+      approvalState: citation.approvalState,
       url: citation.url,
     };
   }
@@ -91,6 +94,13 @@ export default class DdiRelationshipService extends Service {
       return null;
     }
 
+    // parseCookedHtml() here is the same LRU-cached parse
+    // _getRelationships() above already triggered for this exact topic's
+    // cooked post — reuses that cache rather than re-parsing.
+    const rows = parseCookedRevisionTable(
+      parseCookedHtml(topic.postStream?.posts?.[0]?.cooked)
+    );
+
     return {
       documentId: metadata.documentNumber,
       title: metadata.title,
@@ -98,6 +108,7 @@ export default class DdiRelationshipService extends Service {
       classificationClass: metadata.classificationClass,
       department: metadata.departmentDisplay,
       revision: metadata.revision,
+      approvalState: getCurrentApprovalState(rows),
       url: `/t/${topic.id}`,
     };
   }

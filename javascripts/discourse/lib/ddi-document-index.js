@@ -5,7 +5,7 @@ export function sortDocumentsAlphabetically(documents) {
 }
 
 export function filterDocuments(documents, filters = {}) {
-  const { department, classification } = filters;
+  const { department, classification, approvalState, lifecycle } = filters;
 
   return (documents || []).filter((document) => {
     if (department && document.department !== department) {
@@ -13,6 +13,14 @@ export function filterDocuments(documents, filters = {}) {
     }
 
     if (classification && document.classification !== classification) {
+      return false;
+    }
+
+    if (approvalState && document.approvalState !== approvalState) {
+      return false;
+    }
+
+    if (lifecycle && document.lifecycle !== lifecycle) {
       return false;
     }
 

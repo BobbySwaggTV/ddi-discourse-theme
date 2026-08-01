@@ -3,15 +3,23 @@ import { RELATIONSHIP_TYPES } from "./ddi-relationship";
 const SAME_DEPARTMENT_LABEL = "Same Department";
 const SAME_CLASSIFICATION_LABEL = "Same Classification";
 
-function buildAriaLabel({ title, documentNumber, classification, department }, relationshipLabel) {
-  return [title, relationshipLabel, documentNumber, classification, department]
+function buildAriaLabel(
+  { title, documentNumber, classification, department, approvalState },
+  relationshipLabel
+) {
+  return [title, relationshipLabel, documentNumber, classification, department, approvalState]
     .filter(Boolean)
     .join(", ");
 }
 
 // Accepts either a resolved relationship (services/ddi-relationship.js,
 // `documentNumber`) or a citation (services/ddi-citation-preview.js,
-// `documentId`) — the two shapes this panel's inputs already come in.
+// `documentId`) — the two shapes this panel's inputs already come in. Both
+// shapes already carry `approvalState` (services/ddi-relationship.js#_resolve()/
+// _citationFromMetadata() and services/ddi-citation-preview.js#_buildCitation()
+// each compute it once, from the revision table parser — see
+// lib/ddi-approval-state.js), so this is a straight copy-through, not a
+// new parse.
 function toRelationshipItem(source, relationshipLabel) {
   const documentNumber = source.documentNumber ?? source.documentId;
 
@@ -21,10 +29,17 @@ function toRelationshipItem(source, relationshipLabel) {
     classification: source.classification,
     classificationClass: source.classificationClass,
     department: source.department,
+    approvalState: source.approvalState,
     url: source.url,
     relationshipLabel,
     ariaLabel: buildAriaLabel(
-      { title: source.title, documentNumber, classification: source.classification, department: source.department },
+      {
+        title: source.title,
+        documentNumber,
+        classification: source.classification,
+        department: source.department,
+        approvalState: source.approvalState,
+      },
       relationshipLabel
     ),
   };

@@ -1,5 +1,5 @@
 import { getOwner } from "@ember/owner";
-import { createModal } from "../../lib/ddi-modal";
+import { buildDialogHandlers } from "../../lib/ddi-dialog-connector";
 
 export default {
   shouldRender(args, component) {
@@ -30,30 +30,11 @@ export default {
       open: () => ddiIntegrityDashboard.open(),
       close: () => ddiIntegrityDashboard.close(),
 
-      // Free functions, not component methods — did-insert/did-update/
-      // will-destroy invoke whatever they're given with the element as the
-      // first argument but don't guarantee `this` inside it is the
-      // component (see the Knowledge Graph Viewer's setupGraphCanvas for
-      // the same lesson). These close over `ddiIntegrityDashboard` directly
-      // instead, and stash the modal controller on the element itself.
-      setupModal: (element) => {
-        element._ddiModal = createModal(element, {
-          labelledBy: "ddi-integrity-dashboard-title",
-          onClose: () => ddiIntegrityDashboard.close(),
-        });
-      },
-
-      onOpenChange: (element, [isOpen]) => {
-        if (isOpen) {
-          element._ddiModal?.activate();
-        } else {
-          element._ddiModal?.deactivate();
-        }
-      },
-
-      teardownModal: (element) => {
-        element._ddiModal?.destroy();
-      },
+      // Shared dialog-connector wiring (lib/ddi-dialog-connector.js) —
+      // see that file for the reasoning behind each of these three.
+      ...buildDialogHandlers(ddiIntegrityDashboard, {
+        labelledBy: "ddi-integrity-dashboard-title",
+      }),
     });
   },
 };

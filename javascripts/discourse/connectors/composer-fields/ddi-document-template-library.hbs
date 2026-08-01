@@ -1,9 +1,9 @@
 {{#if this.isVisible}}
   <div class="ddi-card ddi-document-template-library">
 
-    <div class="ddi-card-title">
+    <h2 class="ddi-card-title">
       DOCUMENT TEMPLATE LIBRARY
-    </div>
+    </h2>
 
     <label
       for="ddi-document-template-select"
@@ -14,7 +14,7 @@
 
     <select
       id="ddi-document-template-select"
-      class="ddi-document-template-library-select"
+      class="ddi-select"
       {{on "change" this.handleSelectChange}}
     >
       <option value="">Select a document type…</option>

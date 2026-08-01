@@ -1,5 +1,6 @@
 import { apiInitializer } from "discourse/lib/api";
 import { parseTopicIdFromUrl } from "../lib/ddi-document-id";
+import { createBadge } from "../lib/ddi-badge";
 
 const LINK_SELECTOR = "a[href*='/t/']";
 const HOVER_DELAY_MS = 350;
@@ -19,17 +20,6 @@ export default apiInitializer("1.0", (api) => {
     }
 
     return card;
-  }
-
-  function createBadge(text, extraClass) {
-    const badge = document.createElement("span");
-
-    badge.className = extraClass
-      ? `ddi-search-badge ${extraClass}`
-      : "ddi-search-badge";
-    badge.textContent = text;
-
-    return badge;
   }
 
   function hideCard() {
