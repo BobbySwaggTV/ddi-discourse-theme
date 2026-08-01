@@ -4,32 +4,36 @@
     REVISION HISTORY
   </div>
 
-  <div class="ddi-intel-grid">
+  <div class="ddi-revision-table-wrap">
+    <table class="ddi-revision-table">
 
-    <div>
-      <span>Revision Number</span>
-      <strong>{{this.revisionNumber}}</strong>
-    </div>
+      <caption class="ddi-revision-table-caption">{{this.revisionCountLabel}}</caption>
 
-    <div>
-      <span>Last Updated</span>
-      <strong>{{this.lastUpdated}}</strong>
-    </div>
+      <thead>
+        <tr>
+          <th scope="col">Revision</th>
+          <th scope="col">Date</th>
+          <th scope="col">Author</th>
+          <th scope="col">Summary</th>
+          <th scope="col">Approval Status</th>
+        </tr>
+      </thead>
 
-    <div>
-      <span>Author</span>
-      <strong>{{this.author}}</strong>
-    </div>
+      <tbody>
+        {{#each this.revisions as |revision|}}
+          <tr>
+            <th scope="row">{{revision.revisionNumber}}</th>
+            <td>{{revision.date}}</td>
+            <td>{{revision.author}}</td>
+            <td>{{revision.summary}}</td>
+            <td>
+              <span class="ddi-search-badge">{{revision.approvalStatus}}</span>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
 
-    <div>
-      <span>Revision Status</span>
-      <strong>{{this.revisionStatus}}</strong>
-    </div>
-
-  </div>
-
-  <div class="ddi-card-body">
-    {{this.revisionNotes}}
+    </table>
   </div>
 
 </div>

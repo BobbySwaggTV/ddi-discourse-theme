@@ -106,3 +106,13 @@ ddi_intelligence_relationships_enabled:
   type: bool
   default: true
   description: "Show the Intelligence Relationships panel below the Document Intelligence Header (References, Supersedes, Superseded By, Related Intelligence, Required Reading, Supporting Documentation, Same Department, Same Classification, grouped by type) — replaces the earlier separate Document Relationships and Intelligence Network cards. Hides automatically on documents with no relationships in any group"
+
+ddi_document_template_library_enabled:
+  type: bool
+  default: true
+  description: "Show the Document Template Library picker in the composer (select a document type, insert its standard template) — new topics only, never shown when editing an existing post"
+
+ddi_document_revision_history_enabled:
+  type: bool
+  default: true
+  description: "Show the Revision History panel above every document — a parsed multi-row Revision Number/Date/Author/Summary/Approval Status table when the body has one, newest first, falling back to the system-derived single revision snapshot otherwise"

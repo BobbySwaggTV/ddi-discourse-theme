@@ -3970,3 +3970,124 @@ a:hover {
     margin-left: calc(1.1em + 8px);
   }
 }
+
+/* ============================================================
+   DDI DOCUMENT TEMPLATE LIBRARY (v1.6)
+   (composer-time template picker — connectors/composer-fields/
+   ddi-document-template-library.js. Reuses .ddi-card/.ddi-card-title, the
+   same tighter composer margin/padding .ddi-author-assistant above already
+   established for this narrower context, and .ddi-nav-section-label for
+   the field label — only the native <select> itself is new, since no form
+   control existed anywhere in this theme before now)
+   ============================================================ */
+
+.ddi-document-template-library {
+  margin: 12px 0;
+  padding: 16px 18px;
+}
+
+.ddi-document-template-library-select {
+  width: 100%;
+  padding: 10px 12px;
+
+  background: var(--ddi-bg-primary);
+
+  border: 1px solid var(--ddi-border);
+  border-radius: 3px;
+
+  color: var(--ddi-text-primary);
+
+  font-size: .92rem;
+  font-family: inherit;
+}
+
+.ddi-document-template-library-select:focus-visible {
+  outline: 2px solid var(--ddi-red);
+  outline-offset: 2px;
+}
+
+.ddi-document-template-library-hint {
+  margin: 10px 0 0;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   DDI REVISION HISTORY (v1.7)
+   (connectors/topic-above-posts/ddi-document-revision-history.* —
+   reuses .ddi-card/.ddi-card-title for the shell and .ddi-search-badge for
+   the Approval Status cell verbatim. The table itself is new: this is the
+   first connector-rendered <table> in this theme — everything before it
+   that showed tabular metadata (.ddi-intel-grid/.ddi-dossier-grid) used a
+   styled div grid, which doesn't fit real multi-row data with proper
+   <thead>/<tbody> semantics the way this feature needs.)
+   ============================================================ */
+
+.ddi-revision-table-wrap {
+  overflow-x: auto;
+}
+
+.ddi-revision-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.ddi-revision-table-caption {
+  margin-bottom: 12px;
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.ddi-revision-table th,
+.ddi-revision-table td {
+  padding: 10px 14px;
+
+  border-bottom: 1px solid var(--ddi-border);
+
+  color: var(--ddi-text-primary);
+
+  font-size: .88rem;
+  text-align: left;
+}
+
+.ddi-revision-table thead th {
+  border-bottom: 1px solid var(--ddi-border-strong);
+
+  color: var(--ddi-text-muted);
+
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.ddi-revision-table tbody th[scope="row"] {
+  color: var(--ddi-white);
+
+  font-weight: 700;
+  text-align: left;
+}
+
+.ddi-revision-table tbody tr:last-child th,
+.ddi-revision-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  .ddi-revision-table th,
+  .ddi-revision-table td {
+    padding: 8px 10px;
+
+    font-size: .82rem;
+  }
+}

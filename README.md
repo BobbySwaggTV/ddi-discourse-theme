@@ -11,7 +11,7 @@ overrides, plugin outlet connectors, and API initializers) with no changes to Di
 
 ## Status
 
-Version 1.0 through 1.5 shipped — see
+Version 1.0 through 1.7 shipped — see
 [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for the precise, current list of what's
 implemented versus still planned, and [CHANGELOG.md](CHANGELOG.md) for the full change history. In
 short:
@@ -36,7 +36,10 @@ short:
   Relationships panel directly below the header (v1.5: References, Supersedes, Superseded By,
   Related Intelligence, Required Reading, Supporting Documentation, Same Department, and Same
   Classification, grouped by type and shown only when data exists, replacing the earlier separate
-  Document Relationships and Intelligence Network cards), Knowledge Graph Viewer, and a Document
+  Document Relationships and Intelligence Network cards), a Revision History panel (v1.7: a real
+  Revision Number/Date/Author/Summary/Approval Status table parsed from the document body, newest
+  first, when one exists — falling back to the original single-revision snapshot for documents that
+  don't have one), Knowledge Graph Viewer, and a Document
   Actions bar — Add to Reading List, Favorite, Open Knowledge Graph, Share) is implemented and live.
 - The **homepage/categories page** also has a real Intelligence Dashboard (archive statistics), a
   Browse Archive section (tabbed: alphabetical Intelligence Index / year-grouped Intelligence
@@ -46,9 +49,17 @@ short:
   ARCHITECTURE.md for exactly what remains.
 - The **composer** (v1.1) shows a Document Author Assistant panel while creating a new topic or
   editing an existing document — real-time ✓/⚠ guidance on 9 metadata/structure items, read-only,
-  never blocking publishing.
-- **Staff tools** — a Document Integrity Dashboard (archive-wide metadata/reference audit) and a
-  System Status Dashboard (archive health summary) — are implemented, staff/admin-only.
+  never blocking publishing — and, for new topics only (v1.6), a Document Template Library picker:
+  select an official document type (Intelligence Brief, SOP, Policy Directive, Operations Manual,
+  Incident Report, Training Manual, Technical Specification, Executive Order, Corporate Charter)
+  and its standard structure (Executive Summary, Required Metadata checklist, standard sections,
+  Cross References, Related Documents, a Revision History table, Approval) is inserted — only into
+  an empty document, never overwriting content an author has already started. The panel also warns
+  (v1.7) if a document's Revision History table is missing, has duplicate or out-of-order revision
+  numbers, or is missing a revision's summary.
+- **Staff tools** — a Document Integrity Dashboard (archive-wide metadata/reference audit, plus
+  non-blocking informational checks for missing/duplicate/misordered Revision History as of v1.7)
+  and a System Status Dashboard (archive health summary) — are implemented, staff/admin-only.
 - **Member tools** — a global Command Palette (Ctrl+K/Cmd+K, expanded in v1.1 to reach Reading
   Lists, Favorites, Browse Archive, Knowledge Graph, and both staff dashboards), a Favorites panel
   (native Discourse bookmarks), and browser-local Reading Lists — are implemented.
@@ -60,9 +71,11 @@ short:
 On the **homepage** specifically (not category/tag pages): a cinematic Hero (v1.2), then a Mission
 Briefing section (v1.2), above everything else. On the **topic page**, in render order: Dossier
 Header, a Document Navigation Sidebar (v1.4), Security Banner, Executive Summary, the Document
-Intelligence Header (v1.3), Intelligence Relationships (v1.5), Knowledge Graph Viewer, a Document
+Intelligence Header (v1.3), Intelligence Relationships (v1.5), Revision History (v1.7), Knowledge
+Graph Viewer, a Document
 Actions bar, and (staff/debug-only) a Verification Panel and Debug Panel. In the **composer**: a
-Document Author Assistant panel (v1.1). Archive-wide, on the homepage/category pages: Intelligence
+Document Author Assistant panel (v1.1) and, for new topics only, a Document Template Library picker
+(v1.6). Archive-wide, on the homepage/category pages: Intelligence
 Dashboard, Browse Archive (tabbed Intelligence Index / Intelligence Timeline), Division Cards,
 Division Header. Available from
 anywhere: Command Palette, Favorites, Reading Lists. Staff-only: Document Integrity Dashboard, System
@@ -92,10 +105,11 @@ known limitation), and is the accurate source if this list and that document eve
   - `ddi-intelligence-archive-dashboard.md` — roadmap for the not-yet-built homepage dashboard.
   - `ddi-document-metadata-standard.md` — the formal metadata specification (Document Number,
     Classification, Department, Document Type, Lifecycle, etc.) every document is expected to
-    follow; reused directly by the Document Author Assistant (v1.1).
+    follow; reused directly by the Document Author Assistant (v1.1) and the Document Template
+    Library's "Required Metadata" checklist (v1.6).
   - `ddi-intelligence-search.md` — proposed structured search design, not yet built.
   - `ddi-revision-history.md` — design for the document-page Revision History component (built;
-    see ARCHITECTURE.md).
+    enhanced in v1.7 with a real, parsed multi-row revision table — see ARCHITECTURE.md).
   - `ddi-roadmap.md` — the prioritized backlog this and prior sessions have been working through.
 
 ## Installation
@@ -111,7 +125,7 @@ installed the way any Discourse theme is:
 
 ## Theme Settings
 
-Declared in `settings.yml` — 21 settings, 17 of them read by real code, 4 still reserved for planned
+Declared in `settings.yml` — 23 settings, 19 of them read by real code, 4 still reserved for planned
 work (not orphaned — see [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps--unwired-code) for which plan
 each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabled`,
 `ddi_interface_mode_enabled`) were removed in RC cleanup rather than kept as unaccountable toggles.
@@ -135,6 +149,8 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 | `ddi_document_intelligence_header_enabled` | bool | `true` | ✅ | Show the standardized Document Intelligence Header above every document |
 | `ddi_document_navigation_sidebar_enabled` | bool | `true` | ✅ | Show the live Document Navigation Sidebar (outline, active-section highlighting) on documents with headings |
 | `ddi_intelligence_relationships_enabled` | bool | `true` | ✅ | Show the Intelligence Relationships panel (grouped References/Supersedes/Superseded By/Related Intelligence/Required Reading/Supporting Documentation/Same Department/Same Classification) below the Document Intelligence Header |
+| `ddi_document_template_library_enabled` | bool | `true` | ✅ | Show the composer-time Document Template Library picker (new topics only) |
+| `ddi_document_revision_history_enabled` | bool | `true` | ✅ | Show the Revision History panel (parsed table, or the fallback single-revision snapshot) above every document |
 | `ddi_compact_density` | bool | `true` | reserved | Use compact dashboard spacing density |
 | `ddi_red_glow_strength` | enum (`low`/`medium`/`high`) | `medium` | reserved | Controls ambient red glow intensity |
 | `ddi_sidebar_command_panel_enabled` | bool | `true` | reserved | Enable command-panel sidebar presentation |
@@ -144,7 +160,7 @@ each of the 4 maps to). Two settings that had no such mapping (`ddi_header_enabl
 
 ```
 about.json            Theme metadata (name, version, authors)
-settings.yml           Theme settings (see above — 17 of 21 wired)
+settings.yml           Theme settings (see above — 19 of 23 wired)
 common/                Styles and templates applied on all devices
   common.scss           Main stylesheet — the live CSS token system and all component styling
   footer.html            Empty, but a valid, recognized template target (see Known Gaps in

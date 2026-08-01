@@ -139,10 +139,14 @@ All topic-page components follow the pattern above. In render order:
    `ddi-document-i` still precedes `ddi-document-r`), the same filename-ordering technique used
    throughout this outlet. See **Intelligence Relationships (v1.5)** below for the full reasoning and
    confidence caveats.
-9. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`) — Revision
-   Number, Last Updated, Author, Revision Status, and a static Revision Notes placeholder, derived
-   synchronously from the first post — no service, since nothing here needs async I/O or
-   cross-component reuse. Positioned directly below the Document Intelligence Header via
+9. **Revision History** (`connectors/topic-above-posts/ddi-document-revision-history.*`, enhanced
+   v1.7) — a real Revision Number/Date/Author/Summary/Approval Status table, newest revision first,
+   parsed from the document's own "## Revision History" body section when one exists; falls back to
+   the original single-row snapshot (derived from Discourse's own post-edit version counter) for any
+   document that doesn't have one. Still no service — parsing is synchronous and reuses the same
+   cooked-HTML parse other topic-page components already trigger for this post, no new fetch. See
+   **Revision History (v1.7)** below for the full reasoning. Positioned directly below the Document
+   Intelligence Header via
    filename-based outlet ordering (see `docs/ddi-intelligence-network.md` for the same technique
    applied elsewhere). RC cleanup re-verified the sort arithmetic itself is correct
    (`ddi-document-intelligence` < `ddi-document-revision-history`, confirmed
@@ -1889,8 +1893,9 @@ first keypress regardless of loading state.)
 
 A staff-only, read-only audit table: one row per detected issue across the whole archive — Missing
 Document Type / Classification / Lifecycle / Department, Duplicate Document Numbers, Invalid Cross
-References, Broken Related Document links. Not a second validation system: it runs the exact same
-checks already used elsewhere and reshapes their output into a table.
+References, Broken Related Document links, and (v1.7) Missing Revision History / Duplicate Revision
+Numbers / Invalid Revision Ordering. Not a second validation system: it runs the exact same checks
+already used elsewhere and reshapes their output into a table.
 
 **Reuses `lib/ddi-integrity.js` for the four "missing metadata" checks — does not reimplement
 them.** `services/ddi-integrity-dashboard.js` calls the same `verifyDocumentIntegrity(metadata)`
@@ -1917,6 +1922,20 @@ that set falls back to `ddiCitationPreview.getCitationById()` (the same cached l
 Preview and Favorites already use) before being called broken — this matters because the dashboard
 only scans one page's worth of documents (see limitation below), so a reference to an older document
 that's still real, just not on that page, is not a false positive.
+
+**Missing Revision History / Duplicate Revision Numbers / Invalid Revision Ordering (v1.7) reuse the
+revision table already parsed once per document — zero new fetches, zero new cooked-HTML parses.**
+`_toDocument()` now parses each document's cooked HTML exactly once and reuses that single parsed
+`Document` for both the existing `.textContent` extraction (cross-reference/relationship scanning,
+unchanged) and `lib/ddi-revision-table.js#parseCookedRevisionTable()` (new) — not a second call to
+`parseCookedHtml()`. The three checks themselves call `lib/ddi-revision-table.js`'s own
+`findDuplicateRevisionNumbers()`/`isRevisionOrderValid()` — the exact same functions Author Assistant
+calls against a composer draft (see **Document Author Assistant** above) and the Document View panel
+calls for a single document (see **Revision History (v1.7)** below) — against the already-parsed
+rows, synchronously, with no `await` needed for this part of `_buildIssues()`. All three are "Low"
+severity: the task that requested them called them "non-blocking informational checks," and "Low" is
+this dashboard's existing least-severe tier (already used by Missing Lifecycle) rather than a new
+5th tier invented for just these three.
 
 **Duplicate Document Numbers is a defensive check against a condition the current ID scheme can't
 actually produce.** `documentNumber` is `formatDocumentId(topic.id)` — derived 1:1 from each topic's
@@ -2908,11 +2927,13 @@ connector and every touched file; `settings.yml` re-validated as valid YAML.
 ## Document Author Assistant
 
 A lightweight, composer-time guidance panel — not a workflow engine, not a gate. While an author is
-creating a new topic or editing an existing document's first post, it lists 9 items and marks each
-✓ Valid or ⚠ Needs attention as the draft changes: Document Number, Classification, Department,
-Document Type, Lifecycle, Executive Summary, H2 Sections, Cross References, Related Documents. It
-never blocks publishing and never rewrites anything the author typed — pure read-only feedback,
-consistent with `ddi-document-metadata-standard.md`'s own fields.
+creating a new topic or editing an existing document's first post, it lists 9 fixed items plus up to
+4 more revision-table items (v1.7, only shown once a revision table exists — see below) and marks
+each ✓ Valid or ⚠ Needs attention as the draft changes: Document Number, Classification, Department,
+Document Type, Lifecycle, Executive Summary, H2 Sections, Cross References, Related Documents, and
+(conditionally) Revision Table, Revision Numbers, Revision Order, Revision Summaries. It never blocks
+publishing and never rewrites anything the author typed — pure read-only feedback, consistent with
+`ddi-document-metadata-standard.md`'s own fields.
 
 **First feature in this theme to touch the composer at all.** Every prior connector reads from a
 published topic (`args.model`, a `Topic`); a draft has no topic yet if the author is creating one,
@@ -3559,6 +3580,240 @@ verified at those widths.
 one-toggle-per-feature convention every prior release in this theme has followed — see **Known Gaps /
 Unwired Code** below for the updated settings count.
 
+## Document Template Library (v1.6)
+
+A composer-time template picker (`connectors/composer-fields/ddi-document-template-library.*`) —
+select an official DDI document type, get its standard structure inserted into a brand-new
+document. An authoring enhancement, not a reader-facing one: nothing about the topic page, the
+homepage, or any existing navigation panel changed for this feature.
+
+**Nine templates, one shared builder, not nine copy-pasted strings.**
+`lib/ddi-document-templates.js`'s `buildTemplateBody()` assembles every template from the same
+boilerplate (Executive Summary, Required Metadata, Cross References, Related Documents, Revision
+History, Approval) wrapped around each template's own short list of standard section headings —
+adding a future template means adding one `{ type, label, sections }` entry to
+`TEMPLATE_DEFINITIONS`, nothing else. This is a plain string builder, not a second templating
+engine: no variable interpolation beyond a template's own label, no conditionals or loops an
+author would ever write against, satisfying "do not introduce another template engine" by keeping
+this well short of being one.
+
+**Every template's `type` is a real, current `DOCUMENT_TYPES` slug, checked at module load, not
+trusted by convention.** `lib/ddi-document-type.js`'s existing closed vocabulary is imported and
+reused directly (`briefing`, `procedure`, `policy`, `manual`, `incident-report`, `training-guide`,
+`technical-spec`, `directive`, `charter`) — no parallel type list, and `TEMPLATE_DEFINITIONS.forEach`
+throws immediately at load time if a future template entry ever names a slug that isn't valid,
+rather than failing silently the first time something else calls `isValidDocumentType()` on it.
+The task's own example names don't map 1:1 onto this vocabulary's exact spelling — the mapping is a
+judgment call, not a literal name match: Intelligence Brief → `briefing`, Standard Operating
+Procedure → `procedure`, Policy Directive → `policy`, Operations Manual → `manual`, Incident Report
+→ `incident-report` (exact), Training Manual → `training-guide`, Technical Specification →
+`technical-spec`, Executive Order → `directive`, Corporate Charter → `charter` (exact). Every one
+reuses an already-existing slug; none required extending the vocabulary.
+
+**Metadata fields that live in tags/category, not body text, are a checklist in the template, not
+something the template sets.** Per `docs/ddi-document-metadata-standard.md`, Classification,
+Department, Document Type, and Lifecycle are Discourse tags/category, not parseable body text —
+each generated template's "Required Metadata" section is a plain reminder list telling the author
+which composer field to set, not data any parser reads. The one exception is Document Type: since
+the author already told this feature what type they want by picking a template, selecting one also
+sets that tag directly (see below) — reusing that answer rather than asking the author to state it
+twice.
+
+**Selecting a template updates the Document Type tag, reusing the exact "one Document Type tag"
+convention the Metadata Engine and Author Assistant already read.**
+`ddi-document-metadata.js#_resolve()` and `ddi-document-author-assistant.js` both derive Document
+Type as `tags.find((tag) => isValidDocumentType(tag))` — singular, first match. Applying a template
+filters out any *other* valid document-type tag already present and appends the new one
+(`otherTags.filter((tag) => !isValidDocumentType(tag))`, then append), so switching templates mid-
+draft swaps the tag rather than leaving two conflicting document-type tags behind. Every other tag
+(Classification, Lifecycle, anything else) is left untouched.
+
+**"Only prefill new documents" is enforced by never rendering the picker at all when editing, not
+by a runtime overwrite check.** `model.creatingTopic` gates the whole connector — an existing
+document's first post always has real content already, so there is nothing this feature needs to
+protect there; the picker simply doesn't exist in that context. Within "new topic" itself, a second,
+narrower guard still applies before writing to the body: `(model.reply || "").trim().length > 0`
+skips the `model.set("reply", template.body)` call (an author may have started typing before opening
+the picker) but still updates the Document Type tag either way — changing your mind about intended
+type before submitting isn't the "existing content" this requirement is protecting, only the body
+text is. A status line (`"X template inserted."` / `"X tagged — not inserted, this document already
+has content."`) tells the author which branch happened rather than silently no-op-ing.
+
+**No accidental cross-references or relationship declarations ship inside a fresh template — verified
+directly against the real detection regexes, not assumed.** The Related Documents section lists all
+6 `RELATIONSHIP_TYPES` labels (`References`, `Supersedes`, `Superseded By`, `Related Intelligence`,
+`Required Reading`, `Supporting Documentation`) with a placeholder document number after each, and
+the Cross References section names the same syntax in prose — both deliberately spell the
+placeholder as `DDI-NNNNNN` (letters, not digits). `lib/ddi-cross-reference.js`'s
+`REFERENCE_PATTERN` (`/\bDDI-\d{6}(?!\d)/g`) requires 6 literal digits, so this placeholder cannot
+match it or `lib/ddi-relationship.js`'s declaration parser (which calls the same digit-matching
+function on each labeled line's captured text) — a freshly inserted template registers zero cross
+references and zero declared relationships until an author replaces a placeholder with a real
+number, exactly the same "many legitimate documents have none yet" state Author Assistant/Document
+Relationships/Cross References already treat as normal, not an error.
+
+**Every generated document is structured so the Executive Summary, H2, and relationship checks all
+read exactly what the template intends.** Executive Summary is the very first heading in every
+template — nothing precedes it — so `connectors/topic-above-posts/ddi-executive-summary.js`'s "first
+`<p>` in cooked HTML" extraction and Author Assistant's "first non-heading, non-list-item raw line"
+check both land on the same placeholder paragraph, by construction rather than by coincidence of
+Markdown list-tightness rendering. Every template has multiple `## ` headings, satisfying Author
+Assistant's H2 Sections check and giving Document Navigation Sidebar (v1.4) a real outline to build
+from the moment a template is inserted — a heading it built to read `.cooked h2`/`h3` already, no
+change needed there.
+
+**No API requests, no dynamic generation, no additional observers — templates are static strings,
+picked from a native `<select>`.** `DOCUMENT_TEMPLATES` is computed once at module load and never
+touched again; `setupComponent` reads `service:composer`'s already-resolved model once and wires a
+single `{{on "change"}}` handler — no `addObserver`/`IntersectionObserver`/polling of any kind, a
+deliberate contrast with Author Assistant's own observer-driven panel in the very same
+`composer-fields` outlet, since this feature only ever needs to react to one explicit user action,
+not continuously re-derive state as the author types.
+
+**Accessibility reuses native form semantics rather than a custom widget.** A real `<label for>` /
+`<select id>` pair (keyboard-operable, screen-reader-labeled, with the composer's own existing focus
+styles/tab order applying automatically) — no custom listbox, no ARIA reimplementation of what an
+`<option>` already provides. The label reuses `.ddi-nav-section-label` (Command Palette's own
+caption style) rather than a new one.
+
+**Confidence caveat: writing to the Composer model, not just reading it, is untested against a live
+instance.** Every prior composer-touching feature (Author Assistant) only ever reads `model.reply`/
+`model.tags`/etc.; this is the first time any connector in this theme calls `model.set(...)` on it.
+`reply`/`tags` are standard, long-documented Discourse `Composer` model properties and the D-editor
+textarea is expected to be reactively bound to `reply` the same way toolbar/quote-insertion features
+already rely on, but this wasn't confirmed against a running Discourse instance, the same class of
+caveat already carried for `creatingTopic`/`editingFirstPost` above.
+
+**Verified directly, not just claimed.** Loaded the actual `ddi-document-templates.js` alongside the
+real `lib/ddi-document-type.js`, `lib/ddi-cross-reference.js`, and `lib/ddi-relationship.js` (not
+reimplementations) and exercised all 9 generated templates: valid `DOCUMENT_TYPES` slug; a real
+prose paragraph present (Executive Summary check); at least one H2 (H2 Sections check); zero
+cross-references detected; zero relationship declarations detected; Executive Summary is the first
+heading in the body; and all 6 relationship labels present verbatim. Caught and fixed before
+shipping: an early draft joined each template's unique section blocks with a single `\n`, not
+`\n\n`, leaving no blank line between one section's placeholder and the next section's heading — a
+real Markdown-formatting bug, fixed by joining with `\n\n` like every other block in the builder. A
+second simulation exercised the connector's actual `applyTemplate` closure against a mocked
+composer model: an empty new draft (template inserted, tag set); a draft with existing content (tag
+still updated, body left untouched, correct status message); switching template type mid-draft
+(old document-type tag dropped, unrelated tags kept, new tag added); and the placeholder `""`
+option (no-op, no crash). `node --check` clean on both new files; `sass` compiles `common/common.scss`
+cleanly; `settings.yml` re-validated as YAML (22 settings); a repository-wide duplicate-selector
+scan and an unused-import/orphan-export sweep found nothing new.
+
+**Responsive behavior is inherited, not newly built.** The `<select>` is `width: 100%` inside
+`.ddi-card`'s existing responsive padding (already tightened below 600px archive-wide, and further
+tightened to `.ddi-author-assistant`'s own composer-specific margin/padding directly above, reused
+verbatim here) — nothing about this feature's layout is breakpoint-specific, so there is no new
+breakpoint to verify beyond confirming the existing rules still apply, which the `sass` compile
+above already confirms structurally.
+
+**Gated by `ddi_document_template_library_enabled` (`settings.yml`, default `true`)**, the same
+one-toggle-per-feature convention every prior release has followed — see **Known Gaps / Unwired
+Code** below for the updated settings count.
+
+## Revision History (v1.7)
+
+A structured, multi-row revision table — Revision Number, Date, Author, Summary, Approval Status —
+supplementing the archive's metadata, not replacing Discourse's own native post-edit history. Three
+consumers, one parser: the composer (Author Assistant warnings), the Document View panel
+(`connectors/topic-above-posts/ddi-document-revision-history.*`, enhanced), and the Integrity
+Dashboard (archive-wide informational checks, see above).
+
+**One shared parser, two source-format adapters — not two parsers.**
+`lib/ddi-revision-table.js`'s `buildRevisionRows()`/`normalizeRow()` is the only code anywhere in
+this theme that turns raw table cells into a `{ revisionNumber, date, author, summary,
+approvalStatus }` object; every consumer goes through it. Two thin extraction functions feed it,
+one per source representation this feature has to read from: `parseMarkdownRevisionTable()` scans
+raw composer draft text for a pipe-table under a "## Revision History" heading (the same
+"operate on source text directly" approach Author Assistant's other checks already use), and
+`parseCookedRevisionTable()` walks an already-parsed cooked-HTML `Document`'s real `<table>` DOM
+looking for the same heading. Two adapters exist because a `<table>`'s own `.textContent` drops
+cell boundaries entirely (`"R1.02026-07-30Executive Command…"`, unusable) — unlike inline
+`DDI-NNNNNN` mentions, a table genuinely can't be read with the same single text-scanning
+technique regardless of source format. Both still resolve to the exact same 5-field row shape.
+
+**Composer support reuses the v1.6 Template Library outright — no new insertion path.** The
+"## Revision History" section every generated template already includes (see **Document Template
+Library (v1.6)** above) was updated to the 5-column schema this feature defines
+(`Revision Number | Date | Author | Summary | Approval Status`) with one static placeholder row
+(`R1.0`, blank date/author/status placeholders, a fixed "Initial publication." summary) — "only
+generate the initial row" is satisfied by that template never having generated more than one row in
+the first place, and "do not overwrite existing revisions" was already guaranteed by v1.6's own
+empty-document-only insertion guard (see that section), unchanged here.
+
+**Document View panel: real table when one exists, the original single-row snapshot when one
+doesn't — verified both ways, not just the new path.** `setupComponent` calls `parseCookedHtml()`
+(the same LRU-cached parser Document Relationships/Intelligence Relationships already call for this
+exact post) once, then `parseCookedRevisionTable()` on that result. If the body has a table, every
+row renders, newest first (`getRevisionsNewestFirst()` — simply reverses source order, since an
+author naturally appends new revisions at the bottom; this needs no revision-number parsing to work,
+unlike the ordering *validation* check below). If not — every document published before this feature
+existed, or any that simply never added a table — it falls back to exactly the fields this connector
+displayed before v1.7 (`metadata.revision`, `metadata.updatedDate`, `metadata.author`,
+`metadata.status`, the same static "No revision notes recorded." text), reusing the Metadata Engine's
+already-computed values rather than inventing a second way to answer "what's this document's current
+revision." This is what "verify existing documents" resolves to: a document with no revision table
+looks exactly as it always has.
+
+**"Display it cleanly without unnecessary controls" for a single revision is satisfied by never
+building controls in the first place**, not by hiding some behind a conditional — there is no
+pagination, expand/collapse, or "show more" anywhere in this panel regardless of row count; a
+`<caption>` reading "1 revision" or "N revisions" is the only count-dependent element, and it's
+there for every count, not specifically added for the single-row case.
+
+**Ordering validation treats revision numbers as an optional major.minor scheme it can parse, not a
+required one.** `isRevisionOrderValid()` accepts an optional leading `R` followed by dot-separated
+integers (`R1.0`, `R2.3`, `1.0`) and compares stored (chronological, oldest-first) order the way
+semantic-version segments compare; a revision number outside that shape (free-form text) is skipped
+rather than treated as a failure — the same fail-gracefully convention Author Assistant's other soft
+checks already use, chosen because forcing every author to use a specific numbering scheme wasn't
+asked for, only detecting when a *parseable* one goes backward.
+
+**Author Assistant's 4 checks are conditional, not always-shown, and reuse this file's exact
+functions — see the updated count in Document Author Assistant above.** "Revision Table" always
+shows (PASS/WARN); "Revision Numbers," "Revision Order," and "Revision Summaries" only appear once
+`parseMarkdownRevisionTable()` finds at least one row — showing all 4 unconditionally would mean the
+latter three always reading "nothing to check" until an author adds a table, three redundant restatements
+of what the first check already says.
+
+**Accessibility: real table markup, not a styled grid.** `<table>` with `<caption>`, `<thead><tr>
+<th scope="col">`, and `<tbody><tr><th scope="row">` for each row's own revision number plus `<td>`
+for the rest — proper semantics for a screen reader to announce row/column relationships, distinct
+from every other tabular-looking display in this theme (`.ddi-intel-grid`/`.ddi-dossier-grid`),
+which are styled `<div>` grids, not real tables, because none of them needed row/column semantics
+for genuinely multi-row data the way this feature does. Approval Status reuses `.ddi-search-badge`
+verbatim (this theme's existing metadata-badge component) rather than new cell styling.
+
+**Responsive via a scroll container, not column collapsing.** `.ddi-revision-table-wrap` is
+`overflow-x: auto`; five columns of tabular data don't reflow sensibly into fewer columns the way
+`.ddi-intel-grid`'s uniform metadata cells do, so this feature scrolls horizontally at narrow widths
+instead, with a tightened `padding`/`font-size` pass below 600px (the same breakpoint every other
+mobile-tightening rule in this stylesheet already uses).
+
+**Verified directly, not just claimed.** Loaded the actual `ddi-revision-table.js` and exercised:
+a well-formed markdown table (2 rows, correct cells); a heading with no table before the next
+heading (empty result, not a crash); no heading at all (empty result); duplicate/missing-summary
+detection on hand-built rows; valid, invalid, and unparseable-revision-number ordering cases; and
+newest-first reversal. A mocked-DOM pass exercised `parseCookedRevisionTable()` against a fake
+heading/table/row/cell tree (found correctly; empty when no heading; empty when no table before the
+next heading). A separate simulation loaded the real `buildAuthorAssistantChecks()` against an empty
+draft, a well-formed revision table, and a table with duplicate/out-of-order/missing-summary rows —
+all 4 checks read exactly as expected in each case. A third simulation loaded the real
+`_revisionIssues()` logic against mocked documents with no table, a valid table, and a bad table —
+correct issue types, correct severities, correct suggested-fix text. All 9 Template Library templates
+re-verified to each produce exactly one valid, parseable initial revision row (`R1.0`) after the
+column-schema change. `node --check` clean on every touched/new file; `sass` compiles
+`common/common.scss` cleanly; `settings.yml` re-validated as YAML (23 settings); a repository-wide
+duplicate-selector scan and an unused-import/orphan-export sweep found nothing new. No new backend
+API, no new topic custom field, no archive rescan — the Integrity Dashboard's existing single scan
+now also answers three more questions per document it was already fetching.
+
+**Gated by `ddi_document_revision_history_enabled` (`settings.yml`, default `true`)** — a setting
+this connector never had before, added now following the same one-toggle-per-feature convention
+every other release has used, rather than leaving a meaningfully upgraded feature permanently
+un-toggleable.
+
 ## CSS Architecture
 
 `common/common.scss` is the only stylesheet actually compiled into the theme (via `desktop.scss`
@@ -3597,9 +3852,10 @@ was verified by grepping for references — not assumed.
   which were never valid filenames at all), so there's nothing broken about it; it's just unpopulated.
   Deleting a valid-but-empty file provides no runtime benefit, since present-and-empty and
   absent-entirely compile identically.
-- **`settings.yml` — 21 settings, 17 wired, 4 reserved. (Corrected during the Version 1.0 RC audit,
+- **`settings.yml` — 23 settings, 19 wired, 4 reserved. (Corrected during the Version 1.0 RC audit,
   the Version 1.1 release audit, and again as of the Homepage Hero, Mission Briefing, Document
-  Intelligence Header, Document Navigation Sidebar, and Intelligence Relationships (v1.2–v1.5) —
+  Intelligence Header, Document Navigation Sidebar, Intelligence Relationships, Document
+  Template Library, and Revision History (v1.2–v1.7) —
   this bullet previously described a 6-settings/1-wired snapshot from before Intelligence Index,
   Timeline, Knowledge Graph Viewer, Reading Lists, Integrity Dashboard, and System Status existed;
   each of those six shipped with its own settings gate, and this summary was never updated to match.
@@ -3610,7 +3866,7 @@ was verified by grepping for references — not assumed.
   design describing what conditional behavior they'd control, and the behavior they name (the header
   shell, "v0.2.0 interface overrides") is unconditionally active today with no described "off" state
   anywhere in this repo's history.
-  - **Wired (17):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
+  - **Wired (19):** `ddi_debug_mode_enabled` (Debug Mode), `ddi_homepage_dashboard_enabled`
     (Intelligence Dashboard), `ddi_intelligence_index_enabled` (Browse Archive's "All Documents"
     tab), `ddi_timeline_view_enabled` (Browse Archive's "By Year" tab), `ddi_knowledge_graph_viewer_enabled`
     (Knowledge Graph Viewer), `ddi_reading_lists_enabled` (Reading Lists),
@@ -3622,7 +3878,9 @@ was verified by grepping for references — not assumed.
     v1.2), `ddi_mission_briefing_enabled` (Mission Briefing, v1.2),
     `ddi_document_intelligence_header_enabled` (Document Intelligence Header, v1.3),
     `ddi_document_navigation_sidebar_enabled` (Document Navigation Sidebar, v1.4),
-    `ddi_intelligence_relationships_enabled` (Intelligence Relationships, v1.5 — see that
+    `ddi_intelligence_relationships_enabled` (Intelligence Relationships, v1.5),
+    `ddi_document_template_library_enabled` (Document Template Library, v1.6),
+    `ddi_document_revision_history_enabled` (Revision History, v1.7 — see that
     section above).
   - **Reserved, not wired (4):** `ddi_compact_density` and `ddi_red_glow_strength` —
     `docs/ddi-intelligence-archive-dashboard.md`'s Phase 6 explicitly names both for the dashboard's

@@ -1,0 +1,36 @@
+{{#if this.isVisible}}
+  <div class="ddi-card ddi-document-template-library">
+
+    <div class="ddi-card-title">
+      DOCUMENT TEMPLATE LIBRARY
+    </div>
+
+    <label
+      for="ddi-document-template-select"
+      class="ddi-nav-section-label"
+    >
+      Document Type Template
+    </label>
+
+    <select
+      id="ddi-document-template-select"
+      class="ddi-document-template-library-select"
+      {{on "change" this.handleSelectChange}}
+    >
+      <option value="">Select a document type…</option>
+      {{#each this.templates as |template|}}
+        <option value={{template.type}}>{{template.label}}</option>
+      {{/each}}
+    </select>
+
+    <p class="ddi-document-template-library-hint">
+      {{#if this.statusMessage}}
+        {{this.statusMessage}}
+      {{else}}
+        Inserts the standard structure for the selected document type. Only prefills an empty
+        document — existing content is never overwritten.
+      {{/if}}
+    </p>
+
+  </div>
+{{/if}}

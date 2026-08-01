@@ -6,6 +6,12 @@ import { formatDocumentId } from "./ddi-document-id";
 import { findDocumentReferences } from "./ddi-cross-reference";
 import { findDocumentRelationships } from "./ddi-relationship";
 import {
+  parseMarkdownRevisionTable,
+  findDuplicateRevisionNumbers,
+  isRevisionOrderValid,
+  findRowsMissingSummary,
+} from "./ddi-revision-table";
+import {
   result,
   checkClassification,
   checkDepartment,
@@ -100,6 +106,55 @@ function checkRelatedDocuments(raw) {
   );
 }
 
+// Version 1.7: reuses lib/ddi-revision-table.js's own parser/validators —
+// the same functions the Document View panel and Integrity Dashboard call
+// against a published document's cooked HTML, run here against the raw
+// draft instead (the same "one parser, two source representations"
+// approach findDocumentReferences/findDocumentRelationships already use).
+// The 3 sub-checks (numbers, order, summaries) are only meaningful once a
+// table actually exists — showing them as an always-present PASS/WARN pair
+// would just repeat "no table found" three more times, so they're omitted
+// entirely rather than checked against nothing.
+function checkRevisionHistory(raw) {
+  const rows = parseMarkdownRevisionTable(raw);
+
+  const tableCheck = result(
+    "Revision Table",
+    rows.length > 0,
+    `${rows.length} revision${rows.length === 1 ? "" : "s"} recorded.`,
+    'No revision table found — add a "## Revision History" section with a Revision Number/Date/Author/Summary/Approval Status table.'
+  );
+
+  if (rows.length === 0) {
+    return [tableCheck];
+  }
+
+  const duplicates = findDuplicateRevisionNumbers(rows);
+  const duplicateCheck = result(
+    "Revision Numbers",
+    duplicates.length === 0,
+    "No duplicate revision numbers.",
+    `Duplicate revision number(s): ${duplicates.join(", ")}.`
+  );
+
+  const orderCheck = result(
+    "Revision Order",
+    isRevisionOrderValid(rows),
+    "Revision numbers are in ascending order.",
+    "Revision numbers are not in ascending order — check for a misplaced or out-of-sequence row."
+  );
+
+  const missingSummaryRows = findRowsMissingSummary(rows);
+  const summaryCheck = result(
+    "Revision Summaries",
+    missingSummaryRows.length === 0,
+    "Every revision has a summary.",
+    `${missingSummaryRows.length} revision${missingSummaryRows.length === 1 ? "" : "s"} missing a summary.`
+  );
+
+  return [tableCheck, duplicateCheck, orderCheck, summaryCheck];
+}
+
 // Adapts composer draft state into the same { tags, classification,
 // department, departmentDisplay, documentType, lifecycle } shape
 // services/ddi-document-metadata.js#_resolve() builds for a real topic, so
@@ -137,6 +192,7 @@ export function buildAuthorAssistantChecks({
     checkH2Sections(raw),
     checkCrossReferences(raw),
     checkRelatedDocuments(raw),
+    ...checkRevisionHistory(raw),
   ];
 
   // checkClassification/checkDepartment/checkDocumentType/checkLifecycle

@@ -7,6 +7,11 @@ import { findDocumentReferences } from "../lib/ddi-cross-reference";
 import { findDocumentRelationships } from "../lib/ddi-relationship";
 import { formatDocumentId } from "../lib/ddi-document-id";
 import {
+  parseCookedRevisionTable,
+  findDuplicateRevisionNumbers,
+  isRevisionOrderValid,
+} from "../lib/ddi-revision-table";
+import {
   ISSUE_TYPES,
   buildIssue,
   sortIssuesBySeverity,
@@ -80,6 +85,7 @@ export default class DdiIntegrityDashboardService extends Service {
     const issues = [
       ...documents.flatMap((doc) => this._metadataIssues(doc)),
       ...this._duplicateIssues(documents),
+      ...documents.flatMap((doc) => this._revisionIssues(doc)),
     ];
 
     const [crossReferenceIssues, relationshipIssues] = await Promise.all([
@@ -135,13 +141,18 @@ export default class DdiIntegrityDashboardService extends Service {
       this._adaptTopic(topic)
     );
 
+    // Parsed exactly once and reused for both .textContent (cross-
+    // reference/relationship scanning, unchanged) and the revision table
+    // (new in v1.7) — not a second parse of the same cooked HTML.
+    const parsed = parseCookedHtml(topic.post_stream?.posts?.[0]?.cooked);
+
     return {
       topicId: topic.id,
       title: topic.title,
       url: topic.slug ? `/t/${topic.slug}/${topic.id}` : `/t/${topic.id}`,
       metadata,
-      text: parseCookedHtml(topic.post_stream?.posts?.[0]?.cooked)?.body
-        ?.textContent,
+      text: parsed?.body?.textContent,
+      revisions: parseCookedRevisionTable(parsed),
     };
   }
 
@@ -218,6 +229,57 @@ export default class DdiIntegrityDashboardService extends Service {
         );
       });
     });
+
+    return issues;
+  }
+
+  // Reuses lib/ddi-revision-table.js's own parser/validators — the exact
+  // functions Author Assistant and the Document View panel already call —
+  // against doc.revisions, itself already parsed once in _toDocument()
+  // above. No archive rescan, no second cooked-HTML parse, no new network
+  // request: every input here was already fetched/parsed for
+  // _metadataIssues/_crossReferenceIssues on the same document.
+  _revisionIssues(doc) {
+    const rows = doc.revisions || [];
+    const documentNumber =
+      doc.metadata?.documentNumber || formatDocumentId(doc.topicId);
+
+    if (rows.length === 0) {
+      return [
+        buildIssue({
+          documentNumber,
+          title: doc.title,
+          url: doc.url,
+          issueType: ISSUE_TYPES.MISSING_REVISION_HISTORY,
+        }),
+      ];
+    }
+
+    const issues = [];
+    const duplicates = findDuplicateRevisionNumbers(rows);
+
+    if (duplicates.length) {
+      issues.push(
+        buildIssue({
+          documentNumber,
+          title: doc.title,
+          url: doc.url,
+          issueType: ISSUE_TYPES.DUPLICATE_REVISION_NUMBER,
+          detail: `Revision number(s) repeated: ${duplicates.join(", ")}.`,
+        })
+      );
+    }
+
+    if (!isRevisionOrderValid(rows)) {
+      issues.push(
+        buildIssue({
+          documentNumber,
+          title: doc.title,
+          url: doc.url,
+          issueType: ISSUE_TYPES.INVALID_REVISION_ORDER,
+        })
+      );
+    }
 
     return issues;
   }

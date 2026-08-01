@@ -6,6 +6,9 @@ export const ISSUE_TYPES = Object.freeze({
   DUPLICATE_DOCUMENT_NUMBER: "Duplicate Document Number",
   INVALID_CROSS_REFERENCE: "Invalid Cross Reference",
   BROKEN_RELATED_LINK: "Broken Related Document Link",
+  MISSING_REVISION_HISTORY: "Missing Revision History",
+  DUPLICATE_REVISION_NUMBER: "Duplicate Revision Numbers",
+  INVALID_REVISION_ORDER: "Invalid Revision Ordering",
 });
 
 const SEVERITY = {
@@ -16,6 +19,13 @@ const SEVERITY = {
   [ISSUE_TYPES.DUPLICATE_DOCUMENT_NUMBER]: "Critical",
   [ISSUE_TYPES.INVALID_CROSS_REFERENCE]: "Medium",
   [ISSUE_TYPES.BROKEN_RELATED_LINK]: "Medium",
+  // Version 1.7's own 3 checks are explicitly "non-blocking informational"
+  // per the task that requested them — the least severe existing tier
+  // ("Low", already used by Missing Lifecycle above) rather than a new
+  // 5th tier invented just for these three.
+  [ISSUE_TYPES.MISSING_REVISION_HISTORY]: "Low",
+  [ISSUE_TYPES.DUPLICATE_REVISION_NUMBER]: "Low",
+  [ISSUE_TYPES.INVALID_REVISION_ORDER]: "Low",
 };
 
 const SUGGESTED_FIX = {
@@ -32,6 +42,12 @@ const SUGGESTED_FIX = {
     "Correct or remove the reference — the cited document number does not exist.",
   [ISSUE_TYPES.BROKEN_RELATED_LINK]:
     "Correct or remove the declared relationship — the target document does not exist.",
+  [ISSUE_TYPES.MISSING_REVISION_HISTORY]:
+    'Add a "## Revision History" section with a Revision Number/Date/Author/Summary/Approval Status table.',
+  [ISSUE_TYPES.DUPLICATE_REVISION_NUMBER]:
+    "Give each revision row a unique revision number.",
+  [ISSUE_TYPES.INVALID_REVISION_ORDER]:
+    "Reorder or correct the revision numbers so they increase from top to bottom.",
 };
 
 const SEVERITY_ORDER = ["Critical", "High", "Medium", "Low"];
